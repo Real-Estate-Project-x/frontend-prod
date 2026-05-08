@@ -235,7 +235,19 @@ const closeReportModal = () => {
           </div>
           <div class="flex gap-2">
             <button id="favBtn" onclick={toggleFavourite} class="w-9 h-9 rounded-full border border-chalk-3 dark:border-white/[.1] flex items-center justify-center cursor-pointer hover:border-rose-400 hover:text-rose-400 tt bg-transparent text-chalk-muted dark:text-[#6A7FA0]" title="Save property">
-              <svg id="heartIcon" width="15" height="15" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M10 17C10 17 2 12 2 6.5A4.5 4.5 0 0110 3.5 4.5 4.5 0 0118 6.5C18 12 10 17 10 17z" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            {#if isFavourite}
+              <svg id="heartIcon" width="15" height="15" viewBox="0 0 20 20" fill="#E53E3E" stroke="#E53E3E" stroke-width="1.5">
+                <path d="M10 17C10 17 2 12 2 6.5A4.5 4.5 0 0110 3.5 4.5 4.5 0 0118 6.5C18 12 10 17 10 17z" 
+                  stroke-linecap="round" 
+                  stroke-linejoin="round" />
+              </svg>
+            {:else}
+              <svg id="heartIcon" width="15" height="15" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5">
+                <path d="M10 17C10 17 2 12 2 6.5A4.5 4.5 0 0110 3.5 4.5 4.5 0 0118 6.5C18 12 10 17 10 17z" 
+                  stroke-linecap="round" 
+                  stroke-linejoin="round" />
+              </svg>
+            {/if}
             </button>
             <button onclick={shareProperty} class="w-9 h-9 rounded-full border border-chalk-3 dark:border-white/[.1] flex items-center justify-center cursor-pointer hover:border-navy-dark hover:text-navy-dark dark:hover:text-white tt bg-transparent text-chalk-muted dark:text-[#6A7FA0]" title="Share">
               <svg width="14" height="14" viewBox="0 0 20 20" fill="none"><circle cx="15" cy="4" r="2" stroke="currentColor" stroke-width="1.4"/><circle cx="5" cy="10" r="2" stroke="currentColor" stroke-width="1.4"/><circle cx="15" cy="16" r="2" stroke="currentColor" stroke-width="1.4"/><path d="M7 9l6-3.5M7 11l6 3.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
@@ -645,6 +657,17 @@ const closeReportModal = () => {
             </div>
             <p class="text-[13px] font-light text-chalk-muted dark:text-[#6A7FA0] leading-[1.75]">Buying from the UK, the virtual tour was a lifesaver. The agent walked me through every room, answered all my questions, and had the documents ready immediately. The whole process was smooth. Highly recommend Blupodd for diaspora buyers.</p>
             <span class="inline-block mt-2.5 text-[10px] font-medium tracking-[.06em] uppercase px-2.5 py-[3px] rounded-full bg-blue-bright/10 text-blue-link dark:text-blue-bright">Diaspora buyer</span>
+          </div>
+
+          <!-- Reviews pagination -->
+          <div class="flex items-center justify-center gap-1.5 p-4 border-t border-chalk-3 dark:border-white/[0.08]">
+            <button class="flex items-center gap-1 px-3 h-8 rounded-lg border border-chalk-3 dark:border-white/10 text-[11px] text-chalk-muted dark:text-[#6A7FA0] hover:border-navy-dark dark:hover:border-white/30 tt bg-transparent cursor-pointer"><svg width="10" height="10" viewBox="0 0 12 12" fill="none"><path d="M8 2L4 6l4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>Prev</button>
+            <button class="w-8 h-8 rounded-lg bg-navy-dark text-white text-[12px] border border-navy-dark cursor-pointer">1</button>
+            <button class="w-8 h-8 rounded-lg border border-chalk-3 dark:border-white/10 text-[12px] text-chalk-muted dark:text-[#6A7FA0] hover:border-navy-dark tt bg-transparent cursor-pointer">2</button>
+            <button class="w-8 h-8 rounded-lg border border-chalk-3 dark:border-white/10 text-[12px] text-chalk-muted dark:text-[#6A7FA0] hover:border-navy-dark tt bg-transparent cursor-pointer">3</button>
+            <span class="text-chalk-muted dark:text-[#6A7FA0] text-[12px] px-1">…</span>
+            <button class="w-8 h-8 rounded-lg border border-chalk-3 dark:border-white/10 text-[12px] text-chalk-muted dark:text-[#6A7FA0] hover:border-navy-dark tt bg-transparent cursor-pointer">6</button>
+            <button class="flex items-center gap-1 px-3 h-8 rounded-lg border border-chalk-3 dark:border-white/10 text-[11px] text-chalk-muted dark:text-[#6A7FA0] hover:border-navy-dark dark:hover:border-white/30 tt bg-transparent cursor-pointer">Next<svg width="10" height="10" viewBox="0 0 12 12" fill="none"><path d="M4 2l4 4-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></button>
           </div>
         </div>
       </div>

@@ -137,12 +137,6 @@
     }
   
     function submitBooking() {
-      if (!name.trim()) { triggerShake('name'); showToast('Please enter your name'); return; }
-      if (!phone.trim()) { triggerShake('phone'); showToast('Please enter your phone number'); return; }
-      if (!email.trim() || !email.includes('@')) { triggerShake('email'); showToast('Please enter a valid email address'); return; }
-      if (!booking.date) { showToast('Please select a preferred date'); return; }
-      if (!booking.time) { showToast('Please select a preferred time'); return; }
-  
       const payload = {
         type: booking.type,
         date: booking.date,
@@ -382,46 +376,12 @@
   
       <!-- Your details -->
       <div class="mb-4 pt-4 border-t border-chalk-3 dark:border-white/[0.08]">
-        <label class="block text-[11px] font-medium text-navy-dark dark:text-blue-100 uppercase tracking-[.08em] mb-3">Your details</label>
+        <label for="extra-questions" class="block text-[11px] font-medium text-navy-dark dark:text-blue-100 uppercase tracking-[.08em] mb-3">
+          Extra details
+        </label>
         <div class="space-y-2.5">
-          <input
-            id="bookName"
-            type="text"
-            placeholder="Full name *"
-            bind:value={name}
-            class="w-full bg-chalk dark:bg-[#1A2438] border rounded-xl px-4 py-[10px] text-[13px] text-navy-dark dark:text-blue-100 placeholder-chalk-muted dark:placeholder-[#6A7FA0] outline-none focus:border-blue-link tt
-              {shakeFields['name'] ? 'border-ember animate-shake' : 'border-chalk-3 dark:border-white/10'}"
-          />
-          <input
-            id="bookPhone"
-            type="tel"
-            placeholder="Phone number *"
-            bind:value={phone}
-            class="w-full bg-chalk dark:bg-[#1A2438] border rounded-xl px-4 py-[10px] text-[13px] text-navy-dark dark:text-blue-100 placeholder-chalk-muted dark:placeholder-[#6A7FA0] outline-none focus:border-blue-link tt
-              {shakeFields['phone'] ? 'border-ember animate-shake' : 'border-chalk-3 dark:border-white/10'}"
-          />
-          <input
-            id="bookEmail"
-            type="email"
-            placeholder="Email address *"
-            bind:value={email}
-            class="w-full bg-chalk dark:bg-[#1A2438] border rounded-xl px-4 py-[10px] text-[13px] text-navy-dark dark:text-blue-100 placeholder-chalk-muted dark:placeholder-[#6A7FA0] outline-none focus:border-blue-link tt
-              {shakeFields['email'] ? 'border-ember animate-shake' : 'border-chalk-3 dark:border-white/10'}"
-          />
-          <!-- Virtual-only: platform preference -->
-          {#if isVirtual}
-            <select
-              bind:value={platform}
-              class="w-full bg-chalk dark:bg-[#1A2438] border border-chalk-3 dark:border-white/10 rounded-xl px-4 py-[10px] text-[13px] text-navy-dark dark:text-blue-100 outline-none cursor-pointer tt">
-              <option value="">Preferred platform…</option>
-              <option>Google Meet</option>
-              <option>Zoom</option>
-              <option>WhatsApp Video</option>
-              <option>Microsoft Teams</option>
-              <option>Any platform</option>
-            </select>
-          {/if}
           <textarea
+            id="extra-questions"
             bind:value={message}
             rows="2"
             placeholder="Any specific questions or requests? (optional)"
