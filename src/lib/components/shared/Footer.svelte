@@ -1,0 +1,107 @@
+<script lang="ts">
+  const year = new Date().getFullYear();
+</script>
+
+<!-- ═══════════════════════════════════════════════
+     FOOTER
+═══════════════════════════════════════════════ -->
+<!-- FOOTER -->
+<footer>
+  <div class="footer-top pb-8">
+    <div class="footer-brand">
+      <div style="display:flex;align-items:center;gap:10px"><svg width="30" height="30" viewBox="0 0 36 36"><rect x="4" y="28" width="28" height="4" rx="2" fill="#4A90E2"/><path d="M8 28 Q8 18 18 14 Q28 18 28 28" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" opacity="0.25"/><path d="M6 28 Q6 14 18 10 Q30 14 30 28" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" opacity="0.55"/><path d="M4 29 Q4 11 18 6 Q32 11 32 29" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round"/><circle cx="18" cy="28" r="3.5" fill="#4A90E2"/></svg><span style="font-size:15px;font-weight:500;letter-spacing:.14em;color:#fff">BLUPODD</span></div>
+      <p>Seamless integration. Home hunting, reimagined. Connecting buyers, renters and agents across Nigeria and beyond.</p>
+    </div>
+    <div class="footer-col"><h4>Search</h4><a href="properties.html">For sale</a><a href="properties.html">For rent</a><a href="#">Virtual tours</a><a href="properties_international.html">International</a></div>
+    <div class="footer-col"><h4>Agents</h4><a href="agents.html">Find an agent</a><a href="#">Create account</a><a href="#">List a property</a><a href="#">Boost listing</a></div>
+    <div class="footer-col"><h4>Company</h4><a href="#">About us</a><a href="#">How it works</a><a href="contact.html">Contact</a><a href="#">Careers</a></div>
+  </div>
+  <div class="footer-bottom">
+    <span class="footer-copy">© {year} Blupodd.com. All rights reserved.</span>
+    <div class="footer-legal"><a href="#">Privacy policy</a><a href="#">Terms of use</a><a href="#">Cookies</a></div>
+  </div>
+</footer>
+
+<!-- <footer class="bg-navy-dark px-[5vw] pt-[60px] pb-8 border-t border-white/[0.07]">
+    <div class="max-w-[1200px] mx-auto">
+  
+      <div class="footer-top-grid grid grid-cols-[2fr_1fr_1fr_1fr] gap-12 mb-[52px]">
+  
+        <div class="footer-brand">
+          <div class="flex items-center gap-[10px]">
+            <svg width="32" height="32" viewBox="0 0 36 36" xmlns="http://www.w3.org/2000/svg">
+              <rect x="4" y="28" width="28" height="4" rx="2" fill="#4A90E2"/>
+              <path d="M8 28 Q8 18 18 14 Q28 18 28 28" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" opacity="0.25"/>
+              <path d="M6 28 Q6 14 18 10 Q30 14 30 28" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" opacity="0.55"/>
+              <path d="M4 29 Q4 11 18 6 Q32 11 32 29" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round"/>
+              <circle cx="18" cy="28" r="3.5" fill="#4A90E2"/>
+            </svg>
+            <span class="text-[15px] font-medium tracking-em-014 text-white">BLUPODD</span>
+          </div>
+          <p class="text-13px font-light leading-[1.75] text-white/40 mt-4 max-w-[280px]">
+            Seamless integration. Home hunting, reimagined. Connecting buyers, renters, and agents across Nigeria.
+          </p>
+        </div>
+  
+        <div class="footer-col">
+          <h4 class="text-11px font-medium tracking-em-012 uppercase text-white/35 mb-[18px]">Search</h4>
+          <a href="#" class="footer-link">Properties for sale</a>
+          <a href="#" class="footer-link">Properties to rent</a>
+          <a href="#" class="footer-link">Virtual tours</a>
+          <a href="#" class="footer-link">New developments</a>
+        </div>
+  
+        <div class="footer-col">
+          <h4 class="text-11px font-medium tracking-em-012 uppercase text-white/35 mb-[18px]">Agents</h4>
+          <a href="#" class="footer-link">Create account</a>
+          <a href="#" class="footer-link">List a property</a>
+          <a href="#" class="footer-link">Boost a listing</a>
+          <a href="#" class="footer-link">Agent dashboard</a>
+        </div>
+  
+        <div class="footer-col">
+          <h4 class="text-11px font-medium tracking-em-012 uppercase text-white/35 mb-[18px]">Company</h4>
+          <a href="#" class="footer-link">About Blupodd</a>
+          <a href="#" class="footer-link">How it works</a>
+          <a href="#" class="footer-link">Contact us</a>
+          <a href="#" class="footer-link">Careers</a>
+        </div>
+  
+      </div>
+  
+      <div class="footer-bottom-row border-t border-white/[0.07] pt-6 flex justify-between items-center flex-wrap gap-4">
+        <span class="text-12px text-white/25">© 2026 Blupodd. All rights reserved.</span>
+        <div class="flex gap-5 flex-wrap">
+          <a href="#" class="footer-legal-link">Privacy policy</a>
+          <a href="#" class="footer-legal-link">Terms of use</a>
+          <a href="#" class="footer-legal-link">Cookie settings</a>
+        </div>
+      </div>
+  
+    </div>
+  </footer> -->
+
+<style>
+  /* FOOTER */
+  footer{background:var(--footer-bg);padding:100px 5vw 28px;border-top:1px solid rgba(255,255,255,.07);transition:background .3s}
+  .footer-top{display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:10px;margin-bottom:44px;max-width:1300px;margin:0 auto 44px}
+  .footer-brand p{font-size:13px;font-weight:300;line-height:1.75;color:rgba(255,255,255,.4);margin-top:14px;max-width:260px}
+  .footer-col h4{font-size:10px;font-weight:500;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.3);margin-bottom:16px}
+  .footer-col a{display:block;font-size:13px;color:rgba(255,255,255,.5);text-decoration:none;margin-bottom:9px;transition:color .2s}
+  .footer-col a:hover{color:#fff}
+  .footer-bottom{border-top:1px solid rgba(255,255,255,.07);padding-top:22px;display:flex;justify-content:space-between;align-items:center;max-width:1300px;margin:0 auto;flex-wrap:wrap;gap:10px}
+  .footer-copy{font-size:12px;color:rgba(255,255,255,.22)}
+  .footer-legal{display:flex;gap:18px;flex-wrap:wrap}
+  .footer-legal a{font-size:12px;color:rgba(255,255,255,.22);text-decoration:none;transition:color .2s}
+  .footer-legal a:hover{color:rgba(255,255,255,.55)}
+
+  /* RESPONSIVE */
+  @media(max-width:900px){
+    footer { padding-top: 50px; }
+    .footer-top{grid-template-columns:1fr 1fr;gap:28px;}
+  }
+  @media(max-width:540px){
+    .footer-top{grid-template-columns:1fr}
+    .footer-bottom{flex-direction:column;align-items:flex-start}
+  }
+</style>
