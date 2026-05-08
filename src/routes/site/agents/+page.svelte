@@ -75,7 +75,7 @@
   
       <!-- ── AGENT CARD TEMPLATE — repeated for each agent ── -->
       <!-- Agent 1 -->
-      <a class="agent-card" href="/agents/capital-real-estate">
+      <a class="agent-card" href="/site/agents/capital-real-estate">
         <div class="ac-band band-1">
           <span class="ac-feat">Featured</span>
           <div class="ac-avatar ac-gold-ring" style="background:#1F3F6A">CO</div>
@@ -99,7 +99,7 @@
       </a>
   
       <!-- Agent 2 -->
-      <a class="agent-card" href="/agents/capital-real-estate">
+      <a class="agent-card" href="/site/agents/capital-real-estate">
         <div class="ac-band band-2">
           <div class="ac-avatar" style="background:#C06035">AM</div>
         </div>
@@ -122,7 +122,7 @@
       </a>
   
       <!-- Agent 3 -->
-      <a class="agent-card" href="/agents/capital-real-estate">
+      <a class="agent-card" href="/site/agents/capital-real-estate">
         <div class="ac-band band-3">
           <div class="ac-avatar" style="background:#4A7848">BO</div>
         </div>
@@ -145,7 +145,7 @@
       </a>
   
       <!-- Agent 4 -->
-      <a class="agent-card" href="/agents/capital-real-estate">
+      <a class="agent-card" href="/site/agents/capital-real-estate">
         <div class="ac-band band-5">
           <div class="ac-avatar" style="background:#1A6ADE">NW</div>
         </div>
@@ -168,7 +168,7 @@
       </a>
   
       <!-- Agent 5 -->
-      <a class="agent-card" href="/agents/capital-real-estate">
+      <a class="agent-card" href="/site/agents/capital-real-estate">
         <div class="ac-band band-4">
           <div class="ac-avatar ac-gold-ring" style="background:#8A6A10">KA</div>
         </div>
@@ -191,7 +191,7 @@
       </a>
   
       <!-- Agent 6 -->
-      <a class="agent-card" href="/agents/capital-real-estate">
+      <a class="agent-card" href="/site/agents/capital-real-estate">
         <div class="ac-band band-6">
           <div class="ac-avatar" style="background:#0E2444">FI</div>
         </div>
@@ -239,7 +239,7 @@
       <p class="jc-eyebrow">Are you an agent?</p>
       <h2 class="jc-title">Join 384 verified agents on Blupodd</h2>
       <p class="jc-sub">List properties, reach serious buyers and renters, and grow your business with our weekly Boost feature — starting today.</p>
-      <a href="/sign-up" class="jc-btn">Create agent account</a>
+      <a href="/site/sign-up" class="jc-btn">Create agent account</a>
     </div>
   </div>
 

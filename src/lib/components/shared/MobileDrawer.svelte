@@ -47,7 +47,7 @@
       </div>
     {:else}
       <div class="mob-auth flex items-center gap-3">
-        <a href="/login"  class="text-13px font-normal text-white/65 hover:text-white">Log in</a>
+        <a href="/site/login"  class="text-13px font-normal text-white/65 hover:text-white">Log in</a>
         <a href="/signup" class="text-13px font-medium text-white bg-ember hover:bg-ember-deep
                                  px-5 py-[8px] rounded-40 transition-colors">Sign up</a>
       </div>

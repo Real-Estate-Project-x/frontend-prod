@@ -668,7 +668,7 @@ const switchAcctType = (type = 'customer') => {
           <p class="text-center font-sans font-light text-chalk-muted mt-4" style="font-size:13px;">
             Already have an account?&nbsp;<a href="login.html" class="auth-link">Log in</a>
           </p>
-        </div><!-- /agentStep1 -->
+        </div><!-- /site/agentstep1 -->
         {/if}
 
         {#if agentStep === 2}
@@ -743,7 +743,7 @@ const switchAcctType = (type = 'customer') => {
             Continue
             <svg width="14" height="14" viewBox="0 0 16 16" fill="none" style="display:inline-block;margin-left:6px;vertical-align:-2px;"><path d="M6 3l5 5-5 5" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
           </button>
-        </div><!-- /agentStep2 -->
+        </div><!-- /site/agentstep2 -->
         {/if}
 
         {#if agentStep === 3}
@@ -804,7 +804,7 @@ const switchAcctType = (type = 'customer') => {
           <p class="text-center font-sans font-light text-chalk-muted mt-4 animate-fadeUp5" style="font-size:13px;">
             Already have an account?&nbsp;<a href="login.html" class="auth-link">Log in</a>
           </p>
-        </div><!-- /agentStep3 -->
+        </div><!-- /site/agentstep3 -->
         {/if}
 
       </div><!-- /panelAgent -->

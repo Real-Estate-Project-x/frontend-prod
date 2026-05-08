@@ -7,11 +7,14 @@
   
     let drawerOpen = $state(false);
     let isLoggedIn = $state(false);
+    let isMobileNav = $state(false);
   
     // Exported so MobileDrawer can bind to it
     export { drawerOpen };
   
-    function toggleDrawer() { drawerOpen = !drawerOpen; }
+    const toggleDrawer = () => drawerOpen = !drawerOpen;
+
+    const toggleMobileNav = () => isMobileNav = !isMobileNav;
   
     // Close drawer on resize to desktop
     $effect(() => {
@@ -27,7 +30,7 @@
 <nav class="fixed top-0 left-0 right-0 z-[100] bg-navy-dark flex items-center justify-between h-[68px] px-[5vw] border-b border-white/[0.07]">
 
   <!-- Logo -->
-  <a href="/" class="flex items-center gap-[10px] no-underline flex-shrink-0">
+  <a href="/site" class="flex items-center gap-[10px] no-underline flex-shrink-0">
     <svg width="36" height="36" viewBox="0 0 36 36" xmlns="http://www.w3.org/2000/svg">
       <rect x="4" y="28" width="28" height="4" rx="2" fill="#4A90E2"/>
       <path d="M8 28 Q8 18 18 14 Q28 18 28 28" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" opacity="0.25"/>
@@ -43,10 +46,10 @@
 
     <!-- Desktop nav links — hidden ≤1024px -->
     <ul class="nav-links-desktop flex items-center gap-8 list-none">
-      <li><a href="/" class="text-13px font-normal tracking-em-006 text-white/65 no-underline hover:text-white transition-colors duration-200">Home</a></li>
-      <li><a href="/properties" class="text-13px font-normal tracking-em-006 text-white/65 no-underline hover:text-white transition-colors duration-200">Properties</a></li>
-      <li><a href="/agents" class="text-13px font-normal tracking-em-006 text-white/65 no-underline hover:text-white transition-colors duration-200">Agents</a></li>
-      <li><a href="/contacts" class="text-13px font-normal tracking-em-006 text-white/65 no-underline hover:text-white transition-colors duration-200">Contact</a></li>
+      <li><a href="/site" class="text-13px font-normal tracking-em-006 text-white/65 no-underline hover:text-white transition-colors duration-200">Home</a></li>
+      <li><a href="/site/properties" class="text-13px font-normal tracking-em-006 text-white/65 no-underline hover:text-white transition-colors duration-200">Properties</a></li>
+      <li><a href="/site/agents" class="text-13px font-normal tracking-em-006 text-white/65 no-underline hover:text-white transition-colors duration-200">Agents</a></li>
+      <li><a href="/site/contacts" class="text-13px font-normal tracking-em-006 text-white/65 no-underline hover:text-white transition-colors duration-200">Contact</a></li>
     </ul>
 
     <!-- ── DESKTOP AUTH ── -->
@@ -133,10 +136,10 @@
        <!-- LOGGED OUT: Log In + Sign Up -->
       <!-- [Logged out state] -->
       <div class="auth-out items-center gap-5">
-        <a href="/login" class="text-13px font-normal tracking-em-006 text-white/65 no-underline hover:text-white transition-colors duration-200 whitespace-nowrap">
+        <a href="/site/login" class="text-13px font-normal tracking-em-006 text-white/65 no-underline hover:text-white transition-colors duration-200 whitespace-nowrap">
           Log in
         </a>
-        <a href="/sign-up" class="text-13px font-medium tracking-[0.04em] text-white no-underline bg-ember hover:bg-ember-deep px-5 py-[8px] rounded-40 transition-colors duration-200 whitespace-nowrap">
+        <a href="/site/sign-up" class="text-13px font-medium tracking-[0.04em] text-white no-underline bg-ember hover:bg-ember-deep px-5 py-[8px] rounded-40 transition-colors duration-200 whitespace-nowrap">
           Sign up
         </a>
       </div>
@@ -177,6 +180,8 @@
 
     <!-- Hamburger — hidden on desktop (>1024px), visible on mobile -->
     <button
+      type="button"
+      onclick={toggleMobileNav}
       class="md:hidden hamburger-btn flex items-center justify-center w-8 h-8 text-white/70 hover:text-white transition-colors border-none bg-transparent cursor-pointer"
       id="hamburgerBtn"
       aria-label="Open menu"
@@ -198,3 +203,50 @@
 
   </div><!-- /right side -->
 </nav>
+
+<!-- ═══════════════════════════════════════════════
+     MOBILE DRAWER
+═══════════════════════════════════════════════ -->
+<div class={`mobile-drawer ${isMobileNav ? 'open' : ''}`} 
+  id="mobileDrawer" 
+  role="navigation"
+  aria-label="Mobile menu">
+
+  <!-- Nav links -->
+  <a href="/site" class="mob-link">Home</a>
+  <a href="/site/properties" class="mob-link">Properties</a>
+  <a href="/site/agents" class="mob-link">Agents</a>
+  <a href="/site/contacts" class="mob-link">Contact</a>
+
+  {#if isLoggedIn}
+  <!-- Logged in user section -->
+  <!-- [Mobile logged in state] -->
+  <div>
+    <div class="mob-user-row">
+      <div class="mob-user-avatar">AO</div>
+      <div>
+        <div class="mob-user-name">Amara Okonkwo</div>
+        <div class="mob-user-email">amara@example.com</div>
+      </div>
+    </div>
+    <div class="mt-2">
+      <a href="#" class="mob-dd-link">Saved Properties</a>
+      <a href="#" class="mob-dd-link">Scheduled Viewings</a>
+      <a href="#" class="mob-dd-link">Saved Search</a>
+      <a href="#" class="mob-dd-link">Profile</a>
+      <a href="#" class="mob-dd-link logout" id="mobileLogoutBtn">Log out</a>
+    </div>
+  </div>
+  {:else}
+   <!-- Logged out auth -->
+  <!-- [Mobile logged out state] -->
+  <div class="mob-auth mob-auth-out gap-3">
+    <a href="/site/login" class="text-13px font-normal tracking-em-006 text-white/65 no-underline hover:text-white transition-colors duration-200 whitespace-nowrap">
+      Log in
+    </a>
+    <a href="/site/sign-up" class="text-13px font-medium tracking-[0.04em] text-white no-underline bg-ember hover:bg-ember-deep px-5 py-[8px] rounded-40 transition-colors duration-200 whitespace-nowrap">
+      Sign up
+    </a>
+  </div>
+  {/if}
+</div>

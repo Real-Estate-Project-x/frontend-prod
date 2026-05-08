@@ -1,0 +1,131 @@
+/* ── no overflow anywhere ── */
+html,body{overflow-x:hidden}
+*{min-width:0}
+
+/* ── core — identical to every reference file ── */
+.tt{transition:background-color .3s,color .3s,border-color .3s}
+select{-webkit-appearance:none;appearance:none}
+.scrollbar-hide::-webkit-scrollbar{display:none}
+.scrollbar-hide{-ms-overflow-style:none;scrollbar-width:none}
+
+/* ── animations — identical ── */
+@keyframes pulse-dot{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(.8)}}
+.pulse-dot{animation:pulse-dot 2.2s infinite}
+@keyframes fadeUp{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:translateY(0)}}
+.fu{animation:fadeUp .52s ease both}
+.d1{animation-delay:.04s}.d2{animation-delay:.09s}.d3{animation-delay:.14s}
+.d4{animation-delay:.19s}.d5{animation-delay:.24s}.d6{animation-delay:.29s}
+@keyframes spinRing{from{stroke-dashoffset:251}to{stroke-dashoffset:63}}
+.ring-anim{animation:spinRing 1.4s cubic-bezier(.34,1,.64,1) .4s both}
+
+/* ── sidebar ── */
+.sb-link.active{background:rgba(74,144,226,.12);color:#4A90E2;font-weight:500}
+:global([data-theme="dark"]) .sb-link.active{background:rgba(74,144,226,.15)}
+.sb-link:not(.active):hover{background:rgba(10,36,99,.05)}
+:global([data-theme="dark"]) .sb-link:not(.active):hover{background:rgba(255,255,255,.04)}
+#sbOverlay{opacity:0;pointer-events:none;transition:opacity .3s}
+#sbOverlay.open{opacity:1;pointer-events:all}
+#dashSb{transition:transform .3s cubic-bezier(.4,0,.2,1)}
+:global([data-theme="dark"]) .border-chalk-3 {
+  border-color: rgba(255,255,255,0.08) !important;
+}
+
+/* ── KPI card — warm lift on hover ── */
+.kpi-card{
+  transition:transform .22s,box-shadow .22s,border-color .2s;
+  position:relative;
+  overflow:hidden;
+}
+.kpi-card::before{
+  content:'';
+  position:absolute;inset:0;
+  background:linear-gradient(135deg,rgba(74,144,226,.04) 0%,transparent 60%);
+  opacity:0;
+  transition:opacity .3s;
+  pointer-events:none;
+}
+.kpi-card:hover{transform:translateY(-3px);box-shadow:0 12px 40px rgba(10,36,99,.12)}
+.kpi-card:hover::before{opacity:1}
+:global([data-theme="dark"]) .kpi-card:hover{box-shadow:0 12px 40px rgba(0,0,0,.42)}
+
+/* ── trend badge ── */
+.trend-up{background:rgba(74,120,72,.10);color:#4A7848}
+:global([data-theme="dark"]) .trend-up{background:rgba(74,120,72,.18);color:#7DBF7A}
+.trend-neutral{background:rgba(140,128,112,.10);color:#8C8070}
+:global([data-theme="dark"]) .trend-neutral{background:rgba(106,127,160,.08);color:#6A7FA0}
+.trend-alert{background:rgba(192,96,53,.10);color:#C06035}
+:global([data-theme="dark"]) .trend-alert{background:rgba(192,96,53,.16);color:#EDBA9B}
+.trend-new{background:rgba(74,144,226,.10);color:#1A6ADE}
+:global([data-theme="dark"]) .trend-new{background:rgba(74,144,226,.15);color:#4A90E2}
+
+/* ── colour dot on card icon bg ── */
+.icon-blue{background:rgba(74,144,226,.12)}
+:global([data-theme="dark"]) .icon-blue{background:rgba(74,144,226,.18)}
+.icon-ember{background:rgba(192,96,53,.10)}
+:global([data-theme="dark"]) .icon-ember{background:rgba(192,96,53,.16)}
+.icon-gold{background:rgba(212,174,58,.12)}
+:global([data-theme="dark"]) .icon-gold{background:rgba(212,174,58,.18)}
+.icon-sage{background:rgba(74,120,72,.10)}
+:global([data-theme="dark"]) .icon-sage{background:rgba(74,120,72,.18)}
+.icon-navy{background:rgba(10,36,99,.08)}
+:global([data-theme="dark"]) .icon-navy{background:rgba(74,112,160,.14)}
+
+/* ── activity row (matching .lrow / .ss-card pattern) ── */
+.act-row{transition:background .18s}
+.act-row:hover{background:rgba(247,243,236,.8)}
+:global([data-theme="dark"]) .act-row:hover{background:rgba(255,255,255,.025)}
+
+/* ── quick-link card ── */
+.ql-card{transition:transform .2s,box-shadow .2s,border-color .2s}
+.ql-card:hover{transform:translateY(-2px);box-shadow:0 8px 28px rgba(10,36,99,.09);border-color:rgba(74,144,226,.4)!important}
+:global([data-theme="dark"]) .ql-card:hover{box-shadow:0 8px 28px rgba(0,0,0,.36)}
+
+
+  /* White cards → dark surface */
+  :global([data-theme="dark"]) .bg-white {
+    background-color: #131C2E !important;
+  }
+
+  :global([data-theme="dark"]) .border-white {
+    border-color: rgba(255,255,255,0.08) !important;
+  }
+
+  /* chalk-2 backgrounds → dark surface variant */
+  :global([data-theme="dark"]) .bg-chalk-2 {
+    background-color: #1A2438 !important;
+  }
+
+  /* chalk background → dark input bg */
+  :global([data-theme="dark"]) .bg-chalk {
+    background-color: #1A2438 !important;
+  }
+
+  /* chalk-3 borders → white/8% */
+  :global([data-theme="dark"]) .border-chalk-3 {
+    border-color: rgba(255,255,255,0.08) !important;
+  }
+
+  /* chalk-3 dividers */
+  :global([data-theme="dark"]) .divide-chalk-3 > * + * {
+    border-color: rgba(255,255,255,0.08) !important;
+  }
+
+  /* navy-dark text → light */
+  :global([data-theme="dark"]) .text-navy-dark {
+    color: #E8EDF5 !important;
+  }
+
+  /* chalk-muted text → muted blue */
+  :global([data-theme="dark"]) .text-chalk-muted {
+    color: #6A7FA0 !important;
+  }
+
+  /* navy-accent text */
+  :global([data-theme="dark"]) .text-navy-accent {
+    color: #8DAACC !important;
+  }
+
+  /* Similar section background */
+  :global([data-theme="dark"]) .bg-chalk-2 {
+    background-color: #111826 !important;
+  }

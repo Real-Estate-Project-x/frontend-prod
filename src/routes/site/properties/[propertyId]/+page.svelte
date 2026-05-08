@@ -136,9 +136,9 @@ const closeReportModal = () => {
 <!-- ════════════ BREADCRUMB ════════════ -->
 <div class="bg-chalk-2 dark:bg-[#111826] border-b border-chalk-3 dark:border-white/[.08] px-[5vw] py-3 tt">
   <div class="max-w-[1320px] mx-auto flex items-center gap-2 text-[12px] text-chalk-muted dark:text-[#6A7FA0] flex-wrap">
-    <a href="index.html" class="no-underline hover:text-navy-dark dark:hover:text-white tt text-chalk-muted dark:text-[#6A7FA0]">Home</a>
+    <a href="/" class="no-underline hover:text-navy-dark dark:hover:text-white tt text-chalk-muted dark:text-[#6A7FA0]">Home</a>
     <span class="text-chalk-4 dark:text-white/20">/</span>
-    <a href="properties.html" class="no-underline hover:text-navy-dark dark:hover:text-white tt text-chalk-muted dark:text-[#6A7FA0]">Properties</a>
+    <a href="/site/properties" class="no-underline hover:text-navy-dark dark:hover:text-white tt text-chalk-muted dark:text-[#6A7FA0]">Properties</a>
     <span class="text-chalk-4 dark:text-white/20">/</span>
     <span class="text-navy-dark dark:text-blue-100">3-Bed Apartment · GRA Phase 2</span>
   </div>
@@ -683,7 +683,7 @@ const closeReportModal = () => {
       <div class="bg-white dark:bg-[#131C2E] border border-chalk-3 dark:border-white/[0.08] rounded-2xl overflow-hidden tt">
         <div class="px-5 py-4 border-b border-chalk-3 dark:border-white/[0.08] flex items-center justify-between">
           <div class="text-13px font-medium text-navy-dark dark:text-blue-100">Listed by</div>
-          <a href="agent_profile.html" class="text-12px text-blue-link dark:text-blue-bright no-underline hover:text-navy-dark dark:hover:text-white tt">View profile →</a>
+          <a href="/site/agents/c-estate-holdings" class="text-12px text-blue-link dark:text-blue-bright no-underline hover:text-navy-dark dark:hover:text-white tt">View profile →</a>
         </div>
         <div class="p-5">
           <div class="flex items-center gap-3.5 mb-4">
@@ -776,7 +776,7 @@ const closeReportModal = () => {
     </div>
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-5">
       <!-- Similar 1 -->
-      <a href="/properties/81" class="sim-card group bg-white dark:bg-[#131C2E] border border-chalk-3 dark:border-white/[.08] rounded-2xl overflow-hidden no-underline tt flex flex-col">
+      <a href="/site/properties/81" class="sim-card group bg-white dark:bg-[#131C2E] border border-chalk-3 dark:border-white/[.08] rounded-2xl overflow-hidden no-underline tt flex flex-col">
         <div class="h-[160px] relative overflow-hidden bg-gradient-to-br from-[#1F3F6A] via-[#4A70A0] to-[#8DAACC]">
           <div class="absolute bottom-0 left-[44px] w-[80px] h-[100px] bg-white/[0.13] rounded-t"></div>
           <div class="absolute bottom-[74px] left-[54px] w-[11px] h-[14px] bg-[rgba(212,174,58,.65)] rounded-sm"></div>
@@ -789,7 +789,7 @@ const closeReportModal = () => {
         <div class="p-4 flex-1"><div class="font-display text-[18px] font-semibold text-navy-dark dark:text-blue-100 mb-[2px]">₦700,000 <span class="text-[12px] font-light text-chalk-muted">/mo</span></div><div class="flex items-center gap-[4px] text-[11px] text-chalk-muted dark:text-[#6A7FA0] mb-2.5"><div class="w-[4px] h-[4px] rounded-full bg-blue-bright flex-shrink-0"></div>GRA Phase 3, Port Harcourt</div><div class="flex gap-3 pt-2.5 border-t border-chalk-3 dark:border-white/[.08]"><span class="text-[10px] text-navy-accent dark:text-[#8DAACC] flex items-center gap-1"><span class="w-[4px] h-[4px] rounded-full bg-blue-bright"></span>3 beds</span><span class="text-[10px] text-navy-accent dark:text-[#8DAACC] flex items-center gap-1"><span class="w-[4px] h-[4px] rounded-full bg-blue-bright"></span>2 baths</span><span class="text-[10px] text-navy-accent dark:text-[#8DAACC] flex items-center gap-1"><span class="w-[4px] h-[4px] rounded-full bg-blue-bright"></span>105 m²</span></div></div>
       </a>
       <!-- Similar 2 -->
-      <a href="/properties/82" class="sim-card group bg-white dark:bg-[#131C2E] border border-chalk-3 dark:border-white/[.08] rounded-2xl overflow-hidden no-underline tt flex flex-col">
+      <a href="/site/properties/82" class="sim-card group bg-white dark:bg-[#131C2E] border border-chalk-3 dark:border-white/[.08] rounded-2xl overflow-hidden no-underline tt flex flex-col">
         <div class="h-[160px] relative overflow-hidden bg-gradient-to-br from-[#0A2463] via-[#0E2444] to-[#1F3F6A]">
           <div class="absolute bottom-0 left-[48px] w-[95px] h-[120px] bg-white/[0.13] rounded-t"></div>
           <div class="absolute bottom-[90px] left-[58px] w-[12px] h-[16px] bg-[rgba(212,174,58,.65)] rounded-sm"></div>
@@ -804,7 +804,7 @@ const closeReportModal = () => {
         <div class="p-4 flex-1"><div class="font-display text-[18px] font-semibold text-navy-dark dark:text-blue-100 mb-[2px]">₦1,100,000 <span class="text-[12px] font-light text-chalk-muted">/mo</span></div><div class="flex items-center gap-[4px] text-[11px] text-chalk-muted dark:text-[#6A7FA0] mb-2.5"><div class="w-[4px] h-[4px] rounded-full bg-blue-bright flex-shrink-0"></div>GRA Phase 1, Port Harcourt</div><div class="flex gap-3 pt-2.5 border-t border-chalk-3 dark:border-white/[.08]"><span class="text-[10px] text-navy-accent dark:text-[#8DAACC] flex items-center gap-1"><span class="w-[4px] h-[4px] rounded-full bg-blue-bright"></span>4 beds</span><span class="text-[10px] text-navy-accent dark:text-[#8DAACC] flex items-center gap-1"><span class="w-[4px] h-[4px] rounded-full bg-blue-bright"></span>3 baths</span><span class="text-[10px] text-navy-accent dark:text-[#8DAACC] flex items-center gap-1"><span class="w-[4px] h-[4px] rounded-full bg-blue-bright"></span>160 m²</span></div></div>
       </a>
       <!-- Similar 3 -->
-      <a href="/properties/83" class="sim-card group bg-white dark:bg-[#131C2E] border border-chalk-3 dark:border-white/[.08] rounded-2xl overflow-hidden no-underline tt flex flex-col">
+      <a href="/site/properties/83" class="sim-card group bg-white dark:bg-[#131C2E] border border-chalk-3 dark:border-white/[.08] rounded-2xl overflow-hidden no-underline tt flex flex-col">
         <div class="h-[160px] relative overflow-hidden bg-gradient-to-br from-[#060E1C] via-[#0A2463] to-[#1F3F6A]">
           <div class="absolute bottom-0 left-[40px] w-[72px] h-[88px] bg-white/[0.13] rounded-t"></div>
           <div class="absolute bottom-[62px] left-[50px] w-[10px] h-[13px] bg-[rgba(212,174,58,.65)] rounded-sm"></div>
@@ -816,7 +816,7 @@ const closeReportModal = () => {
         <div class="p-4 flex-1"><div class="font-display text-[18px] font-semibold text-navy-dark dark:text-blue-100 mb-[2px]">₦65,000,000</div><div class="flex items-center gap-[4px] text-[11px] text-chalk-muted dark:text-[#6A7FA0] mb-2.5"><div class="w-[4px] h-[4px] rounded-full bg-blue-bright flex-shrink-0"></div>Trans-Amadi, Port Harcourt</div><div class="flex gap-3 pt-2.5 border-t border-chalk-3 dark:border-white/[.08]"><span class="text-[10px] text-navy-accent dark:text-[#8DAACC] flex items-center gap-1"><span class="w-[4px] h-[4px] rounded-full bg-blue-bright"></span>3 beds</span><span class="text-[10px] text-navy-accent dark:text-[#8DAACC] flex items-center gap-1"><span class="w-[4px] h-[4px] rounded-full bg-blue-bright"></span>2 baths</span><span class="text-[10px] text-navy-accent dark:text-[#8DAACC] flex items-center gap-1"><span class="w-[4px] h-[4px] rounded-full bg-blue-bright"></span>118 m²</span></div></div>
       </a>
       <!-- Similar 4 -->
-      <a href="/properties/84" class="sim-card group bg-white dark:bg-[#131C2E] border border-chalk-3 dark:border-white/[.08] rounded-2xl overflow-hidden no-underline tt flex flex-col">
+      <a href="/site/properties/84" class="sim-card group bg-white dark:bg-[#131C2E] border border-chalk-3 dark:border-white/[.08] rounded-2xl overflow-hidden no-underline tt flex flex-col">
         <div class="h-[160px] relative overflow-hidden bg-gradient-to-br from-[#1A2E50] via-[#2E5078] to-[#5E8AB0]">
           <div class="absolute bottom-0 left-[44px] w-[86px] h-[110px] bg-white/[0.13] rounded-t"></div>
           <div class="absolute bottom-[82px] left-[54px] w-[11px] h-[14px] bg-[rgba(212,174,58,.65)] rounded-sm"></div>
@@ -830,7 +830,7 @@ const closeReportModal = () => {
         <div class="p-4 flex-1"><div class="font-display text-[18px] font-semibold text-navy-dark dark:text-blue-100 mb-[2px]">₦600,000 <span class="text-[12px] font-light text-chalk-muted">/mo</span></div><div class="flex items-center gap-[4px] text-[11px] text-chalk-muted dark:text-[#6A7FA0] mb-2.5"><div class="w-[4px] h-[4px] rounded-full bg-blue-bright flex-shrink-0"></div>Woji, Port Harcourt</div><div class="flex gap-3 pt-2.5 border-t border-chalk-3 dark:border-white/[.08]"><span class="text-[10px] text-navy-accent dark:text-[#8DAACC] flex items-center gap-1"><span class="w-[4px] h-[4px] rounded-full bg-blue-bright"></span>3 beds</span><span class="text-[10px] text-navy-accent dark:text-[#8DAACC] flex items-center gap-1"><span class="w-[4px] h-[4px] rounded-full bg-blue-bright"></span>2 baths</span><span class="text-[10px] text-navy-accent dark:text-[#8DAACC] flex items-center gap-1"><span class="w-[4px] h-[4px] rounded-full bg-blue-bright"></span>98 m²</span></div></div>
       </a>
       <!-- Similar 5 -->
-      <a href="/properties/85" class="sim-card group bg-white dark:bg-[#131C2E] border border-chalk-3 dark:border-white/[.08] rounded-2xl overflow-hidden no-underline tt flex flex-col">
+      <a href="/site/properties/85" class="sim-card group bg-white dark:bg-[#131C2E] border border-chalk-3 dark:border-white/[.08] rounded-2xl overflow-hidden no-underline tt flex flex-col">
         <div class="h-[160px] relative overflow-hidden bg-gradient-to-br from-[#0E2444] via-[#163660] to-[#2E5480]">
           <div class="absolute bottom-0 left-[40px] w-[100px] h-[125px] bg-white/[0.13] rounded-t"></div>
           <div class="absolute bottom-[95px] left-[50px] w-[13px] h-[16px] bg-[rgba(212,174,58,.65)] rounded-sm"></div>

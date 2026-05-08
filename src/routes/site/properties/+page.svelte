@@ -23,7 +23,7 @@ const toggleAdvanced = () => {
   
   <!-- ── STATE NAV ── -->
   <div class="state-nav">
-    <a href="/properties" class="state-pill active">All Nigeria</a>
+    <a href="/site/properties" class="state-pill active">All Nigeria</a>
 
     {#each [
         'rivers state', 
@@ -38,7 +38,7 @@ const toggleAdvanced = () => {
         <a href="/states/{_}" class="state-pill capitalize">{_} </a>
     {/each}
     
-    <a href="/properties/international" class="state-pill capitalize">International</a>
+    <a href="/site/properties/international" class="state-pill capitalize">International</a>
   </div>
 
   <!-- ── PAGE HEADER ── -->

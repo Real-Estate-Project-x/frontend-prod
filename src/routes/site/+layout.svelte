@@ -4,7 +4,7 @@
 	import Navbar from '$lib/components/shared/Navbar.svelte';
 	import MobileDrawer from '$lib/components/shared/MobileDrawer.svelte';
 	import Footer from '$lib/components/shared/Footer.svelte';
-	import '../app.css';
+	import '../../app.css';
 
 	let { children } = $props();
   
