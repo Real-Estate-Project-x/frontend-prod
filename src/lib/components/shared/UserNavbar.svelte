@@ -1,14 +1,19 @@
 <script lang="ts">
   import { themeStore } from "$lib/stores/theme.svelte";
+  import { sidebarStore  } from "$lib/stores/sidebar.svelte";
 
-  let isMobileNavOpen = $state(false);
   let showNotifications = $state(false);
 
 const toggleBell = () => {
  showNotifications = !showNotifications;
 }
 
-const toggleMobileNav = () => isMobileNavOpen = !isMobileNavOpen;
+  // react to sidebar state changes
+  $effect(() => {
+    document.body.style.overflow = sidebarStore.open
+      ? 'hidden'
+      : '';
+  });
 </script>
 
 <!-- ════════════════════════════════════════════════
@@ -36,33 +41,34 @@ const toggleMobileNav = () => isMobileNavOpen = !isMobileNavOpen;
         {/if}
       </div>
       <!-- Theme icon toggle: sun = light, moon = dark -->
-    <button
-    class="theme-toggle-btn"
-    id="themeToggleBtn"
-    aria-label="Toggle colour scheme"
-    onclick={themeStore.toggle}
-  >
-    <!-- Sun — shown in light mode -->
-    <span class="icon-sun" aria-hidden="true">
-      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.80)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <circle cx="12" cy="12" r="5"/>
-        <line x1="12" y1="1"  x2="12" y2="3"/>
-        <line x1="12" y1="21" x2="12" y2="23"/>
-        <line x1="4.22" y1="4.22"   x2="5.64"  y2="5.64"/>
-        <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
-        <line x1="1"  y1="12" x2="3"  y2="12"/>
-        <line x1="21" y1="12" x2="23" y2="12"/>
-        <line x1="4.22"  y1="19.78" x2="5.64"  y2="18.36"/>
-        <line x1="18.36" y1="5.64"  x2="19.78" y2="4.22"/>
-      </svg>
-    </span>
-    <!-- Moon — shown in dark mode -->
-    <span class="icon-moon" aria-hidden="true">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.80)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
-      </svg>
-    </span>
-  </button>
+      <!-- Theme icon toggle: sun = light, moon = dark -->
+      <button
+      class="theme-toggle-btn"
+      id="themeToggleBtn"
+      aria-label="Toggle colour scheme"
+      onclick={themeStore.toggle}
+    >
+      <!-- Sun — shown in light mode -->
+      <span class="icon-sun" aria-hidden="true">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.80)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="5"/>
+          <line x1="12" y1="1"  x2="12" y2="3"/>
+          <line x1="12" y1="21" x2="12" y2="23"/>
+          <line x1="4.22" y1="4.22"   x2="5.64"  y2="5.64"/>
+          <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+          <line x1="1"  y1="12" x2="3"  y2="12"/>
+          <line x1="21" y1="12" x2="23" y2="12"/>
+          <line x1="4.22"  y1="19.78" x2="5.64"  y2="18.36"/>
+          <line x1="18.36" y1="5.64"  x2="19.78" y2="4.22"/>
+        </svg>
+      </span>
+      <!-- Moon — shown in dark mode -->
+      <span class="icon-moon" aria-hidden="true">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.80)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+        </svg>
+      </span>
+    </button>
       <!-- <button id="dmToggle" aria-label="Toggle dark mode" class="w-11 h-6 rounded-full bg-white/10 border border-white/15 relative cursor-pointer flex-shrink-0 tt dark:bg-blue-bright/30"><span class="absolute top-[3px] left-[3px] w-4 h-4 rounded-full bg-white tt dark:translate-x-5 dark:bg-blue-bright"></span></button> -->
       <div class="flex items-center gap-2.5 cursor-pointer">
         <div class="w-9 h-9 rounded-full flex items-center justify-center text-[13px] font-medium text-white ring-2 ring-white/20 flex-shrink-0" style="background:linear-gradient(135deg,#1F3F6A,#4A90E2)">FA</div>
@@ -71,7 +77,7 @@ const toggleMobileNav = () => isMobileNavOpen = !isMobileNavOpen;
        <!-- Hamburger — hidden on desktop (>1024px), visible on mobile -->
     <button
       type="button"
-      onclick={toggleMobileNav}
+      onclick={sidebarStore.toggle}
       class="md:hidden hamburger-btn flex items-center justify-center w-8 h-8 text-white/70 hover:text-white transition-colors border-none bg-transparent cursor-pointer"
       id="hamburgerBtn"
       aria-label="Open menu"

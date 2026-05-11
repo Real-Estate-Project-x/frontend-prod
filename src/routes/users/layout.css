@@ -30,6 +30,7 @@ select{-webkit-appearance:none;appearance:none}
   border-color: rgba(255,255,255,0.08) !important;
 }
 
+
 /* ── KPI card — warm lift on hover ── */
 .kpi-card{
   transition:transform .22s,box-shadow .22s,border-color .2s;
@@ -129,3 +130,6 @@ select{-webkit-appearance:none;appearance:none}
   :global([data-theme="dark"]) .bg-chalk-2 {
     background-color: #111826 !important;
   }
+
+
+  
