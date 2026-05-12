@@ -594,7 +594,7 @@ const closeReportModal = () => {
         </div>
 
         <!-- Write a review -->
-        <div class="p-6 border-b border-chalk-3 dark:border-white/[.08] bg-gold/[.035] dark:bg-gold/[.04]">
+        <div id="write-review" class="p-6 border-b border-chalk-3 dark:border-white/[.08] bg-gold/[.035] dark:bg-gold/[.04]">
           <div class="flex items-center gap-2 mb-4">
             <div class="w-7 h-7 rounded-full bg-gold/20 flex items-center justify-center flex-shrink-0">
               <svg width="12" height="12" viewBox="0 0 16 16" fill="none"><polygon points="8,1 10,6 15,6.5 11,10 12.5,15 8,12 3.5,15 5,10 1,6.5 6,6" stroke="#D4AE3A" stroke-width="1.2" fill="#D4AE3A"/></svg>
