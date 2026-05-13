@@ -1,5 +1,8 @@
 <script lang="ts">
+  import { goto } from "$app/navigation";
 import BookingCard from "$lib/components/property-detail/BookingCard.svelte";
+
+type ViewingType = 'in_person' | 'virtual';
 
 let isReportModalOpen = $state(false);
 let isLightboxOpen = $state(false);
@@ -8,6 +11,9 @@ let readMore = $state(false);
 let rating = $state(0);
 let selectedPlan = $state(null);
 let showVideo = $state(false);
+let selectedViewingType = $state<ViewingType>('in_person')
+
+const setViewingType = (type: ViewingType) => selectedViewingType = type;
 
 const shareProperty = () => {}
 
@@ -20,6 +26,11 @@ const setRating = (rate: number) => rating = rate;
 const toggleReadMore = () => readMore = !readMore;
 
 const toggleFavourite = () => isFavourite = !isFavourite;
+
+const virtualBtnFocus = () => {
+  setViewingType('virtual');
+  goto('/site/properties/12#v-virtual-btn');
+}
 
 const openLightboxModal = () => {
   isLightboxOpen = true;
@@ -459,9 +470,7 @@ const closeReportModal = () => {
               </div>
               <p class="text-[13px] font-light text-white/60 leading-[1.6] mb-4">Book a live video walkthrough with the agent — from anywhere in the world. No travel needed. Diaspora-friendly.</p>
               <div class="flex gap-3 flex-wrap">
-                <button onclick={() => {
-                  // Navigate to virtual_viewing section on same page
-                }} class="flex items-center gap-2 text-[13px] font-medium text-white bg-sage hover:bg-[#3d6337] px-5 py-2.5 rounded-full border-none cursor-pointer tt">
+                <button onclick={virtualBtnFocus} class="flex items-center gap-2 text-[13px] font-medium text-white bg-sage hover:bg-[#3d6337] px-5 py-2.5 rounded-full border-none cursor-pointer tt">
                   <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="white" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M2 4h9a1 1 0 011 1v6a1 1 0 01-1 1H2a1 1 0 01-1-1V5a1 1 0 011-1zM13 7l3-2v6l-3-2V7z"/></svg>
                   Book virtual tour
                 </button>
@@ -676,7 +685,7 @@ const closeReportModal = () => {
     <!-- ───────────── RIGHT COLUMN (SIDEBAR) ───────────── -->
     <div class="space-y-5 sticky-sidebar">
       <!-- ═══ BOOKING CARD — FULL INTERACTIVE FLOW ═══ -->
-      <BookingCard />
+      <BookingCard type={selectedViewingType} />
       <!-- END BOOKING CARD -->
 
       <!-- === AGENT CARD === -->

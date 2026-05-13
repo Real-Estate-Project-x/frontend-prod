@@ -1,21 +1,18 @@
 <script lang="ts">
   import UserSidebar from "$lib/components/shared/UserSidebar.svelte";
 
-let closeSidebar = $state(false);
-let toastMsg = $state<string | null>()
+  let toastMsg = $state<string | null>()
 
-const closeSb = () => closeSidebar = false;
+  const showToast = (msg: string) => {
+    toastMsg = msg;
+    setTimeout(() => {
+      toastMsg = null;
+    }, 3000);
+  }
 
-const showToast = (msg: string) => {
-  toastMsg = msg;
-  setTimeout(() => {
-    toastMsg = null;
-  }, 3000);
-}
-
-const handleSave = (data: boolean) => {
-	console.log('Received from child:', data);
-}
+  const handleSave = (data: boolean) => {
+    console.log('Received from child:', data);
+  }
 </script>
 
 <!-- ════════════════════════════════════════════════

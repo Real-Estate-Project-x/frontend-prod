@@ -1,8 +1,11 @@
 <script lang="ts">
+  import { onMount } from "svelte";
+
     // ── BOOKING CARD — SVELTE 5 RUNES ──
     // Drop in: src/lib/components/BookingCard.svelte
   
-    type ViewingType = 'inperson' | 'virtual' | null;
+    type ViewingType = 'in_person' | 'virtual' | null;
+    let { type: bookingType }: { type: ViewingType } = $props();
   
     interface BookingState {
       type: ViewingType;
@@ -18,6 +21,10 @@
       date: null,
       dateLabel: null,
       time: null,
+    });
+
+    onMount(() => {
+      if (bookingType) selectViewingType(bookingType)
     });
   
     // Form fields
@@ -66,9 +73,9 @@
     // ── Stepper progress bar widths ──
     // Step 1 = 1/3, Step 2 = 2/3, Step 3 = 3/3
     const progressBars = $derived([
-      step >= 1 ? booking.type === 'inperson' ? 'bg-ember' : 'bg-sage' : 'bg-chalk-3 dark:bg-white/[0.08]',
-      step >= 2 ?  booking.type === 'inperson' ? 'bg-ember': 'bg-sage' : 'bg-chalk-3 dark:bg-white/[0.08]',
-      step >= 3 ?  booking.type === 'inperson' ? 'bg-ember' : 'bg-sage' : 'bg-chalk-3 dark:bg-white/[0.08]',
+      step >= 1 ? booking.type === 'in_person' ? 'bg-ember' : 'bg-sage' : 'bg-chalk-3 dark:bg-white/[0.08]',
+      step >= 2 ?  booking.type === 'in_person' ? 'bg-ember': 'bg-sage' : 'bg-chalk-3 dark:bg-white/[0.08]',
+      step >= 3 ?  booking.type === 'in_person' ? 'bg-ember' : 'bg-sage' : 'bg-chalk-3 dark:bg-white/[0.08]',
     ]);
   
     // ── Helper: format time ──
@@ -80,7 +87,7 @@
     }
   
     // ── Actions ──
-    function selectViewingType(type: 'inperson' | 'virtual') {
+    function selectViewingType(type: 'in_person' | 'virtual') {
       booking.type = type;
     }
   
@@ -226,15 +233,17 @@
   
       <!-- In-person option -->
       <button
-        onclick={() => selectViewingType('inperson')}
+        type="button"
+        id="v-inperson-btn"
+        onclick={() => selectViewingType('in_person')}
         class="viewing-type-btn w-full flex items-start gap-3.5 p-4 rounded-xl border-2 tt cursor-pointer mb-2.5 text-left group
-          {booking.type === 'inperson'
+          {booking.type === 'in_person'
             ? 'border-ember bg-ember/[0.04] dark:bg-ember/[0.06]'
             : 'border-chalk-3 dark:border-white/[0.08] bg-transparent hover:border-ember hover:bg-ember/[0.04] dark:hover:bg-ember/[0.06]'}">
         <div class="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 tt
-          {booking.type === 'inperson' ? 'bg-ember text-white' : 'bg-ember-light dark:bg-ember/20 group-hover:bg-ember group-hover:text-white'}">
+          {booking.type === 'in_person' ? 'bg-ember text-white' : 'bg-ember-light dark:bg-ember/20 group-hover:bg-ember group-hover:text-white'}">
           <svg width="17" height="17" viewBox="0 0 24 24" fill="none"
-            class="tt {booking.type === 'inperson' ? 'text-white' : 'text-ember group-hover:text-white'}"
+            class="tt {booking.type === 'in_person' ? 'text-white' : 'text-ember group-hover:text-white'}"
             stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
             <path d="M3 9.5L12 3l9 6.5V20a1 1 0 01-1 1H4a1 1 0 01-1-1V9.5z"/>
             <path d="M9 21V12h6v9"/>
@@ -250,8 +259,8 @@
         </div>
         <!-- Radio -->
         <div class="w-5 h-5 rounded-full border-2 flex-shrink-0 mt-0.5 flex items-center justify-center
-          {booking.type === 'inperson' ? 'border-ember' : 'border-chalk-3 dark:border-white/20'}">
-          {#if booking.type === 'inperson'}
+          {booking.type === 'in_person' ? 'border-ember' : 'border-chalk-3 dark:border-white/20'}">
+          {#if booking.type === 'in_person'}
             <div class="w-2.5 h-2.5 rounded-full bg-ember"></div>
           {/if}
         </div>
@@ -259,6 +268,8 @@
   
       <!-- Virtual option -->
       <button
+        type="button"
+        id="v-virtual-btn"
         onclick={() => selectViewingType('virtual')}
         class="viewing-type-btn w-full flex items-start gap-3.5 p-4 rounded-xl border-2 tt cursor-pointer mb-5 text-left group
           {booking.type === 'virtual'
