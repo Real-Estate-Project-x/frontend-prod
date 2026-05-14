@@ -4,9 +4,9 @@
 
   let showNotifications = $state(false);
 
-const toggleBell = () => {
- showNotifications = !showNotifications;
-}
+  const toggleBell = () => {
+  showNotifications = !showNotifications;
+  }
 
   // react to sidebar state changes
   $effect(() => {
@@ -71,8 +71,8 @@ const toggleBell = () => {
     </button>
       <!-- <button id="dmToggle" aria-label="Toggle dark mode" class="w-11 h-6 rounded-full bg-white/10 border border-white/15 relative cursor-pointer flex-shrink-0 tt dark:bg-blue-bright/30"><span class="absolute top-[3px] left-[3px] w-4 h-4 rounded-full bg-white tt dark:translate-x-5 dark:bg-blue-bright"></span></button> -->
       <div class="flex items-center gap-2.5 cursor-pointer">
-        <div class="w-9 h-9 rounded-full flex items-center justify-center text-[13px] font-medium text-white ring-2 ring-white/20 flex-shrink-0" style="background:linear-gradient(135deg,#1F3F6A,#4A90E2)">FA</div>
-        <div class="hidden sm:block"><div class="text-[13px] font-medium text-white leading-none">Fatima O.</div><div class="text-[10px] text-white/50 mt-0.5">User account</div></div>
+        <div class="w-9 h-9 rounded-full flex items-center justify-center text-[13px] font-medium text-white ring-2 ring-white/20 flex-shrink-0" style="background:linear-gradient(135deg,#1F3F6A,#4A90E2)">CO</div>
+        <div class="hidden sm:block"><div class="text-[13px] font-medium text-white leading-none">Chukwuemeka O.</div><div class="text-[10px] text-white/50 mt-0.5">Agency account</div></div>
       </div>
        <!-- Hamburger — hidden on desktop (>1024px), visible on mobile -->
     <button

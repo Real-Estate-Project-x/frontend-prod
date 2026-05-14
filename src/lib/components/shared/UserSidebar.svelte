@@ -1,6 +1,5 @@
 <script lang="ts">
   import { sidebarStore } from "$lib/stores/sidebar.svelte";
-  import { onMount } from "svelte";
 
 const closeSb = () => {
   sidebarStore.close();
