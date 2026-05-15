@@ -47,23 +47,23 @@
   <!-- Nav links -->
   <nav class="px-3 py-4 flex-1">
     <div class="text-[9px] font-medium tracking-[.16em] uppercase text-chalk-muted dark:text-[#6A7FA0] px-3 mb-2">Dashboard</div>
-    <a href="#" class="sb-link active flex items-center gap-3 px-3 py-[9px] rounded-xl mb-0.5 text-[13px] no-underline tt cursor-pointer">
+    <a href="/agency" class="sb-link active flex items-center gap-3 px-3 py-[9px] rounded-xl mb-0.5 text-[13px] no-underline tt cursor-pointer">
       <svg class="w-[15px] h-[15px] flex-shrink-0" viewBox="0 0 20 20" fill="none"><rect x="2" y="2" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.4"/><rect x="11" y="2" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.4"/><rect x="2" y="11" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.4"/><rect x="11" y="11" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.4"/></svg>
       Overview
     </a>
-    <a href="agency-properties.html" class="sb-link flex items-center gap-3 px-3 py-[9px] rounded-xl mb-0.5 text-[13px] text-chalk-muted dark:text-[#6A7FA0] no-underline tt cursor-pointer">
+    <a href="/agency/listings" class="sb-link flex items-center gap-3 px-3 py-[9px] rounded-xl mb-0.5 text-[13px] text-chalk-muted dark:text-[#6A7FA0] no-underline tt cursor-pointer">
       <svg class="w-[15px] h-[15px] flex-shrink-0" viewBox="0 0 20 20" fill="none"><rect x="2" y="3" width="16" height="14" rx="2" stroke="currentColor" stroke-width="1.4"/><path d="M2 8h16M6 1v4M14 1v4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
       My listings <span class="ml-auto text-[10px] font-medium bg-chalk-3 dark:bg-white/[.1] text-chalk-muted dark:text-[#6A7FA0] px-2 py-[2px] rounded-full">42</span>
     </a>
-    <a href="boosted.html" class="sb-link flex items-center gap-3 px-3 py-[9px] rounded-xl mb-0.5 text-[13px] text-chalk-muted dark:text-[#6A7FA0] no-underline tt cursor-pointer">
+    <a href="/agency/boosts" class="sb-link flex items-center gap-3 px-3 py-[9px] rounded-xl mb-0.5 text-[13px] text-chalk-muted dark:text-[#6A7FA0] no-underline tt cursor-pointer">
       <svg class="w-[15px] h-[15px] flex-shrink-0" viewBox="0 0 20 20" fill="none"><path d="M10 2l2.5 5 5.5.8-4 3.9.95 5.5L10 14.5l-4.95 2.7.95-5.5-4-3.9 5.5-.8z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg>
       Boosted <span class="ml-auto text-[10px] font-medium bg-gold/20 text-gold px-2 py-[2px] rounded-full flex items-center gap-0.5"><span class="w-1.5 h-1.5 rounded-full bg-gold pulse-dot"></span>4 live</span>
     </a>
-    <a href="viewings.html" class="sb-link flex items-center gap-3 px-3 py-[9px] rounded-xl mb-0.5 text-[13px] text-chalk-muted dark:text-[#6A7FA0] no-underline tt cursor-pointer">
+    <a href="/agency/viewing" class="sb-link flex items-center gap-3 px-3 py-[9px] rounded-xl mb-0.5 text-[13px] text-chalk-muted dark:text-[#6A7FA0] no-underline tt cursor-pointer">
       <svg class="w-[15px] h-[15px] flex-shrink-0" viewBox="0 0 20 20" fill="none"><rect x="3" y="4" width="14" height="14" rx="2" stroke="currentColor" stroke-width="1.4"/><path d="M7 2v4M13 2v4M3 9h14" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
       Viewings <span class="ml-auto text-[10px] font-medium bg-ember-light text-ember dark:bg-ember/20 dark:text-[#EDBA9B] px-2 py-[2px] rounded-full flex items-center gap-0.5"><span class="w-1.5 h-1.5 rounded-full bg-ember pulse-dot"></span>6 today</span>
     </a>
-    <a href="scheduling.html" class="sb-link flex items-center gap-3 px-3 py-[9px] rounded-xl mb-0.5 text-[13px] text-chalk-muted dark:text-[#6A7FA0] no-underline tt cursor-pointer">
+    <a href="/agency/scheduling" class="sb-link flex items-center gap-3 px-3 py-[9px] rounded-xl mb-0.5 text-[13px] text-chalk-muted dark:text-[#6A7FA0] no-underline tt cursor-pointer">
       <svg class="w-[15px] h-[15px] flex-shrink-0" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="8" stroke="currentColor" stroke-width="1.4"/><path d="M10 6v4l3 2" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
       Scheduling
     </a>
@@ -87,11 +87,11 @@
     </a>
 
     <div class="text-[9px] font-medium tracking-[.16em] uppercase text-chalk-muted dark:text-[#6A7FA0] px-3 mb-2">Account</div>
-    <a href="manage-profile.html" class="sb-link flex items-center gap-3 px-3 py-[9px] rounded-xl mb-0.5 text-[13px] text-chalk-muted dark:text-[#6A7FA0] no-underline tt cursor-pointer">
+    <a href="/agency/profile" class="sb-link flex items-center gap-3 px-3 py-[9px] rounded-xl mb-0.5 text-[13px] text-chalk-muted dark:text-[#6A7FA0] no-underline tt cursor-pointer">
       <svg class="w-[15px] h-[15px] flex-shrink-0" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="7" r="4" stroke="currentColor" stroke-width="1.4"/><path d="M3 18c0-4 3.13-6 7-6s7 2 7 6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
       Profile
     </a>
-    <a href="#" class="sb-link flex items-center gap-3 px-3 py-[9px] rounded-xl mb-0.5 text-[13px] text-chalk-muted dark:text-[#6A7FA0] no-underline tt cursor-pointer">
+    <a href="/agency/profile/settings" class="sb-link flex items-center gap-3 px-3 py-[9px] rounded-xl mb-0.5 text-[13px] text-chalk-muted dark:text-[#6A7FA0] no-underline tt cursor-pointer">
       <svg class="w-[15px] h-[15px] flex-shrink-0" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="3.5" stroke="currentColor" stroke-width="1.4"/><path d="M10 1v2M10 17v2M1 10h2M17 10h2M3.22 3.22l1.41 1.41M15.37 15.37l1.41 1.41M3.22 16.78l1.41-1.41M15.37 4.63l1.41-1.41" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
       Settings
     </a>
