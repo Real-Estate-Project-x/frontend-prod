@@ -441,7 +441,7 @@ const closeReportModal = () => {
             </div>
             {#if showVideo}
             <div id="videoEmbed" class="absolute inset-0">
-              <iframe src="https://www.youtube.com/embed/2O7K-8G2nwU?autoplay=1" 
+              <iframe title="Property video" src="https://www.youtube.com/embed/2O7K-8G2nwU?autoplay=1" 
                 allow="autoplay;fullscreen" 
                 allowfullscreen 
                 class="absolute inset-0 w-full h-full">
