@@ -3,8 +3,23 @@
   type TabType = 'personal profile' | 'agency info' | 'change password';
 
   let selectedTab = $state<TabType>('personal profile');
+  let pImageFile: HTMLInputElement;
+  let previewUrl = $state<string | null>(null);
 
     const switchTab = (value: TabType) => selectedTab = value;
+
+    const handlePImageUpload = () => {
+        const files = pImageFile?.files;
+        if (!files || files.length === 0) return;
+
+        const file = files[0];
+        previewUrl = URL.createObjectURL(file);
+    }
+
+    const removePImage = () => {
+        previewUrl = null;
+        pImageFile.value = '';
+    }
 
 </script>
 
@@ -68,6 +83,177 @@
         </button>
       </div>
     </div>
+
+    {#if selectedTab === 'personal profile'}
+    <!-- ══════════════════════════════
+         TAB 1 — PERSONAL PROFILE
+    ══════════════════════════════ -->
+    <div id="panel-personal" class="tab-panel space-y-5 fu d1">
+
+        <!-- Avatar card -->
+        <div class="pcard fu d1">
+          <div class="px-6 py-5 border-b border-chalk-3 dark:border-white/[0.07] flex items-center gap-2">
+            <div class="w-[6px] h-[6px] rounded-full bg-blue-bright flex-shrink-0"></div>
+            <span class="text-[14px] font-medium text-navy-dark dark:text-blue-100">Profile photo</span>
+          </div>
+          <div class="p-6 flex flex-col sm:flex-row items-start sm:items-center gap-6">
+            <!-- Avatar circle -->
+            <div class="relative flex-shrink-0">
+              {#if previewUrl}
+              <div id="avatarCircle" 
+                style={`background-image: url(${previewUrl}); background-size:cover; background-position: center center;`}
+                class="avatar-ring w-20 h-20 rounded-full bg-navy-strong flex items-center justify-center text-[24px] font-medium text-white ring-2 ring-blue-bright/20">
+              </div>
+              {:else}
+              <div id="avatarCircle" class="avatar-ring w-20 h-20 rounded-full bg-navy-strong flex items-center justify-center text-[24px] font-medium text-white ring-2 ring-blue-bright/20">CO</div>
+              {/if}
+              <button aria-label="Change avatar" onclick={() => pImageFile.click()} class="absolute -bottom-1 -right-1 w-7 h-7 rounded-full bg-blue-bright flex items-center justify-center cursor-pointer border-2 border-white dark:border-[#0D1422] hover:bg-blue-link tt">
+                <svg width="11" height="11" viewBox="0 0 14 14" fill="none"><path d="M2 10l1.5-4 7-7 2.5 2.5-7 7L2 10z" stroke="white" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </button>
+              <input type="file" 
+                id="avatarInput" 
+                class="hidden" 
+                accept="image/*" 
+                bind:this={pImageFile} 
+                onchange={handlePImageUpload} />
+            </div>
+            <div class="flex-1">
+              <div class="text-[14px] font-medium text-navy-dark dark:text-blue-100 mb-1">Chukwuemeka Okafor</div>
+              <div class="text-[12px] text-chalk-muted dark:text-[#6A7FA0] mb-3">JPG, PNG or WEBP · Max 2 MB · Square recommended</div>
+              <div class="flex gap-2.5 flex-wrap">
+                <button onclick={() => pImageFile.click()} class="flex items-center gap-2 text-[13px] font-medium text-navy-dark dark:text-blue-100 border border-chalk-3 dark:border-white/[.1] bg-white dark:bg-[#1A2438] hover:border-blue-bright hover:text-blue-link dark:hover:text-blue-bright px-4 py-2 rounded-full cursor-pointer tt">
+                  <svg width="12" height="12" viewBox="0 0 14 14" fill="none"><path d="M7 9V1M4 6l3 3 3-3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><path d="M1 11v1a1 1 0 001 1h10a1 1 0 001-1v-1" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+                  Upload new photo
+                </button>
+                <button onclick={removePImage} class="text-[13px] font-medium text-chalk-muted dark:text-[#6A7FA0] hover:text-ember tt cursor-pointer bg-transparent border-none font-sans">Remove</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Personal info form -->
+        <div class="pcard fu d2">
+            <div class="px-6 py-5 border-b border-chalk-3 dark:border-white/[0.07] flex items-center justify-between">
+            <div class="flex items-center gap-2">
+                <div class="w-[6px] h-[6px] rounded-full bg-blue-bright flex-shrink-0"></div>
+                <span class="text-[14px] font-medium text-navy-dark dark:text-blue-100">Personal information</span>
+            </div>
+            <span id="personal-unsaved" class="hidden flex items-center gap-1.5 text-[11px] text-gold">
+                <span class="unsaved-dot"></span>Unsaved changes
+            </span>
+            </div>
+            <div class="p-6 space-y-4">
+            <!-- Name row -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                <label class="block slabel mb-1.5">First name <span class="text-ember normal-case text-[12px]">*</span></label>
+                <input type="text" id="first_name" value="Chukwuemeka" class="finp" placeholder="First name">
+                </div>
+                <div>
+                <label class="block slabel mb-1.5">Last name <span class="text-ember normal-case text-[12px]">*</span></label>
+                <input type="text" id="last_name" value="Okafor" class="finp" placeholder="Last name">
+                </div>
+            </div>
+            <!-- Email -->
+            <div>
+                <label for="email" class="block slabel mb-1.5">Email address <span class="text-ember normal-case text-[12px]">*</span></label>
+                <div class="relative">
+                <input type="email" id="email" value="chukwuemeka@premierph.ng" class="finp pr-28" placeholder="email@example.com">
+                <span class="absolute right-3 top-1/2 -translate-y-1/2 pill bg-sage-light text-sage">
+                    <svg width="9" height="9" viewBox="0 0 12 12" fill="none"><path d="M2 6l2.5 2.5 5.5-5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>Verified
+                </span>
+                </div>
+                <p class="text-[11px] text-chalk-muted dark:text-[#6A7FA0] mt-1.5">This is your login email. Changing it will require re-verification.</p>
+            </div>
+            <!-- Phone -->
+            <div>
+                <label for="phone" class="block slabel mb-1.5">Phone number</label>
+                <div class="flex gap-2">
+                <div class="fsel-wrap flex-shrink-0">
+                    <select class="finp w-[88px] pr-7 cursor-pointer">
+                    <option>🇳🇬 +234</option>
+                    <option>🇬🇧 +44</option>
+                    <option>🇺🇸 +1</option>
+                    </select>
+                </div>
+                <input type="tel" id="phone" value="08001234567" class="finp flex-1" placeholder="080 000 0000">
+                </div>
+            </div>
+
+            <!-- Divider -->
+            <div class="border-t border-chalk-3 dark:border-white/[0.07] pt-4">
+                <div class="slabel mb-3">Public profile extras</div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                    <label for="exp" class="block text-[12px] font-medium text-chalk-muted dark:text-[#6A7FA0] mb-1.5">Years of experience</label>
+                    <input id="exp" type="number" value="7" min="0" max="50" class="finp" placeholder="e.g. 7">
+                </div>
+                <div>
+                    <label for="specialization" class="block text-[12px] font-medium text-chalk-muted dark:text-[#6A7FA0] mb-1.5">Specialisation</label>
+                    <div class="fsel-wrap">
+                    <select id="specialization" class="finp cursor-pointer pr-8">
+                        <option>Residential lettings</option>
+                        <option>Residential sales</option>
+                        <option>Commercial</option>
+                        <option>Land &amp; development</option>
+                        <option>Short-let / Airbnb</option>
+                    </select>
+                    </div>
+                </div>
+                </div>
+            </div>
+
+            <!-- Bio -->
+            <div>
+                <label for="bio" class="block slabel mb-1.5">Professional bio</label>
+                <textarea id="bio" class="finp ftxt" placeholder="Tell clients about your experience, specialisms, and what makes you stand out…">Experienced property agent based in Port Harcourt with over 7 years specialising in premium residential lettings across GRA Phase 2, Old GRA, and Trans-Amadi. Known for transparent dealings, rapid response times, and extensive knowledge of the Rivers State property market.</textarea>
+                <div class="flex justify-between mt-1.5">
+                <span class="text-[11px] text-chalk-muted dark:text-[#6A7FA0]">Shown on your public agent profile</span>
+                <span class="text-[11px] text-chalk-muted dark:text-[#6A7FA0]" id="bioCount">318 / 600</span>
+                </div>
+            </div>
+
+            <!-- Social links -->
+            <div class="border-t border-chalk-3 dark:border-white/[0.07] pt-4">
+                <div class="slabel mb-3">Social &amp; professional links</div>
+                <div class="space-y-3">
+                <div class="relative">
+                    <span class="absolute left-3.5 top-1/2 -translate-y-1/2"><svg width="14" height="14" viewBox="0 0 20 20" fill="none" class="text-[#25D366]"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01C6.35 6.5 5.05 7.74 5.05 9.57c0 1.823 1.53 3.62 1.75 3.882.22.266 2.83 4.63 6.892 6.32.963.415 1.714.663 2.3.849.966.308 1.846.264 2.542.16.776-.115 2.39-.977 2.726-1.92.335-.944.335-1.754.235-1.923-.1-.169-.37-.268-.67-.417z" stroke="#25D366" stroke-width="1"/></svg></span>
+                    <input type="text" value="+234 800 123 4567" class="finp pl-9" placeholder="WhatsApp number">
+                </div>
+                <div class="relative">
+                    <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#0077B5] text-[13px] font-bold">in</span>
+                    <input type="url" value="https://linkedin.com/in/chukwuemeka-okafor" class="finp pl-9" placeholder="LinkedIn profile URL">
+                </div>
+                </div>
+            </div>
+            </div>
+            <!-- Form footer -->
+            <div class="px-6 py-4 border-t border-chalk-3 dark:border-white/[0.07] flex items-center justify-between flex-wrap gap-3 bg-chalk-2/50 dark:bg-white/[0.02]">
+            <div class="text-[12px] text-chalk-muted dark:text-[#6A7FA0] flex items-center gap-1.5">
+                <svg width="12" height="12" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="5.5" stroke="currentColor" stroke-width="1.2"/><path d="M7 6v3.5M7 4.5h.01" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+                Last saved: today at 09:14
+            </div>
+            <div class="flex gap-2.5">
+                <button onclick={() => {}} class="text-[13px] font-medium text-chalk-muted dark:text-[#6A7FA0] border border-chalk-3 dark:border-white/[.1] px-5 py-2 rounded-full hover:text-navy-dark hover:border-chalk-4 dark:hover:text-blue-100 tt cursor-pointer bg-transparent">Discard</button>
+                <button onclick={() => {}} class="flex items-center gap-2 text-[13px] font-medium text-white bg-navy-dark dark:bg-blue-bright hover:opacity-90 px-5 py-2 rounded-full border-none cursor-pointer tt">
+                <svg width="12" height="12" viewBox="0 0 14 14" fill="none"><path d="M2 7a5 5 0 1010 0 5 5 0 00-10 0z"/><path d="M5 7l1.5 1.5 2.5-2.5" stroke="white" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                Save changes
+                </button>
+            </div>
+            </div>
+        </div>
+    </div>
+    {/if}
+
+    {#if selectedTab === 'agency info'}
+    <!-- ══════════════════════════════
+         TAB 2 — AGENCY INFO
+    ══════════════════════════════ -->
+    <div id="panel-agency" class="tab-panel hidden space-y-5 fu d1">
+
+    </div>
+    {/if}
 
     </div>
 
