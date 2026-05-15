@@ -94,8 +94,6 @@ const agentPasswordStrength = $derived(() => {
     };
   }
 
-  
-
     const selectCountry = (country: any) => {
         selected = country;
         isCountryOpen = false;

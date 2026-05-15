@@ -7,12 +7,27 @@
     let password = $state('');
     let isNewPasswordVisible = $state(false);
     let newPassword = $state('');
+    let pImageFile: HTMLInputElement;
+    let previewUrl = $state<string | null>(null);
 
     const switchTab = (tab: TabType) => selectedTab = tab;
 
     const togglePasswordVisibility = () => isPasswordVisible = !isPasswordVisible;
 
     const toggleNewPasswordVisibility = () => isNewPasswordVisible = !isNewPasswordVisible;
+
+    const handlePImageUpload = () => {
+        const files = pImageFile?.files;
+        if (!files || files.length === 0) return;
+
+        const file = files[0];
+        previewUrl = URL.createObjectURL(file);
+    }
+
+    const removePImage = () => {
+        previewUrl = null;
+        pImageFile.value = '';
+    }
 
     ////
     type Strength = 'weak' | 'medium' | 'strong' | '';
@@ -98,7 +113,7 @@
         </div>
 
         <!-- Avatar card -->
-        <div class="bg-white dark:bg-[#0D1422] border border-chalk-3 dark:border-white/[0.06] rounded-2xl p-5 mb-6 flex items-center gap-5 fu d1 shadow-[0_2px_16px_rgba(10,36,99,.06)] dark:shadow-none">
+        <!-- <div class="bg-white dark:bg-[#0D1422] border border-chalk-3 dark:border-white/[0.06] rounded-2xl p-5 mb-6 flex items-center gap-5 fu d1 shadow-[0_2px_16px_rgba(10,36,99,.06)] dark:shadow-none">
             <div class="relative flex-shrink-0">
             <div class="w-16 h-16 rounded-full flex items-center justify-center text-[20px] font-semibold text-white ring-[3px] ring-blue-bright/20" style="background:linear-gradient(135deg,#1F3F6A,#4A90E2)">FA</div>
             <button aria-label="change avatar" class="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-blue-bright flex items-center justify-center border-2 border-white dark:border-[#0D1422] cursor-pointer hover:bg-blue-link tt">
@@ -113,7 +128,47 @@
                 <span class="text-[10px] font-medium bg-blue-bright/10 text-blue-link dark:text-blue-bright px-2.5 py-[3px] rounded-full">Verified ✓</span>
             </div>
             </div>
-        </div>
+        </div> -->
+
+        <!-- Avatar card -->
+        <div class="pcard fu d1 mb-10">
+            <div class="px-6 py-5 border-b border-chalk-3 dark:border-white/[0.07] flex items-center gap-2">
+              <div class="w-[6px] h-[6px] rounded-full bg-blue-bright flex-shrink-0"></div>
+              <span class="text-[14px] font-medium text-navy-dark dark:text-blue-100">Profile photo</span>
+            </div>
+            <div class="p-6 flex flex-col sm:flex-row items-start sm:items-center gap-6">
+              <!-- Avatar circle -->
+              <div class="relative flex-shrink-0">
+                {#if previewUrl}
+                <div id="avatarCircle" 
+                  style={`background-image: url(${previewUrl}); background-size:cover; background-position: center center;`}
+                  class="avatar-ring w-20 h-20 rounded-full bg-navy-strong flex items-center justify-center text-[24px] font-medium text-white ring-2 ring-blue-bright/20"></div>
+                {:else}
+                <div id="avatarCircle" class="avatar-ring w-20 h-20 rounded-full bg-navy-strong flex items-center justify-center text-[24px] font-medium text-white ring-2 ring-blue-bright/20">FO</div>
+                {/if}
+                <button aria-label="Change avatar" onclick={() => pImageFile.click()} class="absolute -bottom-1 -right-1 w-7 h-7 rounded-full bg-blue-bright flex items-center justify-center cursor-pointer border-2 border-white dark:border-[#0D1422] hover:bg-blue-link tt">
+                  <svg width="11" height="11" viewBox="0 0 14 14" fill="none"><path d="M2 10l1.5-4 7-7 2.5 2.5-7 7L2 10z" stroke="white" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                </button>
+                <input type="file" 
+                  id="avatarInput" 
+                  class="hidden" 
+                  accept="image/*" 
+                  bind:this={pImageFile} 
+                  onchange={handlePImageUpload} />
+              </div>
+              <div class="flex-1">
+                <div class="text-[14px] font-medium text-navy-dark dark:text-blue-100 mb-1">Fatima O</div>
+                <div class="text-[12px] text-chalk-muted dark:text-[#6A7FA0] mb-3">JPG, PNG or WEBP · Max 2 MB · Square recommended</div>
+                <div class="flex gap-2.5 flex-wrap">
+                  <button onclick={() => pImageFile.click()} class="flex items-center gap-2 text-[13px] font-medium text-navy-dark dark:text-blue-100 border border-chalk-3 dark:border-white/[.1] bg-white dark:bg-[#1A2438] hover:border-blue-bright hover:text-blue-link dark:hover:text-blue-bright px-4 py-2 rounded-full cursor-pointer tt">
+                    <svg width="12" height="12" viewBox="0 0 14 14" fill="none"><path d="M7 9V1M4 6l3 3 3-3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><path d="M1 11v1a1 1 0 001 1h10a1 1 0 001-1v-1" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+                    Upload new photo
+                  </button>
+                  <button onclick={removePImage} class="text-[13px] font-medium text-chalk-muted dark:text-[#6A7FA0] hover:text-ember tt cursor-pointer bg-transparent border-none font-sans">Remove</button>
+                </div>
+              </div>
+            </div>
+          </div>
 
         <!-- Tabs -->
         <div class="fu d2">
@@ -406,6 +461,12 @@
     /* toast */
     #toast{transform:translateY(20px);opacity:0;transition:all .32s cubic-bezier(.34,1,.56,1);pointer-events:none}
     #toast.show{transform:translateY(0);opacity:1}
+
+    /* card */
+    .pcard{background:#fff;border:1px solid #EDE7DC;border-radius:18px;overflow:hidden;transition:box-shadow .22s}
+    .dark .pcard,
+    :global([data-theme="dark"]) .pcard{background:#0D1422;border-color:rgba(255,255,255,.07)}
+    
     
     @media(max-width:640px){
       .hide-xs{display:none!important}

@@ -4,7 +4,24 @@
 
   let selectedTab = $state<TabType>('personal profile');
   let pImageFile: HTMLInputElement;
+  let aAgencyFile: HTMLInputElement;
+  let agencyDocFile: HTMLInputElement;
   let previewUrl = $state<string | null>(null);
+  let previewAgencyLogoUrl = $state<string | null>(null);
+  let currentPassword = $state("");
+  let isCurrentPasswordVisible = $state(false);
+
+  let confirmNewPassword = $state("");
+  let isConfirmNewVisible = $state(false);
+
+  let newPassword = $state("");
+  let isNewPasswordVisible = $state(false);
+
+  const toggleConfirmPassword = () => isConfirmNewVisible = !isConfirmNewVisible;
+
+  const toggleCurrentPassword = () => isCurrentPasswordVisible = !isCurrentPasswordVisible;
+
+  const toggleNewPassword = () => isNewPasswordVisible = !isNewPasswordVisible;
 
     const switchTab = (value: TabType) => selectedTab = value;
 
@@ -16,10 +33,86 @@
         previewUrl = URL.createObjectURL(file);
     }
 
+    const handleALogoUpload = () => {
+        const files = aAgencyFile?.files;
+        if (!files || files.length === 0) return;
+
+        const file = files[0];
+        previewAgencyLogoUrl = URL.createObjectURL(file);
+    }
+
+    const handleDocumentUpload = () => {
+        const files = agencyDocFile?.files;
+        if (!files || files.length === 0) return;
+
+        const file = files[0];
+        // previewAgencyLogoUrl = URL.createObjectURL(file);
+    }
+
     const removePImage = () => {
         previewUrl = null;
         pImageFile.value = '';
     }
+
+    // Password strength
+    const requirements = $derived({
+    length: newPassword.length >= 8,
+    upper: /[A-Z]/.test(newPassword),
+    number: /[0-9]/.test(newPassword),
+    special: /[^A-Za-z0-9]/.test(newPassword)
+  });
+
+  const strength = $derived(() => {
+    if (!newPassword) {
+      return {
+        pts: 0,
+        label: 'Enter a password',
+        color: '',
+        className: ''
+      };
+    }
+
+    let pts = 0;
+
+    if (requirements.length) pts++;
+    if (requirements.upper) pts++;
+    if (requirements.number) pts++;
+    if (requirements.special) pts++;
+
+    const classes = [
+      '',
+      'str-weak',
+      'str-weak',
+      'str-fair',
+      'str-fair',
+      'str-strong'
+    ];
+
+    const labels = [
+      '',
+      'Very weak',
+      'Weak',
+      'Fair',
+      'Strong',
+      'Very strong'
+    ];
+
+    const colors = [
+      '',
+      '#C06035',
+      '#C06035',
+      '#D4AE3A',
+      '#D4AE3A',
+      '#4A7848'
+    ];
+
+    return {
+      pts,
+      label: labels[pts],
+      color: colors[pts],
+      className: classes[pts]
+    };
+  });
 
 </script>
 
@@ -250,9 +343,434 @@
     <!-- ══════════════════════════════
          TAB 2 — AGENCY INFO
     ══════════════════════════════ -->
-    <div id="panel-agency" class="tab-panel hidden space-y-5 fu d1">
+    <div id="panel-agency" class="tab-panel space-y-5 fu d1">
+        <!-- Agency identity -->
+        <div class="pcard">
+            <div class="px-6 py-5 border-b border-chalk-3 dark:border-white/[0.07] flex items-center justify-between">
+            <div class="flex items-center gap-2">
+                <div class="w-[6px] h-[6px] rounded-full bg-blue-bright flex-shrink-0"></div>
+                <span class="text-[14px] font-medium text-navy-dark dark:text-blue-100">Agency identity</span>
+            </div>
+            <span class="pill bg-sage-light text-sage"><svg width="9" height="9" viewBox="0 0 12 12" fill="none"><path d="M2 6l2.5 2.5 5.5-5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>Verified agency</span>
+            </div>
+            <div class="p-6 space-y-4">
+            <!-- Logo upload -->
+            <div>
+                <div class="slabel mb-2">Agency logo</div>
+                <div class="flex items-center gap-4 flex-wrap">
+                {#if previewAgencyLogoUrl}
+                <div style={`background-image: url(${previewAgencyLogoUrl}); background-size:cover; background-position: center center;`} class="w-16 h-16 rounded-xl bg-chalk-2 dark:bg-[#1A2438] border border-chalk-3 dark:border-white/[.1] flex items-center justify-center text-[11px] font-bold text-navy-accent dark:text-[#8DAACC] tt flex-shrink-0">
+                </div>
+                {:else}
+                <div class="w-16 h-16 rounded-xl bg-chalk-2 dark:bg-[#1A2438] border border-chalk-3 dark:border-white/[.1] flex items-center justify-center text-[11px] font-bold text-navy-accent dark:text-[#8DAACC] tt flex-shrink-0">PP</div>
+                {/if}
+                <div>
+                    <button onclick={() => aAgencyFile.click()} class="flex items-center gap-2 text-[13px] font-medium text-navy-dark dark:text-blue-100 border border-chalk-3 dark:border-white/[.1] bg-white dark:bg-[#1A2438] hover:border-blue-bright hover:text-blue-link dark:hover:text-blue-bright px-4 py-2 rounded-full cursor-pointer tt mb-1.5">
+                    <svg width="12" height="12" viewBox="0 0 14 14" fill="none"><path d="M7 9V1M4 6l3 3 3-3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><path d="M1 11v1a1 1 0 001 1h10a1 1 0 001-1v-1" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+                    Upload logo
+                    </button>
+                    <p class="text-[11px] text-chalk-muted dark:text-[#6A7FA0]">PNG or SVG, min 200×200px</p>
+                    <input bind:this={aAgencyFile} 
+                        type="file" 
+                        id="logoInput" 
+                        class="hidden" 
+                        accept="image/*" 
+                        onchange={handleALogoUpload} />
+                </div>
+                </div>
+            </div>
+
+            <!-- Agency name + reg -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                <label class="block slabel mb-1.5">Agency name <span class="text-ember normal-case text-[12px]">*</span></label>
+                <input type="text" value="Premier Properties PH" class="finp" placeholder="Agency trading name">
+                </div>
+                <div>
+                <label class="block slabel mb-1.5">Registration number</label>
+                <input type="text" value="RC-0987654" class="finp" placeholder="CAC / RC number">
+                </div>
+            </div>
+
+            <!-- Contact -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                <label class="block slabel mb-1.5">Agency phone</label>
+                <input type="tel" value="0840 123 4567" class="finp" placeholder="Main office number">
+                </div>
+                <div>
+                <label class="block slabel mb-1.5">Agency email</label>
+                <input type="email" value="hello@premierph.ng" class="finp" placeholder="office@agency.com">
+                </div>
+            </div>
+
+            <!-- Address -->
+            <div>
+                <label class="block slabel mb-1.5">Office address</label>
+                <input type="text" value="14 Aba Road, GRA Phase 2, Port Harcourt" class="finp mb-2.5" placeholder="Street address">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                <div class="fsel-wrap">
+                    <select class="finp cursor-pointer pr-8">
+                    <option selected>Rivers State</option><option>Lagos State</option><option>Abuja FCT</option><option>Delta State</option><option>Anambra</option><option>Cross River</option><option>Ogun State</option>
+                    </select>
+                </div>
+                <input type="text" value="Port Harcourt" class="finp" placeholder="City / Area">
+                </div>
+            </div>
+
+            <!-- About agency -->
+            <div>
+                <label class="block slabel mb-1.5">Agency description</label>
+                <textarea class="finp ftxt" placeholder="Describe your agency…">Premier Properties PH is a full-service real estate agency founded in 2016, specialising in premium residential and commercial properties across Rivers State. We are renowned for our transparent, client-first approach and deep knowledge of the Port Harcourt property market.</textarea>
+                <p class="text-[11px] text-chalk-muted dark:text-[#6A7FA0] mt-1.5">Shown on your public agency profile page</p>
+            </div>
+            </div>
+            <div class="px-6 py-4 border-t border-chalk-3 dark:border-white/[0.07] flex items-center justify-end gap-2.5 bg-chalk-2/50 dark:bg-white/[0.02]">
+            <button class="text-[13px] font-medium text-chalk-muted dark:text-[#6A7FA0] border border-chalk-3 dark:border-white/[.1] px-5 py-2 rounded-full hover:text-navy-dark dark:hover:text-blue-100 tt cursor-pointer bg-transparent">Discard</button>
+            <button onclick={() => {}} class="flex items-center gap-2 text-[13px] font-medium text-white bg-navy-dark dark:bg-blue-bright hover:opacity-90 px-5 py-2 rounded-full border-none cursor-pointer tt">
+                <svg width="12" height="12" viewBox="0 0 14 14" fill="none"><path d="M2 7a5 5 0 1010 0 5 5 0 00-10 0z"/><path d="M5 7l1.5 1.5 2.5-2.5" stroke="white" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                Save agency info
+            </button>
+            </div>
+        </div>
+
+        <!-- Documents / verification -->
+      <div class="pcard">
+        <div class="px-6 py-5 border-b border-chalk-3 dark:border-white/[0.07] flex items-center gap-2">
+          <div class="w-[6px] h-[6px] rounded-full bg-blue-bright flex-shrink-0"></div>
+          <span class="text-[14px] font-medium text-navy-dark dark:text-blue-100">Verification documents</span>
+        </div>
+        <div class="p-6 space-y-4">
+          <p class="text-[13px] text-chalk-muted dark:text-[#6A7FA0] leading-[1.7]">Upload your agency registration documents. Verified agencies receive a badge on all listings and improved search ranking.</p>
+          <!-- Docs -->
+          <div class="space-y-3">
+            <!-- Uploaded doc -->
+            <div class="flex items-center gap-3 bg-sage-light/50 dark:bg-sage/[0.08] border border-sage/20 dark:border-sage/20 rounded-xl px-4 py-3 tt">
+              <div class="w-9 h-9 rounded-lg bg-sage-light flex items-center justify-center flex-shrink-0"><svg width="14" height="14" viewBox="0 0 16 16" fill="none"><rect x="3" y="1" width="10" height="14" rx="1.5" stroke="#4A7848" stroke-width="1.3"/><path d="M5 5h6M5 7.5h6M5 10h4" stroke="#4A7848" stroke-width="1.2" stroke-linecap="round"/></svg></div>
+              <div class="flex-1 min-w-0">
+                <div class="text-[13px] font-medium text-navy-dark dark:text-blue-100">CAC Certificate.pdf</div>
+                <div class="text-[11px] text-chalk-muted dark:text-[#6A7FA0]">Uploaded 14 Feb 2026 · 1.2 MB</div>
+              </div>
+              <span class="pill bg-sage-light text-sage flex-shrink-0"><svg width="8" height="8" viewBox="0 0 10 10" fill="none"><path d="M2 5l2 2 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>Verified</span>
+            </div>
+            <!-- Pending doc -->
+            <div class="flex items-center gap-3 bg-gold/[0.06] border border-gold/20 rounded-xl px-4 py-3 tt">
+              <div class="w-9 h-9 rounded-lg bg-gold/15 flex items-center justify-center flex-shrink-0"><svg width="14" height="14" viewBox="0 0 16 16" fill="none"><rect x="3" y="1" width="10" height="14" rx="1.5" stroke="#D4AE3A" stroke-width="1.3"/><path d="M5 5h6M5 7.5h6M5 10h4" stroke="#D4AE3A" stroke-width="1.2" stroke-linecap="round"/></svg></div>
+              <div class="flex-1 min-w-0">
+                <div class="text-[13px] font-medium text-navy-dark dark:text-blue-100">Business Permit.pdf</div>
+                <div class="text-[11px] text-chalk-muted dark:text-[#6A7FA0]">Uploaded 2 days ago · 0.8 MB</div>
+              </div>
+              <span class="pill bg-gold/15 text-[#8A6A10] dark:text-gold flex-shrink-0">⏳ Reviewing</span>
+            </div>
+            <!-- Upload new -->
+            <div class="file-drop p-4 text-center cursor-pointer" onclick={() => agencyDocFile.click()}>
+              <svg width="20" height="20" viewBox="0 0 20 20" fill="none" class="mx-auto mb-2 text-chalk-muted dark:text-[#6A7FA0]"><path d="M10 13V4M7 7l3-3 3 3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><path d="M3 15v1a1 1 0 001 1h12a1 1 0 001-1v-1" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+              <p class="text-[13px] font-medium text-navy-dark dark:text-blue-100">Upload a document</p>
+              <p class="text-[11px] text-chalk-muted dark:text-[#6A7FA0] mt-0.5">PDF, JPG or PNG · Max 5 MB</p>
+              <input bind:this={agencyDocFile} type="file" id="docInput" class="hidden" accept=".pdf,image/*">
+            </div>
+          </div>
+        </div>
+      </div>
 
     </div>
+    {/if}
+
+    {#if selectedTab === 'change password'}
+    <!-- ══════════════════════════════
+         TAB 3 — CHANGE PASSWORD
+    ══════════════════════════════ -->
+    <div id="panel-password" class="tab-panel space-y-5 fu d1">
+
+        <!-- Password form -->
+        <div class="pcard">
+          <div class="px-6 py-5 border-b border-chalk-3 dark:border-white/[0.07] flex items-center gap-2">
+            <div class="w-[6px] h-[6px] rounded-full bg-blue-bright flex-shrink-0"></div>
+            <span class="text-[14px] font-medium text-navy-dark dark:text-blue-100">Change password</span>
+          </div>
+          <div class="p-6 space-y-4">
+            <div class="bg-blue-bright/[0.06] dark:bg-blue-bright/[0.08] border border-blue-bright/20 dark:border-blue-bright/15 rounded-xl px-4 py-3 flex items-start gap-3 tt">
+              <svg width="15" height="15" viewBox="0 0 16 16" fill="none" class="text-blue-bright flex-shrink-0 mt-0.5"><circle cx="8" cy="8" r="6.5" stroke="currentColor" stroke-width="1.3"/><path d="M8 7.5v4M8 5.5h.01" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+              <p class="text-[12px] text-navy-accent dark:text-[#8DAACC] leading-[1.6]">Use a strong password with at least 8 characters, mixing upper &amp; lowercase letters, numbers, and symbols. You'll be signed out of all other devices after changing.</p>
+            </div>
+  
+            <!-- Current password -->
+            <div>
+              <label for="current_pw" class="block slabel mb-1.5">Current password <span class="text-ember normal-case text-[12px]">*</span></label>
+              <div class="relative">
+                <input bind:value={currentPassword}
+                    type={isCurrentPasswordVisible ? 'text' : 'password'} 
+                    id="current_pw" 
+                    class="finp pr-10" 
+                    placeholder="Enter your current password" />
+                <button onclick={toggleCurrentPassword} class="absolute right-3 top-1/2 -translate-y-1/2 text-chalk-muted dark:text-[#6A7FA0] hover:text-navy-dark dark:hover:text-blue-100 tt cursor-pointer bg-transparent border-none">
+                    {#if isCurrentPasswordVisible}
+                    <svg class="eye-off" width="15" height="15" viewBox="0 0 20 20" fill="none"><path d="M1 10s4-7 9-7 9 7 9 7-4 7-9 7-9-7-9-7z" stroke="currentColor" stroke-width="1.4"/><circle cx="10" cy="10" r="2.5" stroke="currentColor" stroke-width="1.4"/></svg>
+                    {:else}
+                    <svg class="eye-on hidden" width="15" height="15" viewBox="0 0 20 20" fill="none"><path d="M3 3l14 14M8.6 8.6A2.5 2.5 0 0012.4 12.4M5.4 5.4A8.8 8.8 0 001 10s4 7 9 7a8.8 8.8 0 006-2.4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><path d="M8 4.1A9 9 0 0119 10s-.9 1.6-2.4 3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+                    {/if}
+                </button>
+              </div>
+            </div>
+  
+            <!-- New password -->
+        <div>
+            <label for="new_pw" class="block slabel mb-1.5">
+            New password
+            <span class="text-ember normal-case text-[12px]">*</span>
+            </label>
+        
+            <div class="relative">
+            <input
+                bind:value={newPassword}
+                type={isNewPasswordVisible ? 'text' : 'password'}
+                id="new_pw"
+                class="finp pr-10"
+                placeholder="Create a new password"
+            />
+        
+            <button
+                onclick={toggleNewPassword}
+                type="button"
+                class="absolute right-3 top-1/2 -translate-y-1/2
+                text-chalk-muted dark:text-[#6A7FA0]
+                hover:text-navy-dark dark:hover:text-blue-100
+                tt cursor-pointer bg-transparent border-none"
+            >
+                {#if isNewPasswordVisible}
+                <svg
+                    class="eye-off"
+                    width="15"
+                    height="15"
+                    viewBox="0 0 20 20"
+                    fill="none"
+                >
+                    <path
+                    d="M1 10s4-7 9-7 9 7 9 7-4 7-9 7-9-7-9-7z"
+                    stroke="currentColor"
+                    stroke-width="1.4"
+                    />
+                    <circle
+                    cx="10"
+                    cy="10"
+                    r="2.5"
+                    stroke="currentColor"
+                    stroke-width="1.4"
+                    />
+                </svg>
+                {:else}
+                <svg
+                    class="eye-on"
+                    width="15"
+                    height="15"
+                    viewBox="0 0 20 20"
+                    fill="none"
+                >
+                    <path
+                    d="M3 3l14 14M8.6 8.6A2.5 2.5 0 0012.4 12.4M5.4 5.4A8.8 8.8 0 001 10s4 7 9 7a8.8 8.8 0 006-2.4"
+                    stroke="currentColor"
+                    stroke-width="1.4"
+                    stroke-linecap="round"
+                    />
+                    <path
+                    d="M8 4.1A9 9 0 0119 10s-.9 1.6-2.4 3"
+                    stroke="currentColor"
+                    stroke-width="1.4"
+                    stroke-linecap="round"
+                    />
+                </svg>
+                {/if}
+            </button>
+            </div>
+        
+            <!-- Strength meter -->
+            <div class="mt-2.5 space-y-1.5">
+            <div class="flex gap-1.5">
+                {#each Array(4) as _, index}
+                <div
+                    class={`str-bar flex-1 h-1 rounded-full ${
+                    index < strength().pts
+                        ? strength().pts === 4 ? 'str-strong': strength().className
+                        : ''
+                    }`}
+                ></div>
+                {/each}
+            </div>
+        
+            <div class="flex items-center justify-between">
+                <span
+                class="text-[11px] text-chalk-muted dark:text-[#6A7FA0]"
+                style={`color:${strength().color}`}
+                >
+                {strength().label}
+                </span>
+        
+                <span class="text-[11px] text-chalk-muted dark:text-[#6A7FA0]">
+                </span>
+            </div>
+        </div>
+  </div>
+  
+  <!-- Requirements -->
+  <div class="bg-chalk-2 dark:bg-[#1A2438] rounded-xl p-4 space-y-2 tt">
+    <div class="text-[11px] font-medium text-chalk-muted dark:text-[#6A7FA0] mb-2">
+      Password requirements
+    </div>
+  
+    <!-- Length -->
+    <div
+      class={`flex items-center gap-2 text-[12px] ${requirements.length ? 'text-[#4A7848]' : 'text-chalk-muted dark:text-[#6A7FA0]'}`}
+    >
+      <div
+        class={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${requirements.length ? 'bg-[#4A7848]' : 'bg-chalk-3 dark:bg-white/20'}`}
+      ></div>
+  
+      At least 8 characters
+    </div>
+  
+    <!-- Uppercase -->
+    <div
+      class={`flex items-center gap-2 text-[12px] ${requirements.upper ? 'text-[#4A7848]' : 'text-chalk-muted dark:text-[#6A7FA0]'}`}
+    >
+      <div
+        class={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${requirements.upper ? 'bg-[#4A7848]' : 'bg-chalk-3 dark:bg-white/20'}`}
+      ></div>
+  
+      One uppercase letter
+    </div>
+  
+    <!-- Number -->
+    <div
+      class={`flex items-center gap-2 text-[12px] ${requirements.number ? 'text-[#4A7848]' : 'text-chalk-muted dark:text-[#6A7FA0]'}`}
+    >
+      <div
+        class={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${requirements.number ? 'bg-[#4A7848]' : 'bg-chalk-3 dark:bg-white/20'}`}
+      ></div>
+  
+      One number
+    </div>
+  
+    <!-- Special -->
+    <div
+      class={`flex items-center gap-2 text-[12px] ${requirements.special ? 'text-[#4A7848]' : 'text-chalk-muted dark:text-[#6A7FA0]'}`}
+    >
+      <div
+        class={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${requirements.special ? 'bg-[#4A7848]' : 'bg-chalk-3 dark:bg-white/20'}`}
+      ></div>
+  
+      One special character (!@#$…)
+    </div>
+
+  </div>
+  
+            <!-- Confirm password -->
+            <div>
+              <label for="confirm_pw" class="block slabel mb-1.5">Confirm new password <span class="text-ember normal-case text-[12px]">*</span></label>
+              <div class="relative">
+                <input bind:value={confirmNewPassword}
+                    type={isConfirmNewVisible ? 'text' : 'password'}
+                    id="confirm_pw" 
+                    class="finp pr-10" 
+                    placeholder="Repeat your new password" 
+                    oninput={() => {
+                    // Check match
+                }}>
+                <button aria-label="Toggle password visibility" onclick={toggleConfirmPassword} class="absolute right-3 top-1/2 -translate-y-1/2 text-chalk-muted dark:text-[#6A7FA0] hover:text-navy-dark dark:hover:text-blue-100 tt cursor-pointer bg-transparent border-none">
+                  <svg class="eye-off" width="15" height="15" viewBox="0 0 20 20" fill="none"><path d="M1 10s4-7 9-7 9 7 9 7-4 7-9 7-9-7-9-7z" stroke="currentColor" stroke-width="1.4"/><circle cx="10" cy="10" r="2.5" stroke="currentColor" stroke-width="1.4"/></svg>
+                  <svg class="eye-on hidden" width="15" height="15" viewBox="0 0 20 20" fill="none"><path d="M3 3l14 14M8.6 8.6A2.5 2.5 0 0012.4 12.4M5.4 5.4A8.8 8.8 0 001 10s4 7 9 7a8.8 8.8 0 006-2.4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><path d="M8 4.1A9 9 0 0119 10s-.9 1.6-2.4 3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+                </button>
+              </div>
+              <p class="text-[11px] mt-1.5 hidden text-ember" id="matchErr">Passwords do not match</p>
+              <p class="text-[11px] mt-1.5 hidden text-sage" id="matchOk">✓ Passwords match</p>
+            </div>
+          </div>
+          <div class="px-6 py-4 border-t border-chalk-3 dark:border-white/[0.07] flex items-center justify-between flex-wrap gap-3 bg-chalk-2/50 dark:bg-white/[0.02]">
+            <!-- <a href="#" class="text-[12px] text-blue-link hover:text-navy-dark dark:hover:text-blue-bright tt no-underline">Forgot current password?</a> -->
+            <button onclick={() => {}} class="flex items-center gap-2 text-[13px] font-medium text-white bg-navy-dark dark:bg-blue-bright hover:opacity-90 px-5 py-2 rounded-full border-none cursor-pointer tt">
+              <svg width="12" height="12" viewBox="0 0 14 14" fill="none"><rect x="3" y="7" width="8" height="6" rx="1.5" stroke="white" stroke-width="1.3"/><path d="M5 7V4.5a2 2 0 014 0V7" stroke="white" stroke-width="1.3" stroke-linecap="round"/></svg>
+              Update password
+            </button>
+          </div>
+        </div>
+  
+        <!-- 2FA section -->
+        <div class="pcard">
+          <div class="px-6 py-5 border-b border-chalk-3 dark:border-white/[0.07] flex items-center justify-between">
+            <div class="flex items-center gap-2">
+              <div class="w-[6px] h-[6px] rounded-full bg-blue-bright flex-shrink-0"></div>
+              <span class="text-[14px] font-medium text-navy-dark dark:text-blue-100">Two-factor authentication</span>
+            </div>
+            <span class="pill bg-chalk-2 dark:bg-white/[.08] text-chalk-muted dark:text-[#6A7FA0] border border-chalk-3 dark:border-white/[.1]">Not enabled</span>
+          </div>
+          <div class="p-6">
+            <p class="text-[13px] text-chalk-muted dark:text-[#6A7FA0] leading-[1.7] mb-4">Add an extra layer of security to your account. When enabled, you'll be asked for a code from your phone each time you sign in.</p>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <button class="flex items-center gap-3 p-4 border border-chalk-3 dark:border-white/[.1] rounded-xl hover:border-blue-bright hover:bg-blue-bright/[.03] tt cursor-pointer bg-transparent text-left">
+                <div class="w-9 h-9 rounded-lg bg-chalk-2 dark:bg-[#1A2438] flex items-center justify-center flex-shrink-0 tt"><svg width="16" height="16" viewBox="0 0 20 20" fill="none"><rect x="5" y="2" width="10" height="16" rx="2" stroke="currentColor" stroke-width="1.4"/><circle cx="10" cy="15" r="1" fill="currentColor"/><path d="M8 5h4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg></div>
+                <div><div class="text-[13px] font-medium text-navy-dark dark:text-blue-100">SMS / Phone</div><div class="text-[11px] text-chalk-muted dark:text-[#6A7FA0]">Receive a code via text</div></div>
+              </button>
+              <button class="flex items-center gap-3 p-4 border border-chalk-3 dark:border-white/[.1] rounded-xl hover:border-blue-bright hover:bg-blue-bright/[.03] tt cursor-pointer bg-transparent text-left">
+                <div class="w-9 h-9 rounded-lg bg-chalk-2 dark:bg-[#1A2438] flex items-center justify-center flex-shrink-0 tt"><svg width="16" height="16" viewBox="0 0 20 20" fill="none"><path d="M10 2l2 4 4.5.7-3.25 3.15.77 4.5L10 12.2l-4.02 2.15.77-4.5L3.5 6.7 8 6z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg></div>
+                <div><div class="text-[13px] font-medium text-navy-dark dark:text-blue-100">Authenticator app</div><div class="text-[11px] text-chalk-muted dark:text-[#6A7FA0]">Use Google Authenticator or Authy</div></div>
+              </button>
+            </div>
+          </div>
+        </div>
+  
+        <!-- Active sessions -->
+        <!-- <div class="pcard">
+          <div class="px-6 py-5 border-b border-chalk-3 dark:border-white/[0.07] flex items-center gap-2">
+            <div class="w-[6px] h-[6px] rounded-full bg-blue-bright flex-shrink-0"></div>
+            <span class="text-[14px] font-medium text-navy-dark dark:text-blue-100">Active sessions</span>
+          </div>
+          <div class="divide-y divide-chalk-3 dark:divide-white/[0.06]">
+            <div class="px-6 py-4 flex items-center justify-between gap-4">
+              <div class="flex items-center gap-3">
+                <div class="w-8 h-8 rounded-lg bg-chalk-2 dark:bg-[#1A2438] flex items-center justify-center flex-shrink-0 tt">
+                  <svg width="14" height="14" viewBox="0 0 20 20" fill="none"><rect x="2" y="4" width="16" height="12" rx="2" stroke="currentColor" stroke-width="1.4"/><path d="M6 17h8M10 16v1" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+                </div>
+                <div>
+                  <div class="text-[13px] font-medium text-navy-dark dark:text-blue-100">Chrome · MacOS</div>
+                  <div class="text-[11px] text-chalk-muted dark:text-[#6A7FA0]">Port Harcourt, Nigeria · <span class="text-sage font-medium">This device</span></div>
+                </div>
+              </div>
+              <span class="text-[11px] text-chalk-muted dark:text-[#6A7FA0]">Active now</span>
+            </div>
+            <div class="px-6 py-4 flex items-center justify-between gap-4">
+              <div class="flex items-center gap-3">
+                <div class="w-8 h-8 rounded-lg bg-chalk-2 dark:bg-[#1A2438] flex items-center justify-center flex-shrink-0 tt">
+                  <svg width="14" height="14" viewBox="0 0 20 20" fill="none"><rect x="5" y="2" width="10" height="16" rx="2" stroke="currentColor" stroke-width="1.4"/><circle cx="10" cy="15" r="1" fill="currentColor"/></svg>
+                </div>
+                <div>
+                  <div class="text-[13px] font-medium text-navy-dark dark:text-blue-100">Safari · iPhone 14</div>
+                  <div class="text-[11px] text-chalk-muted dark:text-[#6A7FA0]">Port Harcourt, Nigeria · 3 hours ago</div>
+                </div>
+              </div>
+              <button class="text-[12px] font-medium text-ember hover:text-ember-deep tt cursor-pointer bg-transparent border-none font-sans">Revoke</button>
+            </div>
+          </div>
+          <div class="px-6 py-4 border-t border-chalk-3 dark:border-white/[0.07]">
+            <button onclick="showToast('All other sessions have been signed out.')" class="text-[13px] font-medium text-ember hover:text-ember-deep tt cursor-pointer bg-transparent border-none font-sans flex items-center gap-1.5">
+              <svg width="13" height="13" viewBox="0 0 16 16" fill="none"><path d="M10 3H4a1 1 0 00-1 1v8a1 1 0 001 1h6M13 8l-4-4m4 4l-4 4m4-4H6" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              Sign out all other sessions
+            </button>
+          </div>
+        </div> -->
+  
+        <!-- Danger zone -->
+        <div class="danger-zone p-6 fu d4">
+          <div class="text-[13px] font-semibold text-ember mb-1.5 flex items-center gap-2">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M8 1l7 13H1z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/><path d="M8 6v4M8 11.5v.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+            Danger zone
+          </div>
+          <p class="text-[12px] text-chalk-muted dark:text-[#6A7FA0] leading-[1.7] mb-4">Permanently delete your account and all associated listings, data, and history. This action cannot be undone.</p>
+          <button onclick={() => {}} class="flex items-center gap-2 text-[13px] font-medium text-white bg-ember hover:bg-ember-deep px-5 py-2 rounded-full border-none cursor-pointer tt">
+            <svg width="12" height="12" viewBox="0 0 14 14" fill="none"><path d="M2 3.5h10M5.5 1h3M4 3.5l.5 9h5l.5-9" stroke="white" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            Delete account
+          </button>
+        </div>
+  
+      </div><!-- /panel-password -->
     {/if}
 
     </div>
