@@ -147,11 +147,12 @@
             </div>
           </div>
         </div>
-  
       </div>
   
       <div class="text-center mt-11">
-        <button class="btn-primary text-14px px-10 py-[14px]">Browse all listings</button>
+        <a class="btn-primary text-14px px-10 py-[14px]" href="/site/properties">
+          Browse all listings
+        </a>
       </div>
   
     </div>

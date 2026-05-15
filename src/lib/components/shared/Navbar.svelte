@@ -30,7 +30,7 @@
 <nav class="fixed top-0 left-0 right-0 z-[100] bg-navy-dark flex items-center justify-between h-[68px] px-[5vw] border-b border-white/[0.07]">
 
   <!-- Logo -->
-  <a href="/site" class="flex items-center gap-[10px] no-underline flex-shrink-0">
+  <a href="/" class="flex items-center gap-[10px] no-underline flex-shrink-0">
     <svg width="36" height="36" viewBox="0 0 36 36" xmlns="http://www.w3.org/2000/svg">
       <rect x="4" y="28" width="28" height="4" rx="2" fill="#4A90E2"/>
       <path d="M8 28 Q8 18 18 14 Q28 18 28 28" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" opacity="0.25"/>
@@ -46,7 +46,7 @@
 
     <!-- Desktop nav links — hidden ≤1024px -->
     <ul class="nav-links-desktop flex items-center gap-8 list-none">
-      <li><a href="/site" class="text-13px font-normal tracking-em-006 text-white/65 no-underline hover:text-white transition-colors duration-200">Home</a></li>
+      <li><a href="/" class="text-13px font-normal tracking-em-006 text-white/65 no-underline hover:text-white transition-colors duration-200">Home</a></li>
       <li><a href="/site/properties" class="text-13px font-normal tracking-em-006 text-white/65 no-underline hover:text-white transition-colors duration-200">Properties</a></li>
       <li><a href="/site/agents" class="text-13px font-normal tracking-em-006 text-white/65 no-underline hover:text-white transition-colors duration-200">Agents</a></li>
       <li><a href="/site/contacts" class="text-13px font-normal tracking-em-006 text-white/65 no-underline hover:text-white transition-colors duration-200">Contact</a></li>
@@ -213,7 +213,7 @@
   aria-label="Mobile menu">
 
   <!-- Nav links -->
-  <a href="/site" class="mob-link">Home</a>
+  <a href="/" class="mob-link">Home</a>
   <a href="/site/properties" class="mob-link">Properties</a>
   <a href="/site/agents" class="mob-link">Agents</a>
   <a href="/site/contacts" class="mob-link">Contact</a>
