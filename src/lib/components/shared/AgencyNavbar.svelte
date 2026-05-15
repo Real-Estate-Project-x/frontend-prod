@@ -20,7 +20,7 @@
      NAV  —  exact replica from reference files
 ════════════════════════════════════════════════ -->
 <nav class="fixed top-0 left-0 right-0 z-50 bg-navy-dark dark:bg-[#080F1C] border-b border-white/[0.07] h-[68px] flex items-center justify-between px-[5vw] tt">
-    <a href="/users" class="flex items-center gap-3 no-underline flex-shrink-0">
+    <a href="/agency" class="flex items-center gap-3 no-underline flex-shrink-0">
       <svg width="34" height="34" viewBox="0 0 36 36" fill="none"><rect x="4" y="28" width="28" height="4" rx="2" fill="#4A90E2"/><path d="M8 28 Q8 18 18 14 Q28 18 28 28" stroke="white" stroke-width="2.5" stroke-linecap="round" opacity=".25" fill="none"/><path d="M6 28 Q6 14 18 10 Q30 14 30 28" stroke="white" stroke-width="2.5" stroke-linecap="round" opacity=".55" fill="none"/><path d="M4 29 Q4 11 18 6 Q32 11 32 29" stroke="white" stroke-width="2.5" stroke-linecap="round" fill="none"/><circle cx="18" cy="28" r="3.5" fill="#4A90E2"/></svg>
       <span class="text-white text-[18px] font-medium tracking-[.18em] hidden md:block">BLUPODD</span>
     </a>
