@@ -96,6 +96,19 @@ select{-webkit-appearance:none;appearance:none}
 .dark .pgbtn.active,
 :global([data-theme="dark"]) .pgbtn.active{background:#4A90E2;border-color:#4A90E2}
 
+/* boost plan badges */
+.plan-starter{background:rgba(10,36,99,.07);color:#1F3F6A}
+.dark .plan-starter,
+:global([data-theme="dark"]) .plan-starter{background:rgba(74,112,160,.15);color:#8DAACC}
+.plan-pro{background:rgba(212,174,58,.12);color:#8A6A10}
+.dark .plan-pro,
+:global([data-theme="dark"]) .plan-pro{background:rgba(212,174,58,.18);color:#D4AE3A}
+.plan-elite{background:rgba(192,96,53,.12);color:#C06035}
+.dark .plan-elite,
+:global([data-theme="dark"]) .plan-elite{background:rgba(192,96,53,.18);color:#EDBA9B}
+
+.plan-card.active {outline: rgb(212, 174, 58) solid 2px;}
+
 @media(max-width:640px){
   .hide-xs{display:none!important}
   .grid-2{grid-template-columns:1fr 1fr!important}

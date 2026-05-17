@@ -55,6 +55,10 @@
       <svg class="w-[15px] h-[15px] flex-shrink-0" viewBox="0 0 20 20" fill="none"><rect x="2" y="3" width="16" height="14" rx="2" stroke="currentColor" stroke-width="1.4"/><path d="M2 8h16M6 1v4M14 1v4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
       My listings <span class="ml-auto text-[10px] font-medium bg-chalk-3 dark:bg-white/[.1] text-chalk-muted dark:text-[#6A7FA0] px-2 py-[2px] rounded-full">42</span>
     </a>
+    <a href="/agency/sub-agents" class="sb-link active flex items-center gap-3 px-3 py-[9px] rounded-xl mb-0.5 text-[13px] no-underline tt cursor-pointer">
+      <svg class="w-[15px] h-[15px] flex-shrink-0" viewBox="0 0 20 20" fill="none"><circle cx="7" cy="7" r="4" stroke="currentColor" stroke-width="1.4"></circle><circle cx="15" cy="7" r="3" stroke="currentColor" stroke-width="1.4"></circle><path d="M1 18c0-3 2.7-5 6-5s6 2 6 5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"></path><path d="M15 12c2 0 4 1.3 4 4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"></path></svg>
+      Agency Users <span class="ml-auto text-[10px] font-medium bg-blue-bright/15 text-blue-bright px-2 py-[2px] rounded-full flex items-center gap-0.5"><span class="w-1.5 h-1.5 rounded-full bg-blue-bright pulse-dot"></span>12</span>
+    </a>
     <a href="/agency/boosts" class="sb-link flex items-center gap-3 px-3 py-[9px] rounded-xl mb-0.5 text-[13px] text-chalk-muted dark:text-[#6A7FA0] no-underline tt cursor-pointer">
       <svg class="w-[15px] h-[15px] flex-shrink-0" viewBox="0 0 20 20" fill="none"><path d="M10 2l2.5 5 5.5.8-4 3.9.95 5.5L10 14.5l-4.95 2.7.95-5.5-4-3.9 5.5-.8z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg>
       Boosted <span class="ml-auto text-[10px] font-medium bg-gold/20 text-gold px-2 py-[2px] rounded-full flex items-center gap-0.5"><span class="w-1.5 h-1.5 rounded-full bg-gold pulse-dot"></span>4 live</span>

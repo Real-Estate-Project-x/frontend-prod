@@ -781,7 +781,7 @@ const closeReportModal = () => {
         <p class="text-[10px] font-medium tracking-[.2em] uppercase text-navy-accent dark:text-blue-bright mb-2">More like this</p>
         <h2 class="font-display font-light text-navy-dark dark:text-blue-100 leading-[1.1]" style="font-size:clamp(26px,3vw,38px)">Similar properties</h2>
       </div>
-      <a href="/states/rivers state" class="text-[13px] font-medium text-blue-link no-underline hover:text-navy-dark dark:hover:text-blue-bright tt">See all in Rivers State →</a>
+      <a href="/site/states/rivers state" class="text-[13px] font-medium text-blue-link no-underline hover:text-navy-dark dark:hover:text-blue-bright tt">See all in Rivers State →</a>
     </div>
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-5">
       <!-- Similar 1 -->
