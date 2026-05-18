@@ -3,4 +3,4 @@
   publish = "build"
 
 [functions]
-  node_version = "20" # Or your preferred Node version
+  node_version = "24"
