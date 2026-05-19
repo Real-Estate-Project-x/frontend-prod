@@ -1,26 +1,21 @@
 <script lang="ts">
     import { onMount } from 'svelte';
     import { themeStore } from '$lib/stores/theme.svelte';
-    import Footer from '$lib/components/shared/Footer.svelte';
-    import Navbar from '$lib/components/shared/Navbar.svelte';
-    import MobileDrawer from '$lib/components/shared/MobileDrawer.svelte';
     import '../app.css';
 
     // Restore theme from localStorage on first client render
-	onMount(() => themeStore.init());
+	  onMount(() => themeStore.init());
   </script>
   
   <svelte:head>
     <title>Blupodd — Find Your Place</title>
     <meta name="description" content="Search smarter. View instantly. Connect with agents who know your market." />
   </svelte:head>
-  
-<Navbar />
-<MobileDrawer />
+
     <!-- ══════════════════════════════════════
      MAIN CONTENT
     ══════════════════════════════════════════ -->
-    <main class="flex-1 flex flex-col items-center justify-center pt-[68px] px-5 py-16 sm:py-24">
+    <main class="flex-1 flex flex-col items-center justify-center pt-[58px] px-5 py-16 sm:py-24">
         <div class="w-full max-w-[680px] mx-auto text-center">
     
         <!-- ── GHOST 404 NUMBER (background layer) ── -->
@@ -230,7 +225,6 @@
     
         </div>
     </main>
-<Footer />
 
 <style>
     /* ── Core tokens — identical to every Blupodd page ── */
