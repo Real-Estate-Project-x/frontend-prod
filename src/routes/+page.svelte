@@ -1,7 +1,6 @@
 <script lang="ts">
     import { onMount } from 'svelte';
-    // import Hero from '$lib/components/home/Hero.svelte';
-    import HeroV2 from '$lib/components/home/HeroV2.svelte';
+    import HeroV3 from '$lib/components/home/HeroV3.svelte';
     import HowItWorks from '$lib/components/home/HowItWorks.svelte';
     import FeaturedListings from '$lib/components/home/FeaturedListings.svelte';
     import ForAgents from '$lib/components/home/ForAgents.svelte';
@@ -25,8 +24,7 @@
   <Navbar />
   <MobileDrawer />
 
-  <!-- <Hero /> -->
-  <HeroV2 />
+  <HeroV3 />
   <HowItWorks />
   <FeaturedListings />
   <ForAgents />
