@@ -11,7 +11,7 @@ let readMore = $state(false);
 let rating = $state(0);
 let selectedPlan = $state(null);
 let showVideo = $state(false);
-let selectedViewingType = $state<ViewingType>('in_person')
+let selectedViewingType = $state<ViewingType>('virtual')
 
 const setViewingType = (type: ViewingType) => selectedViewingType = type;
 

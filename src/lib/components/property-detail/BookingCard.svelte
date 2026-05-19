@@ -231,6 +231,43 @@
     <div class="p-5">
       <p class="text-[12px] font-medium text-navy-dark dark:text-blue-100 mb-3 uppercase tracking-[.08em]">Choose viewing type</p>
   
+       <!-- Virtual option -->
+       <button
+       type="button"
+       id="v-virtual-btn"
+       onclick={() => selectViewingType('virtual')}
+       class="viewing-type-btn w-full flex items-start gap-3.5 p-4 rounded-xl border-2 tt cursor-pointer mb-5 text-left group
+         {booking.type === 'virtual'
+           ? 'border-sage bg-sage/[0.04] dark:bg-sage/[0.06]'
+           : 'border-chalk-3 dark:border-white/[0.08] bg-transparent hover:border-sage hover:bg-sage/[0.04] dark:hover:bg-sage/[0.06]'}">
+       <div class="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 tt
+         {booking.type === 'virtual' ? 'bg-sage text-white' : 'bg-sage-light dark:bg-sage/20 group-hover:bg-sage group-hover:text-white'}">
+         <svg width="17" height="17" viewBox="0 0 24 24" fill="none"
+           class="tt {booking.type === 'virtual' ? 'text-white' : 'text-sage group-hover:text-white'}"
+           stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+           <rect x="2" y="7" width="15" height="11" rx="2"/>
+           <path d="M17 11l5-3v8l-5-3"/>
+         </svg>
+       </div>
+       <div class="flex-1 min-w-0">
+         <div class="text-[14px] font-medium text-navy-dark dark:text-blue-100 mb-0.5">Virtual tour
+           <span class="ml-1.5 text-[10px] font-medium tracking-[.06em] uppercase px-2 py-[2px] rounded-full bg-sage-light dark:bg-sage/20 text-sage dark:text-[#7DBF7A]">₦5,000</span>
+         </div>
+         <div class="text-[12px] font-light text-chalk-muted dark:text-[#6A7FA0] leading-[1.5]">Live video walkthrough with the agent from anywhere. Fee refunded on successful signing.</div>
+         <div class="flex items-center gap-1.5 mt-2 text-[11px] text-chalk-muted dark:text-[#6A7FA0]">
+           <svg width="11" height="11" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6" stroke="currentColor" stroke-width="1.3"/><path d="M8 5v3l2 2" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+           Available same day in most cases
+         </div>
+       </div>
+       <!-- Radio -->
+       <div class="w-5 h-5 rounded-full border-2 flex-shrink-0 mt-0.5 flex items-center justify-center
+         {booking.type === 'virtual' ? 'border-sage' : 'border-chalk-3 dark:border-white/20'}">
+         {#if booking.type === 'virtual'}
+           <div class="w-2.5 h-2.5 rounded-full bg-sage"></div>
+         {/if}
+       </div>
+     </button>
+     
       <!-- In-person option -->
       <button
         type="button"
@@ -262,43 +299,6 @@
           {booking.type === 'in_person' ? 'border-ember' : 'border-chalk-3 dark:border-white/20'}">
           {#if booking.type === 'in_person'}
             <div class="w-2.5 h-2.5 rounded-full bg-ember"></div>
-          {/if}
-        </div>
-      </button>
-  
-      <!-- Virtual option -->
-      <button
-        type="button"
-        id="v-virtual-btn"
-        onclick={() => selectViewingType('virtual')}
-        class="viewing-type-btn w-full flex items-start gap-3.5 p-4 rounded-xl border-2 tt cursor-pointer mb-5 text-left group
-          {booking.type === 'virtual'
-            ? 'border-sage bg-sage/[0.04] dark:bg-sage/[0.06]'
-            : 'border-chalk-3 dark:border-white/[0.08] bg-transparent hover:border-sage hover:bg-sage/[0.04] dark:hover:bg-sage/[0.06]'}">
-        <div class="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 tt
-          {booking.type === 'virtual' ? 'bg-sage text-white' : 'bg-sage-light dark:bg-sage/20 group-hover:bg-sage group-hover:text-white'}">
-          <svg width="17" height="17" viewBox="0 0 24 24" fill="none"
-            class="tt {booking.type === 'virtual' ? 'text-white' : 'text-sage group-hover:text-white'}"
-            stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
-            <rect x="2" y="7" width="15" height="11" rx="2"/>
-            <path d="M17 11l5-3v8l-5-3"/>
-          </svg>
-        </div>
-        <div class="flex-1 min-w-0">
-          <div class="text-[14px] font-medium text-navy-dark dark:text-blue-100 mb-0.5">Virtual tour
-            <span class="ml-1.5 text-[10px] font-medium tracking-[.06em] uppercase px-2 py-[2px] rounded-full bg-sage-light dark:bg-sage/20 text-sage dark:text-[#7DBF7A]">₦5,000</span>
-          </div>
-          <div class="text-[12px] font-light text-chalk-muted dark:text-[#6A7FA0] leading-[1.5]">Live video walkthrough with the agent from anywhere. Fee refunded on successful signing.</div>
-          <div class="flex items-center gap-1.5 mt-2 text-[11px] text-chalk-muted dark:text-[#6A7FA0]">
-            <svg width="11" height="11" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6" stroke="currentColor" stroke-width="1.3"/><path d="M8 5v3l2 2" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
-            Available same day in most cases
-          </div>
-        </div>
-        <!-- Radio -->
-        <div class="w-5 h-5 rounded-full border-2 flex-shrink-0 mt-0.5 flex items-center justify-center
-          {booking.type === 'virtual' ? 'border-sage' : 'border-chalk-3 dark:border-white/20'}">
-          {#if booking.type === 'virtual'}
-            <div class="w-2.5 h-2.5 rounded-full bg-sage"></div>
           {/if}
         </div>
       </button>
