@@ -28,7 +28,7 @@
             </div>
             <!-- Quick actions row -->
             <div class="flex flex-wrap gap-2">
-            <a href="add-property.html" class="qa-btn bg-ember hover:bg-ember-deep text-white border-none">
+            <a href="/agency/listing/add" class="qa-btn bg-ember hover:bg-ember-deep text-white border-none">
                 <svg width="12" height="12" viewBox="0 0 14 14" fill="none"><path d="M7 1v12M1 7h12" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
                 Add listing
             </a>

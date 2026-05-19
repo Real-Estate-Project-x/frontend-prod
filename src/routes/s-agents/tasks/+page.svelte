@@ -1,6 +1,6 @@
 <script lang="ts">
     import { browser } from '$app/environment';
-    import AgencySidebar from "$lib/components/shared/AgencySidebar.svelte";
+    import SubAgencySidebar from "$lib/components/shared/SubAgencySidebar.svelte";
   
     // ── Dark mode
     let dark = $state(false);
@@ -330,7 +330,7 @@
   <!-- ══ LAYOUT ══ -->
   <div class="flex pt-[68px] min-h-screen">
   
-    <AgencySidebar />
+    <SubAgencySidebar />
   
     <!-- ══ MAIN ══ -->
     <main class="flex-1 min-w-0 overflow-x-hidden">

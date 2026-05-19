@@ -49,50 +49,6 @@ const closeReportModal = () => {
 }
 </script>
 
-
-{#if showVideo}
-<!-- VIDEO MODAL -->
-<div id="videoModal" class="fixed inset-0 z-[600] bg-navy-deep/65 backdrop-blur-sm items-center justify-center p-4 flex">
-  <div class="bg-white dark:bg-[#131C2E] border border-chalk-3 dark:border-white/[.08] rounded-2xl p-7 w-full max-w-[940px] relative shadow-[0_24px_72px_rgba(10,36,99,.25)] tt">
-    <button aria-label="Close report modal" onclick={() => (showVideo = false)} class="absolute top-4 right-4 w-8 h-8 rounded-full bg-chalk-2 dark:bg-white/[.08] border border-chalk-3 dark:border-white/[.08] flex items-center justify-center cursor-pointer tt hover:bg-chalk-3">
-      <svg width="11" height="11" viewBox="0 0 12 12" fill="none"><path d="M2 2l8 8M10 2l-8 8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
-    </button>
-    <div id="reportFormView">
-      <h3 class="font-display text-[24px] font-light text-navy-dark dark:text-blue-100 mb-1">Property video</h3>
-      <!-- <div class="w-full h-[400px] overflow-hidden py-5">
-        <video
-          class="w-full h-full object-cover"
-          autoplay
-          muted
-          loop
-          controls
-          playsinline
-        >
-          <source src="/video.mp4" type="video/mp4" />
-        </video>
-      </div> -->
-      <div class="w-full h-[400px] overflow-hidden rounded-2xl py-5">
-        <iframe
-          class="w-full h-full"
-          src="https://www.youtube.com/embed/2O7K-8G2nwU?autoplay=1"
-          title="YouTube video player"
-          frameborder="0"
-          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-          allowfullscreen
-        ></iframe>
-      </div>
-    </div>
-    <div id="reportSuccessView" class="hidden text-center py-4">
-      <div class="w-14 h-14 rounded-full bg-sage-light dark:bg-sage/20 flex items-center justify-center mx-auto mb-4"><svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M5 12l4 4 10-9" stroke="#4A7848" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
-      <h3 class="font-display text-[22px] font-light text-navy-dark dark:text-blue-100 mb-2">Report submitted</h3>
-      <p class="text-[13px] font-light text-chalk-muted dark:text-[#6A7FA0] mb-5">Thank you for helping keep Blupodd trustworthy.</p>
-      <button onclick={(showVideo = false)} class="bg-navy-dark hover:bg-navy-mid text-white rounded-full px-8 py-2.5 text-[13px] font-medium cursor-pointer border-none tt">Close</button>
-    </div>
-  </div>
-</div>
-{/if}
-
-
 {#if isReportModalOpen}
 <!-- ════════════ REPORT MODAL ════════════ -->
 <div id="reportModal" class="fixed inset-0 z-[600] bg-navy-deep/65 backdrop-blur-sm items-center justify-center p-4 flex">
@@ -482,6 +438,15 @@ const closeReportModal = () => {
               <div class="text-13px font-light text-white/60">Property walkthrough · 3:47</div>
               <div class="text-11px text-white/35">Click to play</div>
             </div>
+            {#if showVideo}
+            <div id="videoEmbed" class="absolute inset-0">
+              <iframe title="Property video" src="https://www.youtube.com/embed/2O7K-8G2nwU?autoplay=1" 
+                allow="autoplay;fullscreen" 
+                allowfullscreen 
+                class="absolute inset-0 w-full h-full">
+              </iframe>
+            </div>
+            {/if}
           </div>
           <div class="px-5 py-4 border-t border-chalk-3 dark:border-white/[0.08] flex items-center gap-3">
             <svg width="14" height="14" viewBox="0 0 20 20" fill="none"><rect x="2" y="7" width="12" height="10" rx="2" stroke="#4A90E2" stroke-width="1.4"></rect><path d="M14 11l5-3v8l-5-3"></path></svg>
