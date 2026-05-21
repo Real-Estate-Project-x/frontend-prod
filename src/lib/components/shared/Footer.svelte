@@ -12,9 +12,9 @@
       <div style="display:flex;align-items:center;gap:10px"><svg width="30" height="30" viewBox="0 0 36 36"><rect x="4" y="28" width="28" height="4" rx="2" fill="#4A90E2"/><path d="M8 28 Q8 18 18 14 Q28 18 28 28" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" opacity="0.25"/><path d="M6 28 Q6 14 18 10 Q30 14 30 28" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" opacity="0.55"/><path d="M4 29 Q4 11 18 6 Q32 11 32 29" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round"/><circle cx="18" cy="28" r="3.5" fill="#4A90E2"/></svg><span style="font-size:15px;font-weight:500;letter-spacing:.14em;color:#fff">BLUPODD</span></div>
       <p>Seamless integration. Home hunting, reimagined. Connecting buyers, renters and agents across Nigeria and beyond.</p>
     </div>
-    <div class="footer-col"><h4>Search</h4><a href="properties.html">For sale</a><a href="properties.html">For rent</a><a href="#">Virtual tours</a><a href="properties_international.html">International</a></div>
-    <div class="footer-col"><h4>Agents</h4><a href="agents.html">Find an agent</a><a href="#">Create account</a><a href="#">List a property</a><a href="#">Boost listing</a></div>
-    <div class="footer-col"><h4>Company</h4><a href="#">About us</a><a href="#">How it works</a><a href="contact.html">Contact</a><a href="#">Careers</a></div>
+    <div class="footer-col"><h4>Search</h4><a href="properties.html">For sale</a><a href="properties.html">For rent</a><a href="#">Virtual tours</a><a href="/site/properties/international">International</a></div>
+    <div class="footer-col"><h4>Agents</h4><a href="/site/agents">Find an agent</a><a href="#">Create account</a><a href="#">List a property</a><a href="/agency/boosts">Boost listing</a></div>
+    <div class="footer-col"><h4>Company</h4><a href="#">About us</a><a href="/site/careers">How it works</a><a href="/site/contacts">Contact</a><a href="#">Careers</a></div>
   </div>
   <div class="footer-bottom">
     <span class="footer-copy">© {year} Blupodd.com. All rights reserved.</span>

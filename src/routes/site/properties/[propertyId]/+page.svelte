@@ -531,7 +531,6 @@ const closeReportModal = () => {
             </div>
             <div class="absolute top-3 right-3 flex gap-2">
               <button class="text-11px font-medium text-navy-dark dark:text-blue-100 bg-white dark:bg-[#1A2438] border border-chalk-3 dark:border-white/[.1] px-3 py-1.5 rounded-lg cursor-pointer tt hover:border-navy-dark dark:hover:border-blue-bright">Zoom in</button>
-              <button class="text-11px font-medium text-navy-dark dark:text-blue-100 bg-white dark:bg-[#1A2438] border border-chalk-3 dark:border-white/[.1] px-3 py-1.5 rounded-lg cursor-pointer tt hover:border-navy-dark dark:hover:border-blue-bright">Download</button>
             </div>
           </div>
 
@@ -958,7 +957,7 @@ const closeReportModal = () => {
   }
 
   /* plan gallery */
-  .plan-thumb{width:160px;height:120px;flex-shrink:0;border-radius:12px;overflow:hidden;border:2px solid;cursor:pointer;transition:border-color .2s,transform .2s}
+  .plan-thumb{width:100px;height:80px;flex-shrink:0;border-radius:12px;overflow:hidden;border:2px solid;cursor:pointer;transition:border-color .2s,transform .2s}
   .plan-thumb{border-color:#EDE7DC}
   :global([data-theme="dark"]) .plan-thumb{border-color:rgba(255,255,255,.08)}
   .plan-thumb.active{border-color:#4A90E2}

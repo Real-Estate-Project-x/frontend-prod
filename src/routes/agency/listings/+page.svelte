@@ -10,7 +10,6 @@
   let isArchivedModalOpen = $state(false);
   let isTakenModalOpen = $state(false);
   let list = [1];
-  let isPhotoDragging = $state(false);
 
 
     const restoreListing = () => {};

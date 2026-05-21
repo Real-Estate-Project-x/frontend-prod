@@ -8,7 +8,7 @@
   </script>
   
   <svelte:head>
-    <title>Blupodd — Find Your Place</title>
+    <title>Blupodd — 404</title>
     <meta name="description" content="Search smarter. View instantly. Connect with agents who know your market." />
   </svelte:head>
 
@@ -276,7 +276,8 @@
       user-select:none;
       position:relative;
     }
-    .dark .num-404{
+    .dark .num-404,
+    :global([data-theme="dark"]) .num-404{
       background:linear-gradient(135deg,rgba(255,255,255,.12) 0%,rgba(255,255,255,.06) 50%,rgba(255,255,255,.1) 100%);
       -webkit-background-clip:text;
       background-clip:text;
@@ -307,8 +308,10 @@
       text-decoration:none;
     }
     .btn-ghost:hover{border-color:#0A2463;color:#0A2463;transform:translateY(-1px)}
-    .dark .btn-ghost{border-color:rgba(255,255,255,.12);color:#6A7FA0}
-    .dark .btn-ghost:hover{border-color:rgba(74,144,226,.55);color:#E8EDF5}
+    .dark .btn-ghost,
+    :global([data-theme="dark"]) .btn-ghost{border-color:rgba(255,255,255,.12);color:#6A7FA0}
+    .dark .btn-ghost:hover,
+    :global([data-theme="dark"]) .btn-ghost:hover{border-color:rgba(74,144,226,.55);color:#E8EDF5}
     
     /* Trust strip */
     .trust-item{
@@ -316,7 +319,8 @@
       font-family:'DM Sans',sans-serif;font-size:12px;font-weight:400;
       color:#8C8070;white-space:nowrap;
     }
-    .dark .trust-item{color:#6A7FA0}
+    .dark .trust-item,
+    :global([data-theme="dark"]) .trust-item{color:#6A7FA0}
     
     /* Toggle */
     #dmToggle span{transition:transform .3s}
