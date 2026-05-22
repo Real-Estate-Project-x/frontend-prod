@@ -14,7 +14,7 @@
     </div>
     <div class="footer-col"><h4>Search</h4><a href="/site/search">For sale</a><a href="/site/search">For rent</a><a href="#">Virtual tours</a><a href="/site/properties/international">International</a></div>
     <div class="footer-col"><h4>Agents</h4><a href="/site/agents">Find an agent</a><a href="/site/sign-up">Create account</a><a href="/agency/listings/add">List a property</a><a href="/agency/boosts">Boost listing</a></div>
-    <div class="footer-col"><h4>Company</h4><a href="/site/privacy-policy">Privacy policy</a><a href="/site/careers">How it works</a><a href="/site/contacts">Contact</a><a href="#">Careers</a></div>
+    <div class="footer-col"><h4>Company</h4><a href="/site/privacy-policy">Privacy policy</a><a href="/site/privacy-policy#platform">How it works</a><a href="/site/contacts">Contact</a><a href="#">Careers</a></div>
   </div>
   <div class="footer-bottom">
     <span class="footer-copy">© {year} Blupodd.com. All rights reserved.</span>
