@@ -11,7 +11,7 @@ const setView = (view: ViewType) => selectedView = view;
     <!-- INTERNATIONAL HERO -->
     <div class="intl-hero">
       <div class="ih-inner">
-        <div class="ih-crumb"><a href="index.html">Home</a><span>/</span><a href="/site/properties">Properties</a><span>/</span><span>International</span></div>
+        <div class="ih-crumb"><a href="/">Home</a><span>/</span><a href="/site/properties">Properties</a><span>/</span><span>International</span></div>
         <div class="ih-badge"><div class="globe-icon"></div>Global listings · 28 countries</div>
         <h1 class="ih-title">Properties<br>across the <em>world</em></h1>
         <p class="ih-sub">Diaspora-friendly listings in the UK, US, Canada, UAE and beyond. Browse in your local currency — invest from anywhere.</p>

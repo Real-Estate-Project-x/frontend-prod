@@ -957,7 +957,7 @@ const closeReportModal = () => {
   }
 
   /* plan gallery */
-  .plan-thumb{width:100px;height:80px;flex-shrink:0;border-radius:12px;overflow:hidden;border:2px solid;cursor:pointer;transition:border-color .2s,transform .2s}
+  .plan-thumb{width:80px;height:60px;flex-shrink:0;border-radius:12px;overflow:hidden;border:2px solid;cursor:pointer;transition:border-color .2s,transform .2s}
   .plan-thumb{border-color:#EDE7DC}
   :global([data-theme="dark"]) .plan-thumb{border-color:rgba(255,255,255,.08)}
   .plan-thumb.active{border-color:#4A90E2}
