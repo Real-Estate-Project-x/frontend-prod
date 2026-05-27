@@ -311,7 +311,7 @@ const handleLogin = () => {}
         </button>
 
         <p class="text-center font-sans font-light text-chalk-muted mt-5 animate-fadeUp6" style="font-size:13px;">
-          Don't have an account?&nbsp;<a href="#" class="auth-link">Sign up for free</a>
+          Don't have an account?&nbsp;<a href="/site/sign-up" class="auth-link">Sign up for free</a>
         </p>
 
       </div><!-- /formLogin -->

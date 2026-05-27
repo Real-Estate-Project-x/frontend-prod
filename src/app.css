@@ -322,6 +322,7 @@
   50%       { box-shadow: 0 0 0 7px rgba(74,144,226,0); }
 }
 
+  .cursor-pointer { cursor: pointer; }
 
   /* Dropdown panel */
   .user-dropdown {

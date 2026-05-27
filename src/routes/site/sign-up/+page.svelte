@@ -488,7 +488,7 @@ const switchAcctType = (type = 'customer') => {
         <div class="flex items-start gap-2.5 mb-5 animate-fadeUp5">
           <input type="checkbox" id="cTerms" class="auth-check" style="margin-top:2px;">
           <label for="cTerms" class="font-sans font-light text-chalk-muted cursor-pointer leading-[1.7]" style="font-size:12px;">
-            I agree to Blupodd's <a href="#" class="auth-link" style="font-size:12px;">Terms of Service</a> and <a href="#" class="auth-link" style="font-size:12px;">Privacy Policy</a>
+            I agree to Blupodd's <a href="/site/privacy-policy" class="auth-link" style="font-size:12px;">Terms of Service</a> and <a href="/site/privacy-policy" class="auth-link" style="font-size:12px;">Privacy Policy</a>
           </label>
         </div>
 
@@ -497,7 +497,7 @@ const switchAcctType = (type = 'customer') => {
         </button>
 
         <p class="text-center font-sans font-light text-chalk-muted mt-5 animate-fadeUp6" style="font-size:13px;">
-          Already have an account?&nbsp;<a href="login.html" class="auth-link">Log in</a>
+          Already have an account?&nbsp;<a href="/site/login" class="auth-link">Log in</a>
         </p>
 
       </div><!-- /panelCustomer -->
@@ -664,7 +664,7 @@ const switchAcctType = (type = 'customer') => {
           </button>
 
           <p class="text-center font-sans font-light text-chalk-muted mt-4" style="font-size:13px;">
-            Already have an account?&nbsp;<a href="login.html" class="auth-link">Log in</a>
+            Already have an account?&nbsp;<a href="/site/login" class="auth-link">Log in</a>
           </p>
         </div><!-- /site/agentstep1 -->
         {/if}
@@ -800,7 +800,7 @@ const switchAcctType = (type = 'customer') => {
           </button>
 
           <p class="text-center font-sans font-light text-chalk-muted mt-4 animate-fadeUp5" style="font-size:13px;">
-            Already have an account?&nbsp;<a href="login.html" class="auth-link">Log in</a>
+            Already have an account?&nbsp;<a href="/site/login" class="auth-link">Log in</a>
           </p>
         </div><!-- /site/agentstep3 -->
         {/if}
