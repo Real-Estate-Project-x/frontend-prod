@@ -286,7 +286,7 @@ const handleLogin = () => {}
         <div class="mb-2 animate-fadeUp4" id="loginPassWrap">
           <div class="flex items-center justify-between mb-[7px]">
             <label class="auth-label" for="loginPass" style="margin-bottom:0;">Password</label>
-            <a href="#" class="auth-link" style="font-size:12px;">Forgot password?</a>
+            <a href="/site/forgot-password" class="auth-link" style="font-size:12px;">Forgot password?</a>
           </div>
           <div class="relative">
             <input type={ showPassword ? "text" : "password"} id="loginPass" class="auth-input" style="padding-right:48px;"
