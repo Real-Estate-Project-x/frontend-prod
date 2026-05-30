@@ -249,7 +249,7 @@
                             Add to calendar
                         </button>
                         <button onclick={toggleRescheduleModal} class="text-[12px] font-medium text-chalk-muted dark:text-[#6A7FA0] border border-chalk-3 dark:border-white/[.1] rounded-full px-3.5 py-2 bg-transparent cursor-pointer hover:border-navy-dark hover:text-navy-dark dark:hover:text-white tt font-sans">Reschedule</button>
-                        <a href="/site/properties/12" class="flex items-center gap-1.5 text-[12px] font-medium text-white bg-ember hover:bg-ember-deep rounded-full px-4 py-2 no-underline tt">
+                        <a href="//site/properties/12" class="flex items-center gap-1.5 text-[12px] font-medium text-white bg-ember hover:bg-ember-deep rounded-full px-4 py-2 no-underline tt">
                             <svg width="11" height="11" viewBox="0 0 16 16" fill="none"><path d="M1 8s3-5 7-5 7 5 7 5-3 5-7 5-7-5-7-5z" stroke="currentColor" stroke-width="1.3"/><circle cx="8" cy="8" r="2" stroke="currentColor" stroke-width="1.3"/></svg>
                             View property
                         </a>
@@ -333,7 +333,7 @@
                         <div class="flex items-center gap-2 flex-wrap">
                             <button onclick={toggleRescheduleModal} class="text-[12px] font-medium text-chalk-muted dark:text-[#6A7FA0] border border-chalk-3 dark:border-white/[.1] rounded-full px-3.5 py-2 bg-transparent cursor-pointer hover:border-navy-dark hover:text-navy-dark dark:hover:text-white tt font-sans">Reschedule</button>
                             <button onclick={() => cancelViewing("1")} class="text-[12px] font-medium text-ember border border-ember-light dark:border-ember/30 rounded-full px-3.5 py-2 bg-transparent cursor-pointer hover:bg-ember hover:text-white tt font-sans">Cancel</button>
-                            <a href="/site/properties/12" class="flex items-center gap-1.5 text-[12px] font-medium text-white bg-ember hover:bg-ember-deep rounded-full px-4 py-2 no-underline tt">
+                            <a href="//site/properties/12" class="flex items-center gap-1.5 text-[12px] font-medium text-white bg-ember hover:bg-ember-deep rounded-full px-4 py-2 no-underline tt">
                             <svg width="11" height="11" viewBox="0 0 16 16" fill="none"><path d="M1 8s3-5 7-5 7 5 7 5-3 5-7 5-7-5-7-5z" stroke="currentColor" stroke-width="1.3"/><circle cx="8" cy="8" r="2" stroke="currentColor" stroke-width="1.3"/></svg>
                             View property
                             </a>
@@ -397,7 +397,7 @@
                             <a href="https://maps.google.com/?q=Woji+Port+Harcourt" target="_blank" rel="noopener" class="flex items-center gap-1.5 text-[12px] font-medium text-navy-dark dark:text-blue-100 border border-chalk-3 dark:border-white/[.1] rounded-full px-3.5 py-2 no-underline hover:border-navy-dark dark:hover:border-white/30 tt"><svg width="11" height="11" viewBox="0 0 16 16" fill="none"><path d="M8 1C5.24 1 3 3.24 3 6c0 3.75 5 9 5 9s5-5.25 5-9c0-2.76-2.24-5-5-5z" stroke="currentColor" stroke-width="1.3"/><circle cx="8" cy="6" r="1.5" stroke="currentColor" stroke-width="1.3"/></svg>Directions</a>
                             <button onclick={toggleRescheduleModal} class="text-[12px] font-medium text-chalk-muted dark:text-[#6A7FA0] border border-chalk-3 dark:border-white/[.1] rounded-full px-3.5 py-2 bg-transparent cursor-pointer hover:border-navy-dark hover:text-navy-dark dark:hover:text-white tt font-sans">Reschedule</button>
                             <button onclick={() => cancelViewing("2")} class="text-[12px] font-medium text-ember border border-ember-light dark:border-ember/30 rounded-full px-3.5 py-2 bg-transparent cursor-pointer hover:bg-ember hover:text-white tt font-sans">Cancel</button>
-                            <a href="/site/properties/12" class="flex items-center gap-1.5 text-[12px] font-medium text-white bg-ember hover:bg-ember-deep rounded-full px-4 py-2 no-underline tt">
+                            <a href="//site/properties/12" class="flex items-center gap-1.5 text-[12px] font-medium text-white bg-ember hover:bg-ember-deep rounded-full px-4 py-2 no-underline tt">
                             <svg width="11" height="11" viewBox="0 0 16 16" fill="none"><path d="M1 8s3-5 7-5 7 5 7 5-3 5-7 5-7-5-7-5z" stroke="currentColor" stroke-width="1.3"/><circle cx="8" cy="8" r="2" stroke="currentColor" stroke-width="1.3"/></svg>
                             View property
                             </a>
@@ -455,8 +455,8 @@
                             <div class="flex items-center gap-3 mt-2 text-[11px] text-chalk-muted dark:text-[#6A7FA0]"><span class="flex items-center gap-1"><span class="w-[4px] h-[4px] rounded-full bg-blue-bright"></span>3 beds</span><span class="flex items-center gap-1"><span class="w-[4px] h-[4px] rounded-full bg-blue-bright"></span>2 baths</span><span class="flex items-center gap-1"><span class="w-[4px] h-[4px] rounded-full bg-blue-bright"></span>115 m²</span></div>
                         </div>
                         <div class="flex items-center gap-2 flex-wrap">
-                            <a href="/site/properties/12#write-review" class="text-[12px] font-medium text-chalk-muted dark:text-[#6A7FA0] border border-chalk-3 dark:border-white/[.1] rounded-full px-3.5 py-2 no-underline hover:border-navy-dark hover:text-navy-dark dark:hover:text-white tt">Leave review</a>
-                            <a href="/site/properties/12" class="flex items-center gap-1.5 text-[12px] font-medium text-white bg-navy-dark dark:bg-blue-bright hover:bg-navy-mid dark:hover:bg-blue-bright/80 rounded-full px-4 py-2 no-underline tt">
+                            <a href="//site/properties/12#write-review" class="text-[12px] font-medium text-chalk-muted dark:text-[#6A7FA0] border border-chalk-3 dark:border-white/[.1] rounded-full px-3.5 py-2 no-underline hover:border-navy-dark hover:text-navy-dark dark:hover:text-white tt">Leave review</a>
+                            <a href="//site/properties/12" class="flex items-center gap-1.5 text-[12px] font-medium text-white bg-navy-dark dark:bg-blue-bright hover:bg-navy-mid dark:hover:bg-blue-bright/80 rounded-full px-4 py-2 no-underline tt">
                             <svg width="11" height="11" viewBox="0 0 16 16" fill="none"><path d="M1 8s3-5 7-5 7 5 7 5-3 5-7 5-7-5-7-5z" stroke="currentColor" stroke-width="1.3"/><circle cx="8" cy="8" r="2" stroke="currentColor" stroke-width="1.3"/></svg>
                             View property
                             </a>
@@ -498,8 +498,8 @@
                             <div class="flex items-center gap-3 mt-2 text-[11px] text-chalk-muted dark:text-[#6A7FA0]"><span class="flex items-center gap-1"><span class="w-[4px] h-[4px] rounded-full bg-blue-bright"></span>2 beds</span><span class="flex items-center gap-1"><span class="w-[4px] h-[4px] rounded-full bg-blue-bright"></span>2 baths</span><span class="flex items-center gap-1"><span class="w-[4px] h-[4px] rounded-full bg-blue-bright"></span>90 m²</span></div>
                         </div>
                         <div class="flex items-center gap-2 flex-wrap">
-                            <a href="/site/properties/12#write-review" class="text-[12px] font-medium text-chalk-muted dark:text-[#6A7FA0] border border-chalk-3 dark:border-white/[.1] rounded-full px-3.5 py-2 no-underline hover:border-navy-dark hover:text-navy-dark dark:hover:text-white tt">Leave review</a>
-                            <a href="/site/properties/12" class="flex items-center gap-1.5 text-[12px] font-medium text-white bg-navy-dark dark:bg-blue-bright hover:bg-navy-mid dark:hover:bg-blue-bright/80 rounded-full px-4 py-2 no-underline tt">
+                            <a href="//site/properties/12#write-review" class="text-[12px] font-medium text-chalk-muted dark:text-[#6A7FA0] border border-chalk-3 dark:border-white/[.1] rounded-full px-3.5 py-2 no-underline hover:border-navy-dark hover:text-navy-dark dark:hover:text-white tt">Leave review</a>
+                            <a href="//site/properties/12" class="flex items-center gap-1.5 text-[12px] font-medium text-white bg-navy-dark dark:bg-blue-bright hover:bg-navy-mid dark:hover:bg-blue-bright/80 rounded-full px-4 py-2 no-underline tt">
                             <svg width="11" height="11" viewBox="0 0 16 16" fill="none"><path d="M1 8s3-5 7-5 7 5 7 5-3 5-7 5-7-5-7-5z" stroke="currentColor" stroke-width="1.3"/><circle cx="8" cy="8" r="2" stroke="currentColor" stroke-width="1.3"/></svg>
                             View property
                             </a>
@@ -541,7 +541,7 @@
                             <div class="flex items-center gap-3 mt-2 text-[11px] text-chalk-muted dark:text-[#6A7FA0]"><span class="flex items-center gap-1"><span class="w-[4px] h-[4px] rounded-full bg-blue-bright"></span>3 beds</span><span class="flex items-center gap-1"><span class="w-[4px] h-[4px] rounded-full bg-blue-bright"></span>2 baths</span><span class="flex items-center gap-1"><span class="w-[4px] h-[4px] rounded-full bg-blue-bright"></span>102 m²</span></div>
                         </div>
                         <div class="flex items-center gap-2 flex-wrap">
-                            <a href="/site/properties/12" class="flex items-center gap-1.5 text-[12px] font-medium text-white bg-navy-dark dark:bg-blue-bright hover:bg-navy-mid dark:hover:bg-blue-bright/80 rounded-full px-4 py-2 no-underline tt">
+                            <a href="//site/properties/12" class="flex items-center gap-1.5 text-[12px] font-medium text-white bg-navy-dark dark:bg-blue-bright hover:bg-navy-mid dark:hover:bg-blue-bright/80 rounded-full px-4 py-2 no-underline tt">
                             <svg width="11" height="11" viewBox="0 0 16 16" fill="none"><path d="M1 8s3-5 7-5 7 5 7 5-3 5-7 5-7-5-7-5z" stroke="currentColor" stroke-width="1.3"/><circle cx="8" cy="8" r="2" stroke="currentColor" stroke-width="1.3"/></svg>
                             View property
                             </a>

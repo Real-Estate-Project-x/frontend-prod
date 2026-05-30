@@ -168,7 +168,7 @@
                 </div>
                 <div class="text-[11px] text-chalk-muted dark:text-[#6A7FA0] mb-3 flex items-center gap-1.5"><svg width="10" height="10" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6" stroke="currentColor" stroke-width="1.3"/><path d="M8 5v3l2 2" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>Saved 10 Apr 2026</div>
                 <div class="flex gap-2 mt-auto">
-                <a href="property_detail.html" class="flex-1 flex items-center justify-center gap-1.5 text-[12px] font-medium py-[9px] rounded-full bg-navy-dark dark:bg-blue-bright text-white border-none hover:bg-navy-mid dark:hover:bg-blue-bright/80 tt no-underline cursor-pointer">
+                <a href="/site/properties/12" class="flex-1 flex items-center justify-center gap-1.5 text-[12px] font-medium py-[9px] rounded-full bg-navy-dark dark:bg-blue-bright text-white border-none hover:bg-navy-mid dark:hover:bg-blue-bright/80 tt no-underline cursor-pointer">
                     <svg width="12" height="12" viewBox="0 0 16 16" fill="none"><path d="M1 8s3-5.5 7-5.5S15 8 15 8s-3 5.5-7 5.5S1 8 1 8z" stroke="currentColor" stroke-width="1.3"/><circle cx="8" cy="8" r="2" stroke="currentColor" stroke-width="1.3"/></svg>
                     View property
                 </a>
@@ -207,7 +207,7 @@
                 </div>
                 <div class="text-[11px] text-chalk-muted dark:text-[#6A7FA0] mb-3 flex items-center gap-1.5"><svg width="10" height="10" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6" stroke="currentColor" stroke-width="1.3"/><path d="M8 5v3l2 2" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>Saved 9 Apr 2026</div>
                 <div class="flex gap-2 mt-auto">
-                <a href="property_detail.html" class="flex-1 flex items-center justify-center gap-1.5 text-[12px] font-medium py-[9px] rounded-full bg-navy-dark dark:bg-blue-bright text-white border-none hover:bg-navy-mid dark:hover:bg-blue-bright/80 tt no-underline">
+                <a href="/site/properties/12" class="flex-1 flex items-center justify-center gap-1.5 text-[12px] font-medium py-[9px] rounded-full bg-navy-dark dark:bg-blue-bright text-white border-none hover:bg-navy-mid dark:hover:bg-blue-bright/80 tt no-underline">
                     <svg width="12" height="12" viewBox="0 0 16 16" fill="none"><path d="M1 8s3-5.5 7-5.5S15 8 15 8s-3 5.5-7 5.5S1 8 1 8z" stroke="currentColor" stroke-width="1.3"/><circle cx="8" cy="8" r="2" stroke="currentColor" stroke-width="1.3"/></svg>
                     View property
                 </a>
@@ -247,7 +247,7 @@
                 </div>
                 <div class="text-[11px] text-chalk-muted dark:text-[#6A7FA0] mb-3 flex items-center gap-1.5"><svg width="10" height="10" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6" stroke="currentColor" stroke-width="1.3"/><path d="M8 5v3l2 2" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>Saved 8 Apr 2026</div>
                 <div class="flex gap-2 mt-auto">
-                <a href="property_detail.html" class="flex-1 flex items-center justify-center gap-1.5 text-[12px] font-medium py-[9px] rounded-full bg-navy-dark dark:bg-blue-bright text-white border-none hover:bg-navy-mid dark:hover:bg-blue-bright/80 tt no-underline">
+                <a href="/site/properties/12" class="flex-1 flex items-center justify-center gap-1.5 text-[12px] font-medium py-[9px] rounded-full bg-navy-dark dark:bg-blue-bright text-white border-none hover:bg-navy-mid dark:hover:bg-blue-bright/80 tt no-underline">
                     <svg width="12" height="12" viewBox="0 0 16 16" fill="none"><path d="M1 8s3-5.5 7-5.5S15 8 15 8s-3 5.5-7 5.5S1 8 1 8z" stroke="currentColor" stroke-width="1.3"/><circle cx="8" cy="8" r="2" stroke="currentColor" stroke-width="1.3"/></svg>
                     View property
                 </a>
@@ -286,7 +286,7 @@
                 </div>
                 <div class="text-[11px] text-chalk-muted dark:text-[#6A7FA0] mb-3 flex items-center gap-1.5"><svg width="10" height="10" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6" stroke="currentColor" stroke-width="1.3"/><path d="M8 5v3l2 2" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>Saved 7 Apr 2026</div>
                 <div class="flex gap-2 mt-auto">
-                <a href="property_detail.html" class="flex-1 flex items-center justify-center gap-1.5 text-[12px] font-medium py-[9px] rounded-full bg-navy-dark dark:bg-blue-bright text-white border-none hover:bg-navy-mid dark:hover:bg-blue-bright/80 tt no-underline">
+                <a href="/site/properties/12" class="flex-1 flex items-center justify-center gap-1.5 text-[12px] font-medium py-[9px] rounded-full bg-navy-dark dark:bg-blue-bright text-white border-none hover:bg-navy-mid dark:hover:bg-blue-bright/80 tt no-underline">
                     <svg width="12" height="12" viewBox="0 0 16 16" fill="none"><path d="M1 8s3-5.5 7-5.5S15 8 15 8s-3 5.5-7 5.5S1 8 1 8z" stroke="currentColor" stroke-width="1.3"/><circle cx="8" cy="8" r="2" stroke="currentColor" stroke-width="1.3"/></svg>
                     View property
                 </a>
@@ -324,7 +324,7 @@
                 </div>
                 <div class="text-[11px] text-chalk-muted dark:text-[#6A7FA0] mb-3 flex items-center gap-1.5"><svg width="10" height="10" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6" stroke="currentColor" stroke-width="1.3"/><path d="M8 5v3l2 2" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>Saved 5 Apr 2026</div>
                 <div class="flex gap-2 mt-auto">
-                <a href="property_detail.html" class="flex-1 flex items-center justify-center gap-1.5 text-[12px] font-medium py-[9px] rounded-full bg-navy-dark dark:bg-blue-bright text-white border-none hover:bg-navy-mid dark:hover:bg-blue-bright/80 tt no-underline">
+                <a href="/site/properties/12" class="flex-1 flex items-center justify-center gap-1.5 text-[12px] font-medium py-[9px] rounded-full bg-navy-dark dark:bg-blue-bright text-white border-none hover:bg-navy-mid dark:hover:bg-blue-bright/80 tt no-underline">
                     <svg width="12" height="12" viewBox="0 0 16 16" fill="none"><path d="M1 8s3-5.5 7-5.5S15 8 15 8s-3 5.5-7 5.5S1 8 1 8z" stroke="currentColor" stroke-width="1.3"/><circle cx="8" cy="8" r="2" stroke="currentColor" stroke-width="1.3"/></svg>
                     View property
                 </a>
@@ -363,7 +363,7 @@
                 </div>
                 <div class="text-[11px] text-chalk-muted dark:text-[#6A7FA0] mb-3 flex items-center gap-1.5"><svg width="10" height="10" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6" stroke="currentColor" stroke-width="1.3"/><path d="M8 5v3l2 2" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>Saved 4 Apr 2026</div>
                 <div class="flex gap-2 mt-auto">
-                <a href="property_detail.html" class="flex-1 flex items-center justify-center gap-1.5 text-[12px] font-medium py-[9px] rounded-full bg-navy-dark dark:bg-blue-bright text-white border-none hover:bg-navy-mid dark:hover:bg-blue-bright/80 tt no-underline">
+                <a href="/site/properties/12" class="flex-1 flex items-center justify-center gap-1.5 text-[12px] font-medium py-[9px] rounded-full bg-navy-dark dark:bg-blue-bright text-white border-none hover:bg-navy-mid dark:hover:bg-blue-bright/80 tt no-underline">
                     <svg width="12" height="12" viewBox="0 0 16 16" fill="none"><path d="M1 8s3-5.5 7-5.5S15 8 15 8s-3 5.5-7 5.5S1 8 1 8z" stroke="currentColor" stroke-width="1.3"/><circle cx="8" cy="8" r="2" stroke="currentColor" stroke-width="1.3"/></svg>
                     View property
                 </a>
@@ -402,7 +402,7 @@
                 </div>
                 <div class="text-[11px] text-chalk-muted dark:text-[#6A7FA0] mb-3 flex items-center gap-1.5"><svg width="10" height="10" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6" stroke="currentColor" stroke-width="1.3"/><path d="M8 5v3l2 2" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>Saved 2 Apr 2026</div>
                 <div class="flex gap-2 mt-auto">
-                <a href="property_detail.html" class="flex-1 flex items-center justify-center gap-1.5 text-[12px] font-medium py-[9px] rounded-full bg-navy-dark dark:bg-blue-bright text-white border-none hover:bg-navy-mid dark:hover:bg-blue-bright/80 tt no-underline">
+                <a href="/site/properties/12" class="flex-1 flex items-center justify-center gap-1.5 text-[12px] font-medium py-[9px] rounded-full bg-navy-dark dark:bg-blue-bright text-white border-none hover:bg-navy-mid dark:hover:bg-blue-bright/80 tt no-underline">
                     <svg width="12" height="12" viewBox="0 0 16 16" fill="none"><path d="M1 8s3-5.5 7-5.5S15 8 15 8s-3 5.5-7 5.5S1 8 1 8z" stroke="currentColor" stroke-width="1.3"/><circle cx="8" cy="8" r="2" stroke="currentColor" stroke-width="1.3"/></svg>
                     View property
                 </a>

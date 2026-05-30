@@ -29,7 +29,7 @@ const toggleFavourite = () => isFavourite = !isFavourite;
 
 const virtualBtnFocus = () => {
   setViewingType('virtual');
-  goto('/site/properties/12#v-virtual-btn');
+  goto('//site/properties/12#v-virtual-btn');
 }
 
 const openLightboxModal = () => {

@@ -80,7 +80,7 @@
               <div class="meta-item text-12px text-navy-accent flex items-center gap-[5px]"><div class="w-1.5 h-1.5 rounded-full bg-blue-bright flex-shrink-0"></div>110 m²</div>
             </div>
             <div class="listing-cta flex gap-2 mt-[14px]">
-              <a href="/site/properties/12" class="btn-view">
+              <a href="//site/properties/12" class="btn-view">
                 Details
               </a>
               <button class="btn-virtual">Virtual tour</button>
@@ -111,7 +111,7 @@
               <div class="meta-item text-12px text-navy-accent flex items-center gap-[5px]"><div class="w-1.5 h-1.5 rounded-full bg-blue-bright flex-shrink-0"></div>185 m²</div>
             </div>
             <div class="listing-cta flex gap-2 mt-[14px]">
-              <a href="/site/properties/12" class="btn-view">
+              <a href="//site/properties/12" class="btn-view">
                 Details
               </a>
               <button class="btn-virtual">Virtual tour</button>
@@ -146,7 +146,7 @@
               <div class="meta-item text-12px text-navy-accent flex items-center gap-[5px]"><div class="w-1.5 h-1.5 rounded-full bg-blue-bright flex-shrink-0"></div>75 m²</div>
             </div>
             <div class="listing-cta flex gap-2 mt-[14px]">
-              <a href="/site/properties/12" class="btn-view">
+              <a href="//site/properties/12" class="btn-view">
                 Details
               </a>
               <button class="btn-virtual" style="flex:1.4;">Book virtual tour</button>
