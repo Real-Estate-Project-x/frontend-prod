@@ -242,7 +242,7 @@
         {#each ['all', 'reviewed', 'pending'] as _}
           <button class="ftab capitalize" class:active={_ === selectedFilter} 
             onclick={() => setFilter(_ as any)}>
-            All
+            {_}
           </button>
         {/each}
         </div>
