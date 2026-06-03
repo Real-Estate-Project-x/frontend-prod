@@ -720,7 +720,7 @@ const closeReportModal = () => {
             <div class="w-8 h-8 rounded-lg bg-navy-dark flex items-center justify-center flex-shrink-0"><svg width="13" height="13" viewBox="0 0 20 20" fill="none"><path d="M3 4a1 1 0 011-1h2.5a1 1 0 011 .75l.75 3a1 1 0 01-.3.97l-1.2 1.2a10.5 10.5 0 004.27 4.27l1.2-1.2a1 1 0 01.97-.3l3 .75A1 1 0 0117 13.5V16a1 1 0 01-1 1h-1C7.16 17 3 12.84 3 8V5a1 1 0 010-1z" stroke="white" stroke-width="1.4" stroke-linecap="round"></path></svg></div>
             <div><span class="block text-13px font-medium text-navy-dark dark:text-blue-100">Call agent</span><span class="block text-11px text-chalk-muted dark:text-[#6A7FA0]">+234 800 123 4567</span></div>
           </a>
-          <a href="mailto:c.okafor@premierph.com" class="flex items-center gap-3 p-3 rounded-xl border border-chalk-3 dark:border-white/[0.08] hover:border-navy-dark dark:hover:border-white/30 tt no-underline">
+          <a href="mailto:c.okafor@premierph.com" class="mt-2 flex items-center gap-3 p-3 rounded-xl border border-chalk-3 dark:border-white/[0.08] hover:border-navy-dark dark:hover:border-white/30 tt no-underline">
             <div class="w-8 h-8 rounded-lg bg-navy-dark flex items-center justify-center flex-shrink-0"><svg width="14" height="14" viewBox="0 0 20 20" fill="none"><rect x="2" y="4" width="16" height="12" rx="2" stroke="#fff" stroke-width="1.4"/><path d="M2 7l8 5 8-5" stroke="#fff" stroke-width="1.4" stroke-linecap="round"/></svg></div>
             <div><span class="block text-13px font-medium text-navy-dark dark:text-blue-100">Email agent</span><span class="block text-11px text-chalk-muted dark:text-[#6A7FA0]">c.okafor@premierph.com</span></div>
           </a>
