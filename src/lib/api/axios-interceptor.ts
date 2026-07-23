@@ -3,6 +3,7 @@ import axios, {
   type AxiosResponse,
   type InternalAxiosRequestConfig,
 } from "axios";
+import { browser } from "$app/environment";
 import { PUBLIC_API_BASE_URL, PUBLIC_ENCRYPTION_KEY } from "$env/static/public";
 import {
   extractLocalStorageInfo,
@@ -63,7 +64,7 @@ axiosInstance.interceptors.request.use(
     req: InternalAxiosRequestConfig
   ): Promise<InternalAxiosRequestConfig> => {
     const extractedData = extractLocalStorageInfo(PUBLIC_ENCRYPTION_KEY);
-    if (extractedData) {
+    if (extractedData?.jwtToken) {
       const token = extractedData.jwtToken;
       if (token && req.headers) {
         req.headers.Authorization = `Bearer ${token}`;
@@ -105,7 +106,7 @@ axiosInstance.interceptors.response.use(
       status === 401 || errorMessage === ERROR_CODES.TOKEN_HAS_EXPIRED;
 
     // if (isExpiredError && !originalRequest._retry) {
-    if (isExpiredError) onLogOff(true);
+    if (isExpiredError && browser) onLogOff(true);
 
     return Promise.reject(error);
   }
