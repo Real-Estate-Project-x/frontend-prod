@@ -1,16 +1,108 @@
 <script lang="ts">
+  import { AxiosError } from "axios";
+  import { goto } from "$app/navigation";
+  import type { PageData } from "./$types";
+  import type { ToastType } from "$lib/types";
+  import { ApiRequests } from "$lib/api/api.request";
   import { themeStore } from "$lib/stores/theme.svelte";
+  import Toast from "$lib/components/shared/Toast.svelte";
+  import PhoneInput from "$lib/components/shared/PhoneInput.svelte";
+  import { getErrorMessage, isFormComplete, normalizeAndValidatePhone } from "$lib/utils";
 
-type AccountTypes = 'customer' | 'agency';
-let accountType = $state<AccountTypes>('customer');
-let logoFile: HTMLInputElement;
-let isCountryOpen = $state(false);
-let showPassword = $state(false);
-let password = $state("");
-let agentPassword = $state("");
-let previewUrl = $state<string | null>(null);
-let agentStep = $state(1);
-const STEP_LABELS = [
+  type UserForm = { 
+    firstName: string, 
+    lastName: string, 
+    email: string,
+    phoneNumber: string,
+    password: string,
+    confirmPassword: string,
+    isTAndCAgreed: boolean,
+  }
+
+  type AgencyForm = {
+    logoId: string;
+    firstName: string;
+    lastName: string;
+    email: string;
+    phoneNumber: string;
+    password: string;
+    confirmPassword: string;
+    agencyName: string;
+    agencyBio: string;
+    businessAddress: string;
+    isRegistered: boolean;
+    regNumber: string;
+    focusAreas: string[];
+    isTAndCAgreed: boolean;
+  };
+  let realEstateFocusAreas = $state([
+    "Residential Properties",
+    "Luxury Homes & Estates",
+    "Commercial Properties",
+    "Land & Plots",
+    "Off-Plan Developments",
+    "Short-Let & Vacation Rentals",
+    "Rental Apartments",
+    "Affordable Housing",
+    "Industrial & Warehousing",
+    "Property Investment Advisory",
+  ]);
+  type AccountTypes = 'customer' | 'agency';
+  let accountType = $state<AccountTypes>('customer');
+  let logoFile: HTMLInputElement;
+  let isCountryOpen = $state(false);
+  let showUserPassword = $state(false);
+  let showUserConfirmPassword = $state(false);
+
+  let showAgencyPassword = $state(false);
+  let showAgencyConfirmPassword = $state(false);
+  let previewUrl = $state<string | null>(null);
+  let agentStep = $state(1);
+  let userFormData = $state<UserForm>({
+    firstName: '',
+    lastName: '',
+    email: '',
+    password: '',
+    confirmPassword: '',
+    phoneNumber: '',
+    isTAndCAgreed: false,
+  });
+  let agencyFormData = $state<AgencyForm>({
+    logoId: '',
+    agencyBio: '',
+    agencyName: '',
+    businessAddress:'',
+    email: '',
+    firstName: '',
+    lastName: '',
+    focusAreas: [],
+    regNumber: '',
+    isRegistered: false,
+    password: '',
+    confirmPassword: '',
+    phoneNumber: '',
+    isTAndCAgreed: false,
+  });
+  const stepFields: Record<string, (keyof AgencyForm)[]> = {
+    basicInfo: ["firstName", "lastName", "email", "phoneNumber", "password", "confirmPassword"],
+    agencyInfo: ["logoId", "regNumber", "isRegistered", "agencyName", "agencyBio", "businessAddress", "focusAreas"],
+    termsAndConditions: ["isTAndCAgreed"],
+  };
+  let timeout: ReturnType<typeof setTimeout>;
+
+
+  let { data }: { data: PageData } = $props();
+
+  const countries = $derived<any[]>(data.countries.data);
+  const countryIp = $derived(data.ipCountry.data);
+  let selected = $state(countryIp);
+
+  // Toast
+  let toastMsg     = $state('');
+  let toastType = $state<ToastType>('info');
+  let toastTimer: ReturnType<typeof setTimeout> | null = null;
+
+  const STEP_LABELS = [
     '',
     'Personal details',
     'Agency profile',
@@ -24,44 +116,157 @@ const STEP_LABELS = [
     logoFile.click();
   }
 
-  const handleLogoUpload = () => {
+  const handleEmailInput = (event: Event) => {
+    const email = (event.target as HTMLInputElement).value;
+
+    clearTimeout(timeout);
+
+    timeout = setTimeout(() => {
+      checkEmailAvailability(email);
+    }, 2000); // wait 2s after user stops typing
+  }
+
+  const handlePhoneNoInput = (event: Event) => {
+    const phone = (event.target as HTMLInputElement).value;
+    const formattedPhoneNo = normalizeAndValidatePhone({
+      phone,
+      countryCode: selected.isoCode,
+      });
+
+    clearTimeout(timeout);
+
+    timeout = setTimeout(() => {
+      checkPhoneNumberAvailability(formattedPhoneNo);
+    }, 2000); // wait 2s after user stops typing
+  }
+
+  const checkEmailAvailability = async (email: string) => {
+    try {
+      await new ApiRequests().verifyEmailAvailability(email);
+      // no need to track the success
+    } catch(ex) {
+        if (ex instanceof AxiosError) {
+          const message = getErrorMessage(ex);
+          showToast(message, 'error');
+        } else if (ex instanceof Error) {
+          showToast(ex.message, 'error');
+        }
+        return;
+      }
+  }
+
+  const checkPhoneNumberAvailability = async (phoneNo: string) => {
+    try {
+      await new ApiRequests().verifyPhoneNumberAvailability(phoneNo);
+      // no need to track the success
+    } catch(ex) {
+      if (ex instanceof AxiosError) {
+        const message = getErrorMessage(ex);
+        showToast(message, 'error');
+      } else if (ex instanceof Error) {
+        showToast(ex.message, 'error');
+      }
+      return;
+    }
+  }
+
+  const handleLogoUpload = async () => {
     const files = logoFile?.files;
     if (!files || files.length === 0) return;
 
     const file = files[0];
     previewUrl = URL.createObjectURL(file);
+
+    try {
+      const result = await new ApiRequests().uploadFiles([file]);
+      if (result.data.success) {
+        showToast(result.data.message, 'success');
+        // Set logo_id
+        setAgencyFormField('logoId', result.data.data[0].id)
+        return;
+      }
+    } catch (ex) {
+        previewUrl = null;
+        if (ex instanceof AxiosError) {
+          const message = getErrorMessage(ex);
+          showToast(message, 'error');
+        }
+        return;
+      }
   }
 
-// mock countries (you can expand this)
-const countries = [
-    { code: "+234", flag: "🇳🇬", name: "Nigeria" },
-    { code: "+44", flag: "🇬🇧", name: "UK" },
-    { code: "+1", flag: "🇺🇸", name: "USA" }
-];
-let selected = $state(countries[0]);
+  const isStepValid = (stepIndex: number) => {
+    const stepKey = Object.keys(stepFields)[stepIndex - 1];
+    const fields = stepFields[stepKey];
 
-const agentNext = (step: number) => agentStep = step;
+    for (const field of fields) {
+      const value = agencyFormData[field];
 
-// derived strength
-const strength = $derived(() => {
+      // handle arrays
+      if (Array.isArray(value) && value.length === 0) return false;
+
+      // handle booleans (like T&C)
+      if (typeof value === "boolean" && value === false) return false;
+
+      // handle strings
+      if (typeof value === "string" && value.trim() === "") return false;
+
+      // null/undefined safety
+      if (value === null || value === undefined) return false;
+    }
+
+    return true;
+  }
+
+  const goNext = () => {
+  if (!isStepValid(agentStep)) {
+    showToast('Please complete all required fields before continuing', 'error');
+    return;
+  }
+
+  if (agentStep === 1) {
+    const validateMatch = validatePasswordMatch(agencyFormData, 'password', 'confirmPassword');
+    if (validateMatch) {
+      showToast(validateMatch, 'error');
+      return;
+    } 
+  }
+
+  if (agentStep === 2) {
+    if (!isAgencyBioValid) {
+      showToast('Agency bio must be at least 80 characters', 'error');
+      return;
+    }
+  }
+
+  if (agentStep < Object.keys(stepFields).length) {
+    agentStep += 1;
+  }
+}
+
+  const agentNext = (step: number) => agentStep = step;
+
+  // derived strength
+  const strength = $derived(() => {
     let score = 0;
 
-    if (password.length >= 8) score++;
-    if (/[A-Z]/.test(password)) score++;
-    if (/[0-9]/.test(password)) score++;
-    if (/[^A-Za-z0-9]/.test(password)) score++;
+    if (userFormData.password.length >= 8) score++;
+    if (/[A-Z]/.test(userFormData.password)) score++;
+    if (/[0-9]/.test(userFormData.password)) score++;
+    if (/[^A-Za-z0-9]/.test(userFormData.password)) score++;
 
     return score;
   });
 
-// derived strength
-const agentPasswordStrength = $derived(() => {
+  // derived strength
+  const agentPasswordStrength = $derived(() => {
     let score = 0;
 
-    if (agentPassword.length >= 8) score++;
-    if (/[A-Z]/.test(agentPassword)) score++;
-    if (/[0-9]/.test(agentPassword)) score++;
-    if (/[^A-Za-z0-9]/.test(agentPassword)) score++;
+    const password = agencyFormData.password
+    if (password.length >= 8) score++;
+    if (/[A-Z]/.test(password)) score++;
+    if (/[0-9]/.test(password)) score++;
+    if (/[^A-Za-z0-9]/.test(password)) score++;
 
     return score;
   });
@@ -78,7 +283,7 @@ const agentPasswordStrength = $derived(() => {
   };
 
   // click outside action
-  function clickOutside(node: HTMLElement) {
+  const clickOutside = (node: HTMLElement) => {
     const handleClick = (e: MouseEvent) => {
       if (!node.contains(e.target as Node)) {
         close();
@@ -94,19 +299,149 @@ const agentPasswordStrength = $derived(() => {
     };
   }
 
-    const selectCountry = (country: any) => {
-        selected = country;
-        isCountryOpen = false;
-    };
+  const selectCountry = (country: any) => {
+    selected = country;
+    isCountryOpen = false;
+  };
 
+  const toggleUserPw = () => { showUserPassword = !showUserPassword; };
 
+  const toggleUserConfirmPw = () => showUserConfirmPassword = !showUserConfirmPassword;
+  
+  const toggleAgencyPw = () => { showAgencyPassword = !showAgencyPassword; };
 
-const togglePw = () => { showPassword = !showPassword; };
+  const toggleAgencyConfirmPw = () => showAgencyConfirmPassword = !showAgencyConfirmPassword;
 
-const switchAcctType = (type = 'customer') => {
+  const switchAcctType = (type = 'customer') => {
     accountType = type as AccountTypes;
-}
+  }
 
+  // reactive derived value (Svelte 5 runes style)
+  const isFormValid = $derived(isFormComplete(userFormData, ['isTAndCAgreed']));
+
+  const isAgencyFormValid = $derived(isFormComplete(agencyFormData, ['isTAndCAgreed']));
+
+  const isAgencyBioValid = $derived(agencyFormData.agencyBio.trim().length >= 80);
+
+  // ── Toast ──────────────────────────────────────────────────────────────────
+  const showToast = (msg: string, type: ToastType) => {
+    toastMsg = msg;
+    toastType = type;
+    if (toastTimer) clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => toastMsg = '', 3000);
+  }
+
+  const setUserFormField = <K extends keyof UserForm>(
+    field: K,
+    value: UserForm[K]
+  ) => {
+	  userFormData[field] = value;
+  }
+
+  const setFocusAreas = (focusArea: string) => {
+    const focusAreas = [...agencyFormData.focusAreas];
+    if (focusAreas.includes(focusArea)) {
+      focusAreas.splice(focusAreas.indexOf(focusArea), 1);
+    } else {
+      focusAreas.push(focusArea);
+    }
+    setAgencyFormField('focusAreas', focusAreas);
+  }
+
+  const setAgencyFormField = <K extends keyof AgencyForm>(
+    field: K,
+    value: AgencyForm[K]
+  ) => {
+	  agencyFormData[field] = value;
+  }
+
+  const validatePasswordMatch = <T extends Record<string, any>>(
+    form: T,
+    passwordField: keyof T = 'password',
+    confirmField: keyof T = 'confirmPassword'
+  ): string | null => {
+    if (form[passwordField] !== form[confirmField]) {
+      return 'Passwords do not match';
+    }
+    return null;
+  }
+
+  const handleUserSubmit = async (e: SubmitEvent) => {
+    e.preventDefault();
+
+    try {
+      const isFormValid = isFormComplete(userFormData, ['isTAndCAgreed']);
+      if (!isFormValid) {
+        showToast('Please complete all fields and accept Terms & Conditions', 'error');
+        return;
+      }
+
+      const validateMatch = validatePasswordMatch(userFormData, 'password', 'confirmPassword');
+      if (validateMatch) {
+        showToast(validateMatch, 'error');
+        return;
+      } 
+
+      const formattedPhoneNo = normalizeAndValidatePhone({
+        countryCode: selected.isoCode,
+        phone: userFormData.phoneNumber,
+      });
+      const result = await new ApiRequests().userSignup({ 
+        ...userFormData, 
+        phoneNumber: formattedPhoneNo
+      });
+      if (result.data.success) {
+        showToast(result.data.message, 'success');
+        const redirectUrl =  `/site/verify-account/${result.data.data.slug}`;
+        setTimeout(() => goto(redirectUrl), 3000);
+      }
+    } catch(ex) {
+      if (ex instanceof AxiosError) {
+        const message = getErrorMessage(ex);
+        showToast(message, 'error');
+      } else if (ex instanceof Error) {
+        showToast(ex.message, 'error');
+      }
+      return;
+    }
+  }
+
+  const handleAgentSubmit = async (e: SubmitEvent) => {
+    e.preventDefault();
+
+    try {
+      const isFormValid = isFormComplete(agencyFormData, ['isTAndCAgreed']);
+      if (!isFormValid) {
+        showToast('Please complete all fields and accept Terms & Conditions', 'error');
+        return;
+      }
+
+      const validateMatch = validatePasswordMatch(agencyFormData, 'password', 'confirmPassword');
+      if (validateMatch) {
+        showToast(validateMatch, 'error');
+        return;
+      }
+      
+      const formattedPhoneNo = normalizeAndValidatePhone({
+        countryCode: selected.isoCode,
+        phone: agencyFormData.phoneNumber, 
+      });
+      const result = await new ApiRequests().agencySignup({ ...agencyFormData, phoneNumber: formattedPhoneNo });
+      if (result.data.success) {
+        showToast(result.data.message, 'success');
+        const redirectUrl =  `/site/verify-account/${result.data.data.slug}`;
+        setTimeout(() => goto(redirectUrl), 3000);
+      }
+    } catch(ex) {
+      if (ex instanceof AxiosError) {
+        const message = getErrorMessage(ex);
+        showToast(message, 'error');
+      } else if (ex instanceof Error) {
+        showToast(ex.message, 'error');
+      }
+      return;
+    }
+  }  
 
 </script>
 
@@ -366,139 +701,201 @@ const switchAcctType = (type = 'customer') => {
           <span class="font-sans font-light text-chalk-muted whitespace-nowrap" style="font-size:12px;letter-spacing:0.09em;text-transform:uppercase;">or sign up with email</span>
         </div>
 
-        <!-- Name row -->
-        <div class="grid grid-cols-2 gap-3 mb-3 two-col animate-fadeUp3">
-          <div>
-            <label class="auth-label" for="cFirstName">First name</label>
-            <input type="text" id="cFirstName" class="auth-input" placeholder="Amara" autocomplete="given-name">
-          </div>
-          <div>
-            <label class="auth-label" for="cLastName">Last name</label>
-            <input type="text" id="cLastName" class="auth-input" placeholder="Okonkwo" autocomplete="family-name">
-          </div>
-        </div>
-
-        <!-- Email -->
-        <div class="mb-3 animate-fadeUp3" id="cEmailWrap">
-          <label class="auth-label" for="cEmail">Email address</label>
-          <input type="email" id="cEmail" class="auth-input" placeholder="you@example.com" autocomplete="email">
-          <span class="error-msg">Please enter a valid email address.</span>
-        </div>
-
-        <!-- Phone with country selector -->
-        <div class="mb-3 animate-fadeUp4">
-            <label class="auth-label">Phone number</label>
-        
-            <div class="phone-wrap relative" use:clickOutside>
-        
-            <!-- Button -->
-            <button
-                class="phone-flag-btn"
-                type="button"
-                onclick={toggleCountry}
-            >
-                <span style="font-size:16px;">{selected.flag}</span>
-                <span class="font-sans font-light text-[13px] text-[#8C8070]">
-                {selected.code}
-                </span>
-                <svg width="10" height="10" viewBox="0 0 12 12" fill="none">
-                <path d="M2 4l4 4 4-4" stroke="#8C8070" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/>
-                </svg>
-            </button>
-        
-            <!-- Dropdown -->
-            {#if isCountryOpen}
-                <div class="country-dropdown open absolute z-20 mt-2 w-full bg-white dark:bg-[#1A2438] border border-gray-200 dark:border-white/10 rounded-lg shadow-lg">
-                {#each countries as country}
-                    <button
-                    type="button"
-                    class="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-gray-100 dark:hover:bg-white/5"
-                    onclick={() => selectCountry(country)}
-                    >
-                    <span>{country.flag}</span>
-                    <span>{country.name}</span>
-                    <span class="ml-auto text-sm opacity-60">{country.code}</span>
-                    </button>
-                {/each}
-                </div>
-            {/if}
-        
-            <!-- Input -->
-            <input
-                type="tel"
-                class="phone-input-num"
-                placeholder="803 000 0000"
-                autocomplete="tel-national"
-            />
-            </div>
-        </div>
-
-        <!-- Password -->
-        <div class="mb-2 animate-fadeUp4" id="cPassWrap">
-          <label class="auth-label" for="cPass">Password</label>
-          <div class="relative">
-            <input type={showPassword ? "text" : "password"} 
-                id="cPass" 
+        <form onsubmit={handleUserSubmit}>
+          <!-- Name row -->
+          <div class="grid grid-cols-2 gap-3 mb-3 two-col animate-fadeUp3">
+            <div>
+              <label class="auth-label" for="cFirstName">First name</label>
+              <input oninput={(e) => setUserFormField("firstName", (e.target as HTMLInputElement).value)} 
+                bind:value={userFormData.firstName}
+                type="text" 
+                required
+                id="cFirstName" 
                 class="auth-input" 
-                bind:value={password}
+                placeholder="Amara" 
+                autocomplete="given-name" 
+              />
+            </div>
+            <div>
+              <label class="auth-label" for="cLastName">Last name</label>
+              <input oninput={(e) => setUserFormField("lastName", (e.target as HTMLInputElement).value)} 
+                bind:value={userFormData.lastName}
+                type="text" 
+                required
+                id="cLastName" 
+                class="auth-input" 
+                placeholder="Okonkwo" 
+                autocomplete="family-name" 
+              />
+            </div>
+          </div>
+
+          <!-- Email -->
+          <div class="mb-3 animate-fadeUp3" id="cEmailWrap">
+            <label class="auth-label" for="cEmail">Email address</label>
+            <input oninput={(e) => {
+              setUserFormField("email", (e.target as HTMLInputElement).value);
+              handleEmailInput(e);
+            }} 
+              bind:value={userFormData.email}
+              type="email" 
+              id="cEmail" 
+              required
+              class="auth-input" 
+              placeholder="you@example.com" 
+              autocomplete="email" 
+            />
+            <span class="error-msg">Please enter a valid email address.</span>
+          </div>
+
+          <!-- Fix the on_input handler -->
+          <PhoneInput 
+            onchange={(country) => selectCountry(country)}
+            oninput={(e) => {
+              setUserFormField("phoneNumber", (e.target as HTMLInputElement).value);
+              handlePhoneNoInput(e);
+            }} 
+            countries={countries.map((country) => ({...country, isPinned: country.id === selected.id}))} 
+            selectedCountry={{...selected, isPinned: true}}  
+          />
+
+          <!-- Password -->
+          <div class="mb-2 animate-fadeUp4" id="cPassWrap">
+            <label class="auth-label" for="cPass">Password</label>
+            <div class="relative">
+              <input type={showUserPassword ? "text" : "password"} 
+                  oninput={(e) => setUserFormField("password", (e.target as HTMLInputElement).value)}
+                  bind:value={userFormData.password}
+                  id="cPass" 
+                  required
+                  class="auth-input" 
+                  style="padding-right:48px;" 
+                  placeholder="At least 8 characters" 
+                  autocomplete="new-password" />
+                  <button 
+                    class="pw-eye" 
+                    type="button" 
+                    onclick={toggleUserPw}
+                    aria-label={showUserPassword ? "Hide password" : "Show password"}
+                  >
+                    {#if showUserPassword}
+                      <svg 
+                        width="16" 
+                        height="16" 
+                        viewBox="0 0 20 20" 
+                        fill="none" 
+                        stroke="currentColor" 
+                        stroke-width="1.5"
+                      >
+                        <path d="M13.45 13.45A7.07 7.07 0 0110 14c-5 0-9-4-9-4s1.34-2.29 3.45-3.84M17 10s-1.22 2.08-3.55 3.45M4 4l12 12" />
+                      </svg>
+                    {:else}
+                      <svg 
+                        width="16" 
+                        height="16" 
+                        viewBox="0 0 20 20" 
+                        fill="none" 
+                        stroke="currentColor" 
+                        stroke-width="1.5"
+                      >
+                        <path d="M1 10s4-7 9-7 9 7 9 7-4 7-9 7-9-7-9-7z" />
+                        <circle cx="10" cy="10" r="3"/>
+                      </svg>
+                    {/if}
+                  </button>
+            </div>
+          <!-- Strength bars -->
+          <div class="flex gap-1.5 mt-2">
+              {#each [1, 2, 3, 4] as i}
+              <div
+                  class="str-seg"
+                  style="background: {i <= strength() && strength() > 0 ? colours[strength()] : ''}"
+              ></div>
+              {/each}
+          </div>
+          <span
+              class="font-sans font-light text-chalk-muted mt-1 block text-[11px]"
+              style="color: {colours[strength()] || ''}"
+          >
+              {userFormData.password.length ? labels[strength()] : ''}
+          </span>
+
+          <!-- Error -->
+          {#if userFormData.password.length > 0 && userFormData.password.length < 8}
+          <span class="error-msg block">Password must be at least 8 characters.</span>
+          {/if}
+          </div>
+
+          <!-- Confirm password -->
+          <div class="mb-4 animate-fadeUp4" id="cConfWrap">
+            <label class="auth-label" for="cConf">Confirm password</label>
+            <div class="relative">
+              <input oninput={(e) => setUserFormField("confirmPassword", (e.target as HTMLInputElement).value)}
+                bind:value={userFormData.confirmPassword}
+                type={showUserConfirmPassword ? "text" : "password"} 
+                id="cConf" 
+                required
+                class="auth-input" 
                 style="padding-right:48px;" 
-                placeholder="At least 8 characters" 
-                autocomplete="new-password" />
-            <button class="pw-eye" type="button" onclick={togglePw} aria-label="Show password">
-              <svg class="eyeShow" width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M1 10s4-7 9-7 9 7 9 7-4 7-9 7-9-7-9-7z"/><circle cx="10" cy="10" r="3"/></svg>
-              <svg class="eyeHide hidden" width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M13.45 13.45A7.07 7.07 0 0110 14c-5 0-9-4-9-4s1.34-2.29 3.45-3.84M17 10s-1.22 2.08-3.55 3.45M4 4l12 12"/></svg>
-            </button>
+                placeholder="Repeat your password" 
+                autocomplete="new-password" 
+              />
+              <button class="pw-eye" type="button" onclick={toggleUserConfirmPw} aria-label="Show password">
+                {#if showUserConfirmPassword}
+                      <svg 
+                        width="16" 
+                        height="16" 
+                        viewBox="0 0 20 20" 
+                        fill="none" 
+                        stroke="currentColor" 
+                        stroke-width="1.5"
+                      >
+                        <path d="M13.45 13.45A7.07 7.07 0 0110 14c-5 0-9-4-9-4s1.34-2.29 3.45-3.84M17 10s-1.22 2.08-3.55 3.45M4 4l12 12" />
+                      </svg>
+                    {:else}
+                      <svg 
+                        width="16" 
+                        height="16" 
+                        viewBox="0 0 20 20" 
+                        fill="none" 
+                        stroke="currentColor" 
+                        stroke-width="1.5"
+                      >
+                        <path d="M1 10s4-7 9-7 9 7 9 7-4 7-9 7-9-7-9-7z" />
+                        <circle cx="10" cy="10" r="3"/>
+                      </svg>
+                    {/if}
+              </button>
+            </div>
+            <span class="error-msg">Passwords don't match.</span>
           </div>
-         <!-- Strength bars -->
-        <div class="flex gap-1.5 mt-2">
-            {#each [1, 2, 3, 4] as i}
-            <div
-                class="str-seg"
-                style="background: {i <= strength() && strength() > 0 ? colours[strength()] : ''}"
-            ></div>
-            {/each}
-        </div>
-        <span
-            class="font-sans font-light text-chalk-muted mt-1 block text-[11px]"
-            style="color: {colours[strength()] || ''}"
-        >
-            {password.length ? labels[strength()] : ''}
-        </span>
 
-        <!-- Error -->
-        {#if password.length > 0 && password.length < 8}
-        <span class="error-msg block">Password must be at least 8 characters.</span>
-        {/if}
-        </div>
-
-        <!-- Confirm password -->
-        <div class="mb-4 animate-fadeUp4" id="cConfWrap">
-          <label class="auth-label" for="cConf">Confirm password</label>
-          <div class="relative">
-            <input type={showPassword ? "text" : "password"} id="cConf" class="auth-input" style="padding-right:48px;" placeholder="Repeat your password" autocomplete="new-password">
-            <button class="pw-eye" type="button" onclick={togglePw} aria-label="Show password">
-              <svg class="eyeShow" width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M1 10s4-7 9-7 9 7 9 7-4 7-9 7-9-7-9-7z"/><circle cx="10" cy="10" r="3"/></svg>
-              <svg class="eyeHide hidden" width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M13.45 13.45A7.07 7.07 0 0110 14c-5 0-9-4-9-4s1.34-2.29 3.45-3.84M17 10s-1.22 2.08-3.55 3.45M4 4l12 12"/></svg>
-            </button>
+          <!-- Terms -->
+          <div class="flex items-start gap-2.5 mb-5 animate-fadeUp5">
+            <input
+              bind:checked={userFormData.isTAndCAgreed} 
+              type="checkbox" 
+              id="cTerms" 
+              class="auth-check" 
+              style="margin-top:2px;" 
+            />
+            <label for="cTerms" class="font-sans font-light text-chalk-muted cursor-pointer leading-[1.7]" style="font-size:12px;">
+              I agree to Blupodd's <a href="/site/privacy-policy" class="auth-link" style="font-size:12px;">Terms of Service</a> and <a href="/site/privacy-policy" class="auth-link" style="font-size:12px;">Privacy Policy</a>
+            </label>
           </div>
-          <span class="error-msg">Passwords don't match.</span>
-        </div>
 
-        <!-- Terms -->
-        <div class="flex items-start gap-2.5 mb-5 animate-fadeUp5">
-          <input type="checkbox" id="cTerms" class="auth-check" style="margin-top:2px;">
-          <label for="cTerms" class="font-sans font-light text-chalk-muted cursor-pointer leading-[1.7]" style="font-size:12px;">
-            I agree to Blupodd's <a href="/site/privacy-policy" class="auth-link" style="font-size:12px;">Terms of Service</a> and <a href="/site/privacy-policy" class="auth-link" style="font-size:12px;">Privacy Policy</a>
-          </label>
-        </div>
+          <button disabled={!isFormValid} 
+            class:disabled={!isFormValid}
+            class="btn-primary animate-fadeUp5" 
+            type="submit" 
+            id="cSubmitBtn">
+            Create account
+          </button>
 
-        <button class="btn-primary animate-fadeUp5" type="button" id="cSubmitBtn">
-          Create account
-        </button>
-
-        <p class="text-center font-sans font-light text-chalk-muted mt-5 animate-fadeUp6" style="font-size:13px;">
-          Already have an account?&nbsp;<a href="/site/login" class="auth-link">Log in</a>
-        </p>
+          <p class="text-center font-sans font-light text-chalk-muted mt-5 animate-fadeUp6" style="font-size:13px;">
+            Already have an account?&nbsp;<a href="/site/login" class="auth-link">Log in</a>
+          </p>
+      </form>
 
       </div><!-- /panelCustomer -->
       {:else}
@@ -531,279 +928,431 @@ const switchAcctType = (type = 'customer') => {
           </div>
         </div>
 
-        {#if agentStep === 1}
-        <!-- ─── STEP 1: Personal details ─── -->
-        <div id="agentStep1" class="form-panel">
-          <div class="mb-5 animate-fadeUp1">
-            <h1 class="font-display font-light leading-[1.1] mb-1" style="font-size: clamp(24px, 2.8vw, 34px);">Personal details.</h1>
-            <p class="font-sans font-light text-chalk-muted" style="font-size:14px;">Let's start with who you are</p>
-          </div>
-
-          <div class="grid grid-cols-2 gap-3 mb-3 two-col animate-fadeUp2">
-            <div>
-              <label class="auth-label" for="aFirstName">First name</label>
-              <input type="text" id="aFirstName" class="auth-input" placeholder="Chukwuemeka" autocomplete="given-name">
+        <form onsubmit={handleAgentSubmit}>
+          {#if agentStep === 1}
+          <!-- ─── STEP 1: Personal details ─── -->
+          <div id="agentStep1" class="form-panel">
+            <div class="mb-5 animate-fadeUp1">
+              <h1 class="font-display font-light leading-[1.1] mb-1" style="font-size: clamp(24px, 2.8vw, 34px);">Personal details.</h1>
+              <p class="font-sans font-light text-chalk-muted" style="font-size:14px;">Let's start with who you are</p>
             </div>
-            <div>
-              <label class="auth-label" for="aLastName">Last name</label>
-              <input type="text" id="aLastName" class="auth-input" placeholder="Okafor" autocomplete="family-name">
-            </div>
-          </div>
 
-          <div class="mb-3 animate-fadeUp2" id="aEmailWrap">
-            <label class="auth-label" for="aEmail">Email address</label>
-            <input type="email" id="aEmail" class="auth-input" placeholder="agent@example.com" autocomplete="email">
-            <span class="error-msg">Please enter a valid email address.</span>
-          </div>
-
-           <!-- Phone with country selector -->
-            <div class="mb-3 animate-fadeUp3">
-                <label class="auth-label">Phone number</label>
-            
-                <div class="phone-wrap relative" use:clickOutside>
-            
-                <!-- Button -->
-                <button
-                    class="phone-flag-btn"
-                    type="button"
-                    onclick={toggleCountry}
-                >
-                    <span style="font-size:16px;">{selected.flag}</span>
-                    <span class="font-sans font-light text-[13px] text-[#8C8070]">
-                    {selected.code}
-                    </span>
-                    <svg width="10" height="10" viewBox="0 0 12 12" fill="none">
-                    <path d="M2 4l4 4 4-4" stroke="#8C8070" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/>
-                    </svg>
-                </button>
-            
-                <!-- Dropdown -->
-                {#if isCountryOpen}
-                    <div class="country-dropdown open absolute z-20 mt-2 w-full bg-white dark:bg-[#1A2438] border border-gray-200 dark:border-white/10 rounded-lg shadow-lg">
-                    {#each countries as country}
-                        <button
-                        type="button"
-                        class="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-gray-100 dark:hover:bg-white/5"
-                        onclick={() => selectCountry(country)}
-                        >
-                        <span>{country.flag}</span>
-                        <span>{country.name}</span>
-                        <span class="ml-auto text-sm opacity-60">{country.code}</span>
-                        </button>
-                    {/each}
-                    </div>
-                {/if}
-            
-                <!-- Input -->
-                <input
-                    type="tel"
-                    class="phone-input-num"
-                    placeholder="803 000 0000"
-                    autocomplete="tel-national"
+            <div class="grid grid-cols-2 gap-3 mb-3 two-col animate-fadeUp2">
+              <div>
+                <label class="auth-label" for="aFirstName">First name</label>
+                <input 
+                  oninput={(e) => setAgencyFormField('firstName', (e.target as HTMLInputElement).value)}
+                  bind:value={agencyFormData.firstName}
+                  type="text" 
+                  required
+                  id="aFirstName" 
+                  class="auth-input" 
+                  placeholder="Chukwuemeka" 
+                  autocomplete="given-name" 
                 />
-                </div>
-            </div>
-
-          <div class="mb-2 animate-fadeUp4" id="aPassWrap">
-            <label class="auth-label" for="aPass">Password</label>
-            <div class="relative">
-              <input bind:value={agentPassword}
-               type={showPassword ? "text" : "password"} 
-               id="aPass" 
-               class="auth-input" 
-               style="padding-right:48px;" 
-               placeholder="At least 8 characters" 
-               autocomplete="new-password" />
-              <button class="pw-eye" type="button" onclick={togglePw} aria-label="Show password">
-                <svg class="eyeShow" width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M1 10s4-7 9-7 9 7 9 7-4 7-9 7-9-7-9-7z"/><circle cx="10" cy="10" r="3"/></svg>
-                <svg class="eyeHide hidden" width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M13.45 13.45A7.07 7.07 0 0110 14c-5 0-9-4-9-4s1.34-2.29 3.45-3.84M17 10s-1.22 2.08-3.55 3.45M4 4l12 12"/></svg>
-              </button>
-            </div>
-            <!-- Strength bars -->
-            <div class="flex gap-1.5 mt-2">
-                {#each [1, 2, 3, 4] as i}
-                <div
-                    class="str-seg"
-                    style="background: {i <= agentPasswordStrength() && agentPasswordStrength() > 0 ? colours[agentPasswordStrength()] : ''}"
-                ></div>
-                {/each}
-            </div>
-            <span
-                class="font-sans font-light text-chalk-muted mt-1 block text-[11px]"
-                style="color: {colours[agentPasswordStrength()] || ''}"
-            >
-                {password.length ? labels[agentPasswordStrength()] : ''}
-            </span>
-
-            <!-- Error -->
-            {#if password.length > 0 && password.length < 8}
-            <span class="error-msg block">Password must be at least 8 characters.</span>
-            {/if}
-        </div>
-
-          <div class="mb-5 animate-fadeUp4" id="aConfWrap">
-            <label class="auth-label" for="aConf">Confirm password</label>
-            <div class="relative">
-              <input type={showPassword ? "text" : "password"} 
-                id="aConf" 
-                class="auth-input" 
-                style="padding-right:48px;" 
-                placeholder="Repeat your password" 
-                autocomplete="new-password" />
-              <button class="pw-eye" type="button" onclick={togglePw} aria-label="Show password">
-                <svg class="eyeShow" width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M1 10s4-7 9-7 9 7 9 7-4 7-9 7-9-7-9-7z"/><circle cx="10" cy="10" r="3"/></svg>
-                <svg class="eyeHide hidden" width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M13.45 13.45A7.07 7.07 0 0110 14c-5 0-9-4-9-4s1.34-2.29 3.45-3.84M17 10s-1.22 2.08-3.55 3.45M4 4l12 12"/></svg>
-              </button>
-            </div>
-            <span class="error-msg">Passwords don't match.</span>
-          </div>
-
-          <button class="btn-primary animate-fadeUp5" type="button" onclick={() => agentNext(2)}>
-            Continue
-            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" style="display:inline-block;margin-left:6px;vertical-align:-2px;"><path d="M6 3l5 5-5 5" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-          </button>
-
-          <p class="text-center font-sans font-light text-chalk-muted mt-4" style="font-size:13px;">
-            Already have an account?&nbsp;<a href="/site/login" class="auth-link">Log in</a>
-          </p>
-        </div><!-- /site/agentstep1 -->
-        {/if}
-
-        {#if agentStep === 2}
-        <!-- ─── STEP 2: Agency profile ─── -->
-        <div id="agentStep2" class="form-panel">
-          <div class="mb-5 animate-fadeUp1">
-            <button class="flex items-center gap-2 font-sans font-normal text-chalk-muted hover:text-navy-dark transition-colors mb-4 bg-transparent border-none cursor-pointer p-0" onclick={() => agentNext(1)} style="font-size:13px;">
-              <svg width="13" height="13" viewBox="0 0 16 16" fill="none"><path d="M10 3L5 8l5 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-              Back
-            </button>
-            <h1 class="font-display font-light leading-[1.1] mb-1" style="font-size: clamp(24px, 2.8vw, 34px);">Agency profile.</h1>
-            <p class="font-sans font-light text-chalk-muted" style="font-size:14px;">Tell us about your agency</p>
-          </div>
-
-          <!-- Agency logo upload -->
-          <div class="mb-4 animate-fadeUp2">
-            <label for="logoFile" class="auth-label">Agency logo</label>
-            <button type="button" class="upload-zone" id="logoZone" onclick={handleClick}>
-              {#if previewUrl}
-              <div id="logoPreviewWrap">
-                <img src={previewUrl} 
-                  id="logoPreview" 
-                  class="w-16 h-16 rounded-xl object-cover mx-auto mb-2" 
-                  alt="Logo preview" />
               </div>
-              {:else}
-              <div id="logoPlaceholder">
-                <div class="w-10 h-10 rounded-xl flex items-center justify-center mx-auto mb-2" style="background:rgba(74,144,226,0.10);border:1.5px dashed rgba(74,144,226,0.35);">
-                  <svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="#4A90E2" stroke-width="1.4" stroke-linecap="round"><rect x="2" y="2" width="16" height="16" rx="3"/><circle cx="10" cy="9" r="3"/><path d="M2 16l4-4 3 3 4-4 5 5"/></svg>
-                </div>
-                <p class="font-sans font-medium" style="font-size:13px;color:#4A70A0;">Upload agency logo</p>
-                <p class="font-sans font-light text-chalk-muted mt-0.5" style="font-size:11px;">PNG, JPG · max 5 MB · Recommended 200×200</p>
+              <div>
+                <label class="auth-label" for="aLastName">Last name</label>
+                <input 
+                  oninput={(e) => setAgencyFormField('lastName', (e.target as HTMLInputElement).value)}
+                  bind:value={agencyFormData.lastName}
+                  type="text" 
+                  required
+                  id="aLastName" 
+                  class="auth-input" 
+                  placeholder="Okafor" 
+                  autocomplete="family-name" 
+                />
               </div>
+            </div>
+
+            <div class="mb-3 animate-fadeUp2" id="aEmailWrap">
+              <label class="auth-label" for="aEmail">Email address</label>
+              <input 
+                  oninput={(e) => {
+                    setAgencyFormField('email', (e.target as HTMLInputElement).value);
+                    handleEmailInput(e);
+                  }}
+                  bind:value={agencyFormData.email}
+                  type="email" 
+                  required
+                  id="aEmail" 
+                  class="auth-input" 
+                  placeholder="agent@example.com" 
+                  autocomplete="email" 
+                />
+              <span class="error-msg">Please enter a valid email address.</span>
+            </div>
+
+              <!-- Fix the on_input handler -->
+              <PhoneInput 
+                onchange={(country) => selectCountry(country)}
+                oninput={(e) => {
+                  setAgencyFormField("phoneNumber", (e.target as HTMLInputElement).value);
+                  handlePhoneNoInput(e);
+                }} 
+                countries={countries.map((country) => ({...country, isPinned: country.id === selected.id}))} 
+                selectedCountry={{...selected, isPinned: true}}  
+              />
+
+            <div class="mb-2 animate-fadeUp4" id="aPassWrap">
+              <label class="auth-label" for="aPass">Password</label>
+              <div class="relative">
+                <input 
+                  oninput={(e) => setAgencyFormField('password', (e.target as HTMLInputElement).value)}
+                  bind:value={agencyFormData.password}
+                  type={showAgencyPassword ? "text" : "password"} 
+                  id="aPass" 
+                  class="auth-input" 
+                  style="padding-right:48px;" 
+                  placeholder="At least 8 characters" 
+                  autocomplete="new-password" 
+                />
+                <button class="pw-eye" type="button" onclick={toggleAgencyPw} aria-label="Show password">
+                  {#if showAgencyPassword}
+                      <svg 
+                        width="16" 
+                        height="16" 
+                        viewBox="0 0 20 20" 
+                        fill="none" 
+                        stroke="currentColor" 
+                        stroke-width="1.5"
+                      >
+                        <path d="M13.45 13.45A7.07 7.07 0 0110 14c-5 0-9-4-9-4s1.34-2.29 3.45-3.84M17 10s-1.22 2.08-3.55 3.45M4 4l12 12" />
+                      </svg>
+                    {:else}
+                      <svg 
+                        width="16" 
+                        height="16" 
+                        viewBox="0 0 20 20" 
+                        fill="none" 
+                        stroke="currentColor" 
+                        stroke-width="1.5"
+                      >
+                        <path d="M1 10s4-7 9-7 9 7 9 7-4 7-9 7-9-7-9-7z" />
+                        <circle cx="10" cy="10" r="3"/>
+                      </svg>
+                    {/if}
+                </button>
+              </div>
+              <!-- Strength bars -->
+              <div class="flex gap-1.5 mt-2">
+                  {#each [1, 2, 3, 4] as i}
+                  <div
+                      class="str-seg"
+                      style="background: {i <= agentPasswordStrength() && agentPasswordStrength() > 0 ? colours[agentPasswordStrength()] : ''}"
+                  ></div>
+                  {/each}
+              </div>
+              <span
+                  class="font-sans font-light text-chalk-muted mt-1 block text-[11px]"
+                  style="color: {colours[agentPasswordStrength()] || ''}"
+              >
+                  {agencyFormData.password.length ? labels[agentPasswordStrength()] : ''}
+              </span>
+
+              <!-- Error -->
+              {#if agencyFormData.password.length > 0 && agencyFormData.password.length < 8}
+              <span class="error-msg block">Password must be at least 8 characters.</span>
               {/if}
-              <input type="file" 
-                bind:this={logoFile} 
-                id="logoFile" 
-                accept="image/*" 
-                class="hidden" 
-                onchange={handleLogoUpload} />
+          </div>
+
+            <div class="mb-5 animate-fadeUp4" id="aConfWrap">
+              <label class="auth-label" for="aConf">Confirm password</label>
+              <div class="relative">
+                <input 
+                  oninput={(e) => setAgencyFormField('confirmPassword', (e.target as HTMLInputElement).value)}
+                  bind:value={agencyFormData.confirmPassword}
+                  type={showAgencyConfirmPassword ? "text" : "password"} 
+                  id="aConf" 
+                  class="auth-input" 
+                  style="padding-right:48px;" 
+                  placeholder="Repeat your password" 
+                  autocomplete="new-password" />
+                <button class="pw-eye" type="button" onclick={toggleAgencyConfirmPw} aria-label="Show password">
+                  {#if showAgencyConfirmPassword}
+                      <svg 
+                        width="16" 
+                        height="16" 
+                        viewBox="0 0 20 20" 
+                        fill="none" 
+                        stroke="currentColor" 
+                        stroke-width="1.5"
+                      >
+                        <path d="M13.45 13.45A7.07 7.07 0 0110 14c-5 0-9-4-9-4s1.34-2.29 3.45-3.84M17 10s-1.22 2.08-3.55 3.45M4 4l12 12" />
+                      </svg>
+                    {:else}
+                      <svg 
+                        width="16" 
+                        height="16" 
+                        viewBox="0 0 20 20" 
+                        fill="none" 
+                        stroke="currentColor" 
+                        stroke-width="1.5"
+                      >
+                        <path d="M1 10s4-7 9-7 9 7 9 7-4 7-9 7-9-7-9-7z" />
+                        <circle cx="10" cy="10" r="3"/>
+                      </svg>
+                    {/if}
+                </button>
+              </div>
+              <span class="error-msg">Passwords don't match.</span>
+            </div>
+
+            <button class="btn-primary animate-fadeUp5" type="button" onclick={goNext}>
+              Continue
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="none" style="display:inline-block;margin-left:6px;vertical-align:-2px;"><path d="M6 3l5 5-5 5" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
             </button>
-          </div>
 
-          <div class="mb-3 animate-fadeUp2" id="aAgencyNameWrap">
-            <label class="auth-label" for="aAgencyName">Agency name</label>
-            <input type="text" id="aAgencyName" class="auth-input" placeholder="e.g. Premier Properties PH">
-            <span class="error-msg">Agency name is required.</span>
-          </div>
+            <p class="text-center font-sans font-light text-chalk-muted mt-4" style="font-size:13px;">
+              Already have an account?&nbsp;<a href="/site/login" class="auth-link">Log in</a>
+            </p>
+          </div><!-- /site/agentstep1 -->
+          {/if}
 
-          <div class="mb-3 animate-fadeUp3">
-            <label class="auth-label" for="aAddress">Business address</label>
-            <textarea id="aAddress" class="auth-textarea" rows="3" placeholder="e.g. 14 Augustine Nwosu Close, GRA, PH"></textarea>
-          </div>
+          {#if agentStep === 2}
+          <!-- ─── STEP 2: Agency profile ─── -->
+          <div id="agentStep2" class="form-panel">
+            <div class="mb-5 animate-fadeUp1">
+              <button class="flex items-center gap-2 font-sans font-normal text-chalk-muted hover:text-navy-dark transition-colors mb-4 bg-transparent border-none cursor-pointer p-0" onclick={() => agentNext(1)} style="font-size:13px;">
+                <svg width="13" height="13" viewBox="0 0 16 16" fill="none"><path d="M10 3L5 8l5 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                Back
+              </button>
+              <h1 class="font-display font-light leading-[1.1] mb-1" style="font-size: clamp(24px, 2.8vw, 34px);">Agency profile.</h1>
+              <p class="font-sans font-light text-chalk-muted" style="font-size:14px;">Tell us about your agency</p>
+            </div>
 
-          <div class="mb-3 animate-fadeUp3">
-            <label class="auth-label" for="aState">State of operation</label>
-            <select id="aState" class="auth-select">
-              <option value="" disabled selected>Select state</option>
-              <option>Rivers State</option><option>Lagos State</option><option>Abuja FCT</option>
-              <option>Anambra State</option><option>Delta State</option><option>Edo State</option>
-              <option>Enugu State</option><option>Oyo State</option><option>Kano State</option>
-              <option>Cross River State</option><option>Imo State</option><option>Kaduna State</option>
-            </select>
-          </div>
+            <!-- Agency logo upload -->
+            <div class="mb-4 animate-fadeUp2">
+              <label for="logoFile" class="auth-label">Agency logo</label>
+              <button type="button" class="upload-zone" id="logoZone" onclick={handleClick}>
+                {#if previewUrl}
+                <div id="logoPreviewWrap">
+                  <img src={previewUrl} 
+                    id="logoPreview" 
+                    class="w-16 h-16 rounded-xl object-cover mx-auto mb-2" 
+                    alt="Logo preview" />
+                </div>
+                {:else}
+                <div id="logoPlaceholder">
+                  <div class="w-10 h-10 rounded-xl flex items-center justify-center mx-auto mb-2" style="background:rgba(74,144,226,0.10);border:1.5px dashed rgba(74,144,226,0.35);">
+                    <svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="#4A90E2" stroke-width="1.4" stroke-linecap="round"><rect x="2" y="2" width="16" height="16" rx="3"/><circle cx="10" cy="9" r="3"/><path d="M2 16l4-4 3 3 4-4 5 5"/></svg>
+                  </div>
+                  <p class="font-sans font-medium" style="font-size:13px;color:#4A70A0;">Upload agency logo</p>
+                  <p class="font-sans font-light text-chalk-muted mt-0.5" style="font-size:11px;">PNG, JPG · max 5 MB · Recommended 200×200</p>
+                </div>
+                {/if}
+                <input type="file"
+                  onchange={handleLogoUpload}
+                  bind:this={logoFile} 
+                  id="logoFile" 
+                  required
+                  accept="image/*" 
+                  class="hidden" 
+                />
+              </button>
+            </div>
 
-          <div class="mb-5 animate-fadeUp4">
-            <label class="auth-label" for="aDesc">Brief description <span class="font-sans normal-case" style="font-size:11px;letter-spacing:0;text-transform:none;color:#8C8070;">(optional)</span></label>
-            <textarea id="aDesc" class="auth-textarea" rows="3" placeholder="Describe your agency — specialisation, years of experience, key locations…"></textarea>
-          </div>
+            <div class="mb-3 animate-fadeUp2" id="aAgencyNameWrap">
+              <label class="auth-label" for="aAgencyName">Agency name</label>
+              <input 
+                oninput={(e) => setAgencyFormField('agencyName', (e.target as HTMLInputElement).value)}
+                bind:value={agencyFormData.agencyName}
+                required
+                type="text" 
+                id="aAgencyName" 
+                class="auth-input" 
+                placeholder="e.g. Premier Properties PH" 
+              />
+              <span class="error-msg">Agency name is required.</span>
+            </div>
 
-          <button class="btn-primary animate-fadeUp5" type="button" onclick={() => agentNext(3)}>
-            Continue
-            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" style="display:inline-block;margin-left:6px;vertical-align:-2px;"><path d="M6 3l5 5-5 5" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-          </button>
-        </div><!-- /site/agentstep2 -->
-        {/if}
+            <div class="mb-3 animate-fadeUp3">
+              <label class="auth-label" for="aAddress">Business address</label>
+              <textarea 
+                oninput={(e) =>
+                  setAgencyFormField(
+                    'businessAddress',
+                    (e.target as HTMLTextAreaElement).value
+                  )
+                }
+                bind:value={agencyFormData.businessAddress} 
+                id="aAddress" 
+                class="auth-textarea" 
+                rows="3" 
+                placeholder="e.g. 14 Augustine Nwosu Close, GRA, PH">
+              </textarea>
+            </div>
 
-        {#if agentStep === 3}
-        <!-- ─── STEP 3: Confirm & agree ─── -->
-        <div id="agentStep3" class="form-panel">
-          <div class="mb-5 animate-fadeUp1">
-            <button class="flex items-center gap-2 font-sans font-normal text-chalk-muted hover:text-navy-dark transition-colors mb-4 bg-transparent border-none cursor-pointer p-0" onclick={() => agentNext(2)} style="font-size:13px;">
-              <svg width="13" height="13" viewBox="0 0 16 16" fill="none"><path d="M10 3L5 8l5 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-              Back
+            <div class="mb-5 animate-fadeUp4">
+              <label class="auth-label" for="aDesc">
+                Brief description 
+                <!-- <span class="font-sans normal-case" style="font-size:11px;letter-spacing:0;text-transform:none;color:#8C8070;">(optional)</span> -->
+              </label>
+              <textarea id="aDesc"
+                class="auth-textarea" 
+                rows="3" 
+                placeholder="Describe your agency — specialization, years of experience, key locations…"
+                bind:value={agencyFormData.agencyBio} 
+                oninput={(e) =>
+                  setAgencyFormField(
+                    'agencyBio',
+                    (e.target as HTMLTextAreaElement).value
+                  )
+                }
+                >
+              </textarea>
+            </div>
+
+            <div class="mb-5 animate-fadeUp4">
+              <label class="auth-label" for="aDesc">Focus Areas</label>
+              <div class="ai-specs" id="agentSpecs">
+                {#each realEstateFocusAreas as _}
+                <span class="ai-spec" 
+                  class:active={agencyFormData.focusAreas.includes(_)} 
+                  onclick={() => setFocusAreas(_)}>
+                  {_}
+                </span>
+                {/each}
+              </div>
+            </div>
+
+            <div class="space-y-3 mb-4 animate-fadeUp3">
+              <div class="flex items-start gap-2.5">
+                <input bind:checked={agencyFormData.isRegistered} 
+                  type="checkbox" 
+                  id="aTerms" 
+                  class="auth-check" 
+                  style="margin-top:2px;" 
+                />
+                <label for="aTerms" class="font-sans font-light text-chalk-muted cursor-pointer leading-[1.7]" style="font-size:12px;">
+                  Yes, I am a registered real estate company
+                </label>
+              </div>
+            </div>
+
+            {#if agencyFormData.isRegistered}
+            <div class="mb-3 animate-fadeUp2" id="aAgencyRegNumbeWrap">
+              <label class="auth-label" for="aAgencyRegNumber">Registration Number</label>
+              <input 
+                oninput={(e) => setAgencyFormField('regNumber', (e.target as HTMLInputElement).value)}
+                bind:value={agencyFormData.regNumber}  
+                required 
+                type="text" 
+                id="aAgencyRegNumber" 
+                class="auth-input" 
+                placeholder="e.g. RC 123456" 
+              />
+              <span class="error-msg">RC Number</span>
+            </div>
+            {/if}
+
+            <button class="btn-primary animate-fadeUp5" type="button" onclick={goNext}>
+              Continue
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="none" style="display:inline-block;margin-left:6px;vertical-align:-2px;"><path d="M6 3l5 5-5 5" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
             </button>
-            <h1 class="font-display font-light leading-[1.1] mb-1" style="font-size: clamp(24px, 2.8vw, 34px);">Almost done.</h1>
-            <p class="font-sans font-light text-chalk-muted" style="font-size:14px;">Review and confirm your details</p>
-          </div>
+          </div><!-- /site/agentstep2 -->
+          {/if}
 
-          <!-- Summary card -->
-          <div class="section-card mb-5 animate-fadeUp2">
-            <div class="section-head">Your details</div>
-            <div class="grid grid-cols-2 gap-x-4 gap-y-2.5 two-col">
-              <div>
-                <div class="auth-label" style="margin-bottom:3px;">Name</div>
-                <div class="font-sans font-normal" style="font-size:14px;" id="summaryName">Olisa Peters</div>
-              </div>
-              <div>
-                <div class="auth-label" style="margin-bottom:3px;">Email</div>
-                <div class="font-sans font-normal truncate" style="font-size:14px;" id="summaryEmail">premier@gmail.com</div>
-              </div>
-              <div>
-                <div class="auth-label" style="margin-bottom:3px;">Agency</div>
-                <div class="font-sans font-normal" style="font-size:14px;" id="summaryAgency">Premier Property Holdings</div>
-              </div>
-              <div>
-                <div class="auth-label" style="margin-bottom:3px;">Location</div>
-                <div class="font-sans font-normal" style="font-size:14px;" id="summaryState">No. 40 Ugwuaji road, Enugu</div>
+          {#if agentStep === 3}
+          <!-- ─── STEP 3: Confirm & agree ─── -->
+          <div id="agentStep3" class="form-panel">
+            <div class="mb-5 animate-fadeUp1">
+              <button class="flex items-center gap-2 font-sans font-normal text-chalk-muted hover:text-navy-dark transition-colors mb-4 bg-transparent border-none cursor-pointer p-0" onclick={() => agentNext(2)} style="font-size:13px;">
+                <svg width="13" height="13" viewBox="0 0 16 16" fill="none"><path d="M10 3L5 8l5 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                Back
+              </button>
+              <h1 class="font-display font-light leading-[1.1] mb-1" style="font-size: clamp(24px, 2.8vw, 34px);">Almost done.</h1>
+              <p class="font-sans font-light text-chalk-muted" style="font-size:14px;">Review and confirm your details</p>
+            </div>
+
+            <!-- Summary card -->
+            <div class="section-card mb-5 animate-fadeUp2">
+              <div class="section-head">Your details</div>
+              <div class="grid grid-cols-2 gap-x-4 gap-y-2.5 two-col">
+                <div>
+                  <div class="auth-label" style="margin-bottom:3px;">Name</div>
+                  <div class="font-sans font-normal" style="font-size:14px;" id="summaryName">
+                    {agencyFormData.firstName} {agencyFormData.lastName}
+                  </div>
+                </div>
+
+                <div>
+                  <div class="auth-label" style="margin-bottom:3px;">Email</div>
+                  <div class="font-sans font-normal truncate" style="font-size:14px;" id="summaryEmail">
+                    {agencyFormData.email}
+                  </div>
+                </div>
+
+                <div>
+                  <div class="auth-label" style="margin-bottom:3px;">Agency</div>
+                  <div class="font-sans font-normal" style="font-size:14px;" id="summaryAgency">
+                    {agencyFormData.agencyName}
+                  </div>
+                </div>
+
+                <div>
+                  <div class="auth-label" style="margin-bottom:3px;">Phone Number</div>
+                  <div class="font-sans font-normal" style="font-size:14px;" id="summaryPhone">
+                    {agencyFormData.phoneNumber}
+                  </div>
+                </div>
+
+                <div>
+                  <div class="auth-label" style="margin-bottom:3px;">Focus Areas</div>
+                  <div class="ai-specs" id="agentSpecs">
+                    {#each agencyFormData.focusAreas as _}
+                    <span class="ai-spec" 
+                      class:active={agencyFormData.focusAreas.includes(_)} 
+                      onclick={() => setFocusAreas(_)}>
+                      {_}
+                    </span>
+                    {/each}
+                  </div>
+                </div>
+
+                <div>
+                  <div class="auth-label" style="margin-bottom:3px;">Location</div>
+                  <div class="font-sans font-normal" style="font-size:14px;" id="summaryState">
+                    {agencyFormData.businessAddress}
+                  </div>
+                </div>
+
               </div>
             </div>
-          </div>
 
-          <!-- Agreements -->
-          <div class="space-y-3 mb-6 animate-fadeUp3">
-            <div class="flex items-start gap-2.5">
-              <input type="checkbox" id="aTerms" class="auth-check" style="margin-top:2px;">
-              <label for="aTerms" class="font-sans font-light text-chalk-muted cursor-pointer leading-[1.7]" style="font-size:12px;">
-                I agree to Blupodd's <a href="#" class="auth-link" style="font-size:12px;">Terms of Service</a> and <a href="#" class="auth-link" style="font-size:12px;">Privacy Policy</a>
-              </label>
+            <!-- Agreements -->
+            <div class="space-y-3 mb-6 animate-fadeUp3">
+              <div class="flex items-start gap-2.5">
+                <input 
+                  bind:checked={agencyFormData.isTAndCAgreed} 
+                  type="checkbox" 
+                  id="aTerms" 
+                  class="auth-check" 
+                  style="margin-top:2px;"
+                />
+                <label for="aTerms" class="font-sans font-light text-chalk-muted cursor-pointer leading-[1.7]" style="font-size:12px;">
+                  I agree to Blupodd's <a href="/site/privacy-policy" class="auth-link" style="font-size:12px;">Terms of Service</a> and <a href="/site/privacy-policy" class="auth-link" style="font-size:12px;">Privacy Policy</a>
+                </label>
+              </div>
             </div>
-            <div class="flex items-start gap-2.5">
-              <input type="checkbox" id="aAgentTerms" class="auth-check" style="margin-top:2px;">
-              <label for="aAgentTerms" class="font-sans font-light text-chalk-muted cursor-pointer leading-[1.7]" style="font-size:12px;">
-                I agree to the <a href="#" class="auth-link" style="font-size:12px;">Agent Code of Conduct</a> and confirm that all information provided is accurate.
-              </label>
-            </div>
-          </div>
 
-          <button class="btn-primary animate-fadeUp4" type="button" id="aSubmitBtn">
-            Create agent account
-          </button>
+            <button 
+              class:disabled={!isAgencyFormValid}
+              disabled={!isAgencyFormValid}
+              class="btn-primary animate-fadeUp4" 
+              type="submit" 
+              id="aSubmitBtn"
+            >
+              Create agent account
+            </button>
 
-          <p class="text-center font-sans font-light text-chalk-muted mt-4 animate-fadeUp5" style="font-size:13px;">
-            Already have an account?&nbsp;<a href="/site/login" class="auth-link">Log in</a>
-          </p>
-        </div><!-- /site/agentstep3 -->
-        {/if}
+            <p class="text-center font-sans font-light text-chalk-muted mt-4 animate-fadeUp5" style="font-size:13px;">
+              Already have an account?&nbsp;<a href="/site/login" class="auth-link">Log in</a>
+            </p>
+          </div><!-- /site/agentstep3 -->
+          {/if}
+        </form>
 
       </div><!-- /panelAgent -->
       {/if}
@@ -813,8 +1362,9 @@ const switchAcctType = (type = 'customer') => {
 
 </div><!-- /main -->
 
-<!-- Toast -->
-<div id="toast"></div>
+{#if toastMsg  && toastMsg !== ''}
+<Toast toastMsg={toastMsg} type={toastType} />
+{/if}
     
 
 <style>
@@ -862,6 +1412,7 @@ const switchAcctType = (type = 'customer') => {
 
 /* ── Auth inputs (identical to login) ── */
 .auth-input {
+  position: relative; z-index: 1;
   width: 100%; background: #ffffff;
   border: 1.5px solid #EDE7DC; border-radius: 12px;
   padding: 13px 16px;
@@ -892,9 +1443,9 @@ const switchAcctType = (type = 'customer') => {
 :global([data-theme="dark"]) .auth-textarea::placeholder { color: #6A7FA0; }
 :global([data-theme="dark"]) .auth-textarea:focus { border-color: rgba(74,144,226,0.55); box-shadow: 0 0 0 3px rgba(74,144,226,0.15); }
 
-/* ── Password eye toggle (identical) ── */
+/* ── Password eye toggle ── */
 .pw-eye {
-  position: absolute; right: 14px; top: 50%; transform: translateY(-50%);
+  position: absolute; right: 14px; top: 50%; transform: translateY(-50%); z-index: 99;
   background: none; border: none; cursor: pointer; padding: 4px;
   color: #8C8070; transition: color 0.2s;
   display: flex; align-items: center; justify-content: center;
@@ -902,6 +1453,7 @@ const switchAcctType = (type = 'customer') => {
 .pw-eye:hover { color: #0A2463; }
 :global([data-theme="dark"]) .pw-eye { color: #6A7FA0; }
 :global([data-theme="dark"]) .pw-eye:hover { color: #E8EDF5; }
+
 
 /* ── Primary CTA (identical to login) ── */
 .btn-primary {
@@ -1156,6 +1708,40 @@ const switchAcctType = (type = 'customer') => {
 :global([data-theme="dark"]) .section-head { color: #6A7FA0; }
 .section-head::after { content: ''; flex: 1; height: 1px; background: #EDE7DC; transition: background 0.3s; }
 :global([data-theme="dark"]) .section-head::after { background: rgba(255,255,255,0.07); }
+
+/* .ai-agency{font-size:14px;color:rgba(255,255,255,.55);font-weight:300;margin-bottom:7px} */
+.ai-agency strong{color:rgba(255,255,255,.82);font-weight:500}
+.ai-loc{font-size:13px;color:rgba(255,255,255,.42);display:flex;align-items:center;gap:6px;margin-bottom:13px}
+.ai-specs{display:flex;gap:7px;flex-wrap:wrap}
+.ai-spec{
+  cursor: pointer;
+  font-size:11px;
+  font-weight:500;
+  padding:4px 11px;
+  border-radius:20px;
+  background: rgba(15, 23, 42, 0.06);
+  color: rgba(15, 23, 42, 0.65);
+  border: 1px solid rgba(15, 23, 42, 0.12);
+}
+:global([data-theme="dark"]) .ai-spec {
+  background:rgba(255,255,255,.07);
+  color:rgba(255,255,255,.65);
+  border:1px solid rgba(255,255,255,.11)
+}
+/* Selected state - light */
+.ai-spec.active,
+.ai-spec:hover {
+  background: rgba(37, 99, 235, 0.12);
+  color: #6A7FA0;
+  border-color: rgba(37, 99, 235, 0.35);
+  font-weight: 600;
+}
+:global([data-theme="dark"]) .ai-spec.active,
+:global([data-theme="dark"]) .ai-spec:hover {
+  color: rgba(255, 255, 255, 0.75);
+  background: rgba(37, 99, 235, 0.12);
+  border-color: rgba(37, 99, 235, 0.35);
+}
 
 /* ── Toast (identical to login) ── */
 #toast {

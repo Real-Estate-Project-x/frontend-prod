@@ -3,7 +3,9 @@ import axios, {
   type AxiosResponse,
   type InternalAxiosRequestConfig,
 } from "axios";
+import { PUBLIC_API_BASE_URL, PUBLIC_ENCRYPTION_KEY } from "$env/static/public";
 import {
+  extractLocalStorageInfo,
   getLocalStorageField,
   getUserIp,
   onLogOff,
@@ -30,8 +32,7 @@ interface RetryableRequestConfig extends InternalAxiosRequestConfig {
   _retry?: boolean;
 }
 
-// const apiBaseURL = String(process.env.NEXT_PUBLIC_API_URL);
-const apiBaseURL = "http://api.blupodd.com";
+const apiBaseURL = String(PUBLIC_API_BASE_URL);
 
 export const axiosInstance = axios.create({
   timeout: 20000,
@@ -61,9 +62,12 @@ axiosInstance.interceptors.request.use(
   async (
     req: InternalAxiosRequestConfig
   ): Promise<InternalAxiosRequestConfig> => {
-    const token = getLocalStorageField("access_token");
-    if (token && req.headers) {
-      req.headers.Authorization = `Bearer ${token}`;
+    const extractedData = extractLocalStorageInfo(PUBLIC_ENCRYPTION_KEY);
+    if (extractedData) {
+      const token = extractedData.jwtToken;
+      if (token && req.headers) {
+        req.headers.Authorization = `Bearer ${token}`;
+      }
     }
 
     // Fetch and attach user IP

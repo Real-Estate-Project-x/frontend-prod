@@ -1,4 +1,27 @@
-import axios from "axios";
+import axios, { AxiosError } from "axios";
+import {
+  parsePhoneNumberFromString,
+  type CountryCode,
+} from "libphonenumber-js";
+import CryptoJS from "crypto-js";
+import { LSKey } from "./constant";
+import type { NormalizePhoneOptions } from "$lib/types";
+
+export const encryptData = <T>(rawData: T, encryptionKey: string): string => {
+  let data: any = rawData;
+  if (typeof rawData !== "string") {
+    data = JSON.stringify(rawData);
+  }
+  return CryptoJS.AES.encrypt(data, encryptionKey).toString();
+};
+
+export const decryptData = (
+  encryptedData: string,
+  encryptionKey: string
+): string =>
+  CryptoJS.AES.decrypt(encryptedData, encryptionKey).toString(
+    CryptoJS.enc.Utf8
+  );
 
 export const capitalize = (text: string) => {
   if (!text) return;
@@ -36,11 +59,24 @@ export async function getUserIp(): Promise<string> {
   return ipCache.promise;
 }
 
-export const setLocalStorageField = <T>(key: string, data: T) =>
+export const extractLocalStorageInfo = (decryptionKey: string) => {
+  const data = getLocalStorageField<string>(LSKey.blp_data);
+
+  if (!data) return;
+
+  const decryptedData = decryptData(data, decryptionKey);
+  return decryptedData ? JSON.parse(decryptedData) : null;
+};
+
+export const setLocalStorageField = <T>(key: string, data: T) => {
+  if (typeof window === "undefined") return null;
+
   localStorage.setItem(key, JSON.stringify(data));
+};
 
 export const getLocalStorageField = <T>(key: string): T | null => {
   if (typeof window === "undefined") return null;
+
   const item = localStorage.getItem(key);
   if (!item) return null;
   try {
@@ -50,8 +86,11 @@ export const getLocalStorageField = <T>(key: string): T | null => {
   }
 };
 
-export const deleteLocalStorageField = (key: string) =>
+export const deleteLocalStorageField = (key: string) => {
+  if (typeof window === "undefined") return null;
+
   localStorage.removeItem(key);
+};
 
 export const removeStoredKeys = () => {
   // Local_storage
@@ -74,6 +113,77 @@ export function onLogOff(saveCurrentRoute = false) {
   window.location.href = "/login";
 }
 
-export function onRegionNotSupported() {
+export const onRegionNotSupported = () => {
   window.location.href = "/region-not-supported";
-}
+};
+
+export const getErrorMessage = (error: AxiosError) => {
+  const errorObject: any = error.response?.data;
+  return errorObject ? (errorObject["messages"] as string[])[0] : error.message;
+};
+
+export const capitalizeSentences = (text: string): string => {
+  return text.replace(
+    /(^|[.!?]\s+)([a-z])/g,
+    (match, prefix, letter) => prefix + letter.toUpperCase()
+  );
+};
+
+export const isFormComplete = <T extends Record<string, any>>(
+  form: T,
+  requiredBooleanFields: (keyof T)[] = []
+): boolean => {
+  return Object.entries(form).every(([key, value]) => {
+    const k = key as keyof T;
+
+    // Must be true for required boolean fields (e.g. terms & conditions)
+    if (requiredBooleanFields.includes(k)) {
+      return value === true;
+    }
+
+    // Reject null/undefined
+    if (value === null || value === undefined) return false;
+
+    // Strings must not be empty
+    if (typeof value === "string") {
+      return value.trim() !== "";
+    }
+
+    // Everything else (numbers, booleans not required, etc.)
+    return true;
+  });
+};
+
+export const maskEmail = (email: string) => {
+  const [username, domain] = email.split("@");
+
+  if (!username || !domain) return email;
+
+  const maskedUsername =
+    username.length <= 1
+      ? username
+      : username[0] + "•".repeat(username.length - 1);
+
+  return `${maskedUsername}@${domain}`;
+};
+
+export const normalizeAndValidatePhone = ({
+  phone,
+  countryCode,
+}: NormalizePhoneOptions): string => {
+  if (!phone) {
+    throw new Error("Phone number is required");
+  }
+
+  const parsed = parsePhoneNumberFromString(
+    phone,
+    countryCode.toUpperCase() as CountryCode
+  );
+
+  if (!parsed || !parsed.isValid()) {
+    throw new Error("Invalid phone number");
+  }
+
+  // Always store in E.164 format
+  return parsed.format("E.164");
+};

@@ -18,7 +18,7 @@
   </div>
   <div class="footer-bottom">
     <span class="footer-copy">© {year} Blupodd.com. All rights reserved.</span>
-    <div class="footer-legal"><a href="#">Privacy policy</a><a href="#">Terms of use</a><a href="#">Cookies</a></div>
+    <div class="footer-legal"><a href="#">Privacy policy</a><a href="#">Terms of use</a></div>
   </div>
 </footer>
 

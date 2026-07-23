@@ -1,4 +1,7 @@
 <script lang="ts">
+  import { onMount } from "svelte";
+  import { extractLocalStorageInfo } from "$lib/utils";
+  import { PUBLIC_ENCRYPTION_KEY } from "$env/static/public";
   import AgencySidebar from "$lib/components/shared/AgencySidebar.svelte";
   
   type StatusTab = 'all' | 'active' | 'inactive';
@@ -18,6 +21,10 @@
 
   const toggleEditAgentModal = () => isEditAgentModalOpen = !isEditAgentModalOpen;
 
+  onMount(() => {
+    const extractedData = extractLocalStorageInfo(PUBLIC_ENCRYPTION_KEY);
+    console.log({extractedData})
+  })
 </script>
 
 {#if isNewAgentModalOpen}
@@ -36,7 +43,7 @@
         <button aria-label="Close modal" onclick={() => (isNewAgentModalOpen = false)} class="w-8 h-8 rounded-xl border border-chalk-3 dark:border-white/[.1] flex items-center justify-center text-chalk-muted dark:text-[#6A7FA0] hover:text-navy-dark dark:hover:text-white hover:border-chalk-4 tt bg-transparent cursor-pointer flex-shrink-0">
           <svg width="12" height="12" viewBox="0 0 14 14" fill="none"><path d="M2 2l10 10M12 2L2 12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
         </button>
-      </div>
+      </div> 
       <!-- Modal body -->
       <div class="flex-1 overflow-y-auto scrollbar-hide px-6 py-5 space-y-4">
         <div class="grid grid-cols-2 gap-3">
@@ -918,8 +925,8 @@
             </div>
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
     
-                <!-- Top performers -->
-                <div class="ins-card bg-white dark:bg-[#0D1422] border border-chalk-3 dark:border-white/[0.07] rounded-2xl p-5 tt">
+              <!-- Top performers -->
+              <div class="ins-card bg-white dark:bg-[#0D1422] border border-chalk-3 dark:border-white/[0.07] rounded-2xl p-5 tt">
                     <div class="text-[10px] font-medium tracking-[.14em] uppercase text-chalk-muted dark:text-[#6A7FA0] mb-4">Top performing agents</div>
                     <div id="topPerformers" class="space-y-3">
                     <div class="flex items-center gap-3">
@@ -963,52 +970,54 @@
                         </div>
                     </div>
                     </div>
-                </div>
+              </div>
     
-            <!-- Highest engagement -->
-            <div class="ins-card bg-white dark:bg-[#0D1422] border border-chalk-3 dark:border-white/[0.07] rounded-2xl p-5 tt">
-                <div class="text-[10px] font-medium tracking-[.14em] uppercase text-chalk-muted dark:text-[#6A7FA0] mb-4">Highest engagement (view→inquiry)</div>
-                <div id="topEngagement" class="space-y-3">
-                <div class="flex items-center gap-3">
-                <div class="w-7 h-7 rounded-full bg-navy-strong flex items-center justify-center text-[10px] font-medium text-white flex-shrink-0">AM</div>
-                <div class="flex-1 min-w-0">
-                <div class="flex items-center justify-between mb-1">
-                    <span class="text-[12px] font-medium text-navy-dark dark:text-blue-100 truncate">Adaeze Mba</span>
-                    <span class="text-[11px] font-medium text-ember ml-2 flex-shrink-0">3.9%</span>
-                </div>
-                <div class="perf-track h-[5px] rounded-full"><div class="h-full bg-ember rounded-full" style="width:100%"></div></div>
-                </div>
-                </div>
-                <div class="flex items-center gap-3">
-                <div class="w-7 h-7 rounded-full bg-navy-strong flex items-center justify-center text-[10px] font-medium text-white flex-shrink-0">CO</div>
-                <div class="flex-1 min-w-0">
-                <div class="flex items-center justify-between mb-1">
-                    <span class="text-[12px] font-medium text-navy-dark dark:text-blue-100 truncate">Chukwuemeka Okafor</span>
-                    <span class="text-[11px] font-medium text-ember ml-2 flex-shrink-0">3.7%</span>
-                </div>
-                <div class="perf-track h-[5px] rounded-full"><div class="h-full bg-ember rounded-full" style="width:94%"></div></div>
-                </div>
-                </div>
-            <div class="flex items-center gap-3">
-            <div class="w-7 h-7 rounded-full bg-navy-strong flex items-center justify-center text-[10px] font-medium text-white flex-shrink-0">EU</div>
-            <div class="flex-1 min-w-0">
-            <div class="flex items-center justify-between mb-1">
-                <span class="text-[12px] font-medium text-navy-dark dark:text-blue-100 truncate">Emeka Uzor</span>
-                <span class="text-[11px] font-medium text-ember ml-2 flex-shrink-0">3.5%</span>
-            </div>
-            <div class="perf-track h-[5px] rounded-full"><div class="h-full bg-ember rounded-full" style="width:89%"></div></div>
-            </div>
-        </div><div class="flex items-center gap-3">
-            <div class="w-7 h-7 rounded-full bg-navy-strong flex items-center justify-center text-[10px] font-medium text-white flex-shrink-0">FA</div>
-            <div class="flex-1 min-w-0">
-            <div class="flex items-center justify-between mb-1">
-                <span class="text-[12px] font-medium text-navy-dark dark:text-blue-100 truncate">Fatima Aliyu</span>
-                <span class="text-[11px] font-medium text-ember ml-2 flex-shrink-0">3.5%</span>
-            </div>
-            <div class="perf-track h-[5px] rounded-full"><div class="h-full bg-ember rounded-full" style="width:88%"></div></div>
-            </div>
-        </div></div>
-            </div>
+              <!-- Highest engagement -->
+              <div class="ins-card bg-white dark:bg-[#0D1422] border border-chalk-3 dark:border-white/[0.07] rounded-2xl p-5 tt">
+                  <div class="text-[10px] font-medium tracking-[.14em] uppercase text-chalk-muted dark:text-[#6A7FA0] mb-4">
+                    Viewing Conversion Rate
+                  </div>
+                  <div id="topEngagement" class="space-y-3">
+                  <div class="flex items-center gap-3">
+                  <div class="w-7 h-7 rounded-full bg-navy-strong flex items-center justify-center text-[10px] font-medium text-white flex-shrink-0">AM</div>
+                  <div class="flex-1 min-w-0">
+                  <div class="flex items-center justify-between mb-1">
+                      <span class="text-[12px] font-medium text-navy-dark dark:text-blue-100 truncate">Adaeze Mba</span>
+                      <span class="text-[11px] font-medium text-ember ml-2 flex-shrink-0">3.9%</span>
+                  </div>
+                  <div class="perf-track h-[5px] rounded-full"><div class="h-full bg-ember rounded-full" style="width:100%"></div></div>
+                  </div>
+                  </div>
+                  <div class="flex items-center gap-3">
+                  <div class="w-7 h-7 rounded-full bg-navy-strong flex items-center justify-center text-[10px] font-medium text-white flex-shrink-0">CO</div>
+                  <div class="flex-1 min-w-0">
+                  <div class="flex items-center justify-between mb-1">
+                      <span class="text-[12px] font-medium text-navy-dark dark:text-blue-100 truncate">Chukwuemeka Okafor</span>
+                      <span class="text-[11px] font-medium text-ember ml-2 flex-shrink-0">3.7%</span>
+                  </div>
+                  <div class="perf-track h-[5px] rounded-full"><div class="h-full bg-ember rounded-full" style="width:94%"></div></div>
+                  </div>
+                  </div>
+              <div class="flex items-center gap-3">
+              <div class="w-7 h-7 rounded-full bg-navy-strong flex items-center justify-center text-[10px] font-medium text-white flex-shrink-0">EU</div>
+              <div class="flex-1 min-w-0">
+              <div class="flex items-center justify-between mb-1">
+                  <span class="text-[12px] font-medium text-navy-dark dark:text-blue-100 truncate">Emeka Uzor</span>
+                  <span class="text-[11px] font-medium text-ember ml-2 flex-shrink-0">3.5%</span>
+              </div>
+              <div class="perf-track h-[5px] rounded-full"><div class="h-full bg-ember rounded-full" style="width:89%"></div></div>
+              </div>
+          </div><div class="flex items-center gap-3">
+              <div class="w-7 h-7 rounded-full bg-navy-strong flex items-center justify-center text-[10px] font-medium text-white flex-shrink-0">FA</div>
+              <div class="flex-1 min-w-0">
+              <div class="flex items-center justify-between mb-1">
+                  <span class="text-[12px] font-medium text-navy-dark dark:text-blue-100 truncate">Fatima Aliyu</span>
+                  <span class="text-[11px] font-medium text-ember ml-2 flex-shrink-0">3.5%</span>
+              </div>
+              <div class="perf-track h-[5px] rounded-full"><div class="h-full bg-ember rounded-full" style="width:88%"></div></div>
+              </div>
+          </div></div>
+              </div>
     
             <!-- Listing upload trend -->
             <div class="ins-card bg-white dark:bg-[#0D1422] border border-chalk-3 dark:border-white/[0.07] rounded-2xl p-5 tt">

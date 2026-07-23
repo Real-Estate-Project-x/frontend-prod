@@ -1,12 +1,16 @@
 <script lang="ts">
-    import { onMount, onDestroy, tick } from 'svelte';
-    import { browser } from '$app/environment';
+  import { page } from '$app/state';
+  import { AxiosError } from 'axios';
+  import type { ToastType } from '$lib/types';
+  import { getErrorMessage } from '$lib/utils';
+  import { onMount, onDestroy, tick } from 'svelte';
+  import { ApiRequests } from '$lib/api/api.request';
+  import Toast from '$lib/components/shared/Toast.svelte';
   
     // ── Types ──────────────────────────────────────────────────────────────────
     type Step = 1 | 2 | 3 | 4;
   
     // ── Runes state ────────────────────────────────────────────────────────────
-    let theme      = $state<'light' | 'dark'>('light');
     let step       = $state<Step>(1);
     let userEmail  = $state('');
   
@@ -32,7 +36,7 @@
   
     // Toast
     let toastMsg     = $state('');
-    let toastVisible = $state(false);
+    let toastType = $state<ToastType>('info');
     let toastTimer: ReturnType<typeof setTimeout> | null = null;
   
     // ── DOM refs ───────────────────────────────────────────────────────────────
@@ -40,7 +44,7 @@
     let countdownInterval: ReturnType<typeof setInterval> | null = null;
   
     // ── Derived: dot state ────────────────────────────────────────────────────
-    function dotClass(i: number): string {
+    const dotClass = (i: number): string => {
       const base = 'step-dot';
       if (i < step) return base + ' done';
       if (i === step) return base + ' active';
@@ -48,34 +52,21 @@
     }
   
     // ── Derived: strength bars ────────────────────────────────────────────────
-    function barColor(i: number): string {
+    const barColor = (i: number): string => {
       if (strength === 0 || i > strength) return '';
       return strengthColor;
     }
   
-    // ── Theme ─────────────────────────────────────────────────────────────────
-    function setTheme(t: 'light' | 'dark') {
-      theme = t;
-      if (browser) {
-        document.documentElement.setAttribute('data-theme', t);
-        localStorage.setItem('blupodd-theme', t);
-      }
-    }
-  
-    function toggleTheme() {
-      setTheme(theme === 'dark' ? 'light' : 'dark');
-    }
-  
     // ── Toast ──────────────────────────────────────────────────────────────────
-    function showToast(msg: string) {
+    const showToast = (msg: string, type: ToastType) => {
       toastMsg = msg;
-      toastVisible = true;
+      toastType = type;
       if (toastTimer) clearTimeout(toastTimer);
-      toastTimer = setTimeout(() => { toastVisible = false; }, 3000);
+      toastTimer = setTimeout(() => toastMsg = '', 3000);
     }
   
     // ── Step navigation ────────────────────────────────────────────────────────
-    async function goToStep(n: Step) {
+    const goToStep = async (n: Step) => {
       step = n;
       await tick(); // let Svelte flush DOM
       if (n === 2) {
@@ -89,25 +80,36 @@
     }
   
     // ── STEP 1: Send code ─────────────────────────────────────────────────────
-    function sendCode() {
+    const sendCode = async () => {
       const val = emailValue.trim();
       if (!val || !val.includes('@')) {
         emailError = true;
-        showToast('Please enter a valid email address');
-        setTimeout(() => { emailError = false; }, 2500);
+        showToast('Please enter a valid email address', 'info');
         return;
       }
-      userEmail = val;
-      goToStep(2);
-      showToast('Code sent — check your inbox');
+
+      try {
+          const result = await new ApiRequests().forgotPassword(val);
+          if (result.data.success) {
+            userEmail = val;
+            goToStep(2);
+            showToast(result.data.message, 'success');
+          }
+        } catch(ex) {
+          if (ex instanceof AxiosError) {
+            const message = getErrorMessage(ex);
+            showToast(message, 'error');
+          }
+          return;
+        }
     }
   
-    function handleEmailKey(e: KeyboardEvent) {
+    const handleEmailKey = (e: KeyboardEvent) => {
       if (e.key === 'Enter') sendCode();
     }
   
     // ── STEP 2: Countdown ────────────────────────────────────────────────────
-    function startCountdown() {
+    const startCountdown = () => {
       let seconds = 599;
       resendable = false;
       countdown = '09:59';
@@ -125,13 +127,13 @@
       }, 1000);
     }
   
-    function resendCode() {
+    const resendCode = () => {
       startCountdown();
-      showToast('New code sent — check your inbox');
+      sendCode();
     }
   
     // ── OTP input handling ────────────────────────────────────────────────────
-    function onOtpInput(e: Event, idx: number) {
+    const onOtpInput = (e: Event, idx: number) => {
       const input = e.target as HTMLInputElement;
       const val = input.value.replace(/\D/g, '');
       // keep only last char
@@ -148,7 +150,7 @@
       }
     }
   
-    function onOtpKeydown(e: KeyboardEvent, idx: number) {
+   const onOtpKeydown = (e: KeyboardEvent, idx: number) => {
       if (e.key === 'Backspace' && !otp[idx] && idx > 0) {
         otp[idx - 1] = '';
         otp = [...otp];
@@ -158,7 +160,7 @@
       if (e.key === 'ArrowRight' && idx < 5) otpRefs[idx + 1]?.focus();
     }
   
-    function onOtpPaste(e: ClipboardEvent) {
+    const onOtpPaste = (e: ClipboardEvent) => {
       e.preventDefault();
       const text = (e.clipboardData?.getData('text') ?? '').replace(/\D/g, '').slice(0, 6);
       text.split('').forEach((ch, i) => { otp[i] = ch; });
@@ -168,20 +170,29 @@
       if (text.length === 6) setTimeout(verifyOtp, 150);
     }
   
-    function verifyOtp() {
+    const verifyOtp = async () => {
       const code = otp.join('');
-      if (code.length < 6) {
-        otpError = true;
-        setTimeout(() => { otpError = false; }, 2500);
+      try {
+        const result = await new ApiRequests().verifyUser(emailValue, code);
+        if (result.data.success) {
+          if (countdownInterval) {
+            clearInterval(countdownInterval);
+          }
+          showToast(result.data.message, 'success');
+          goToStep(3);
+        }
+      } catch (ex) {
+        if (ex instanceof AxiosError) {
+          const message = getErrorMessage(ex);
+          showToast(message, 'error');
+          goToStep(1);
+        }
         return;
       }
-      // mock: any 6-digit code passes
-      if (countdownInterval) clearInterval(countdownInterval);
-      goToStep(3);
     }
   
     // ── STEP 3: Password ──────────────────────────────────────────────────────
-    function updateStrength(val: string) {
+   const updateStrength = (val: string) => {
       const colors: Record<number, string> = { 1: '#C06035', 2: '#D4AE3A', 3: '#4A90E2', 4: '#4A7848' };
       const labels: Record<number, string> = {
         0: 'Use 8+ characters, a number and a symbol',
@@ -200,21 +211,59 @@
       strengthColor = colors[score] ?? '';
     }
   
-    function resetPassword() {
-      if (newPw.length < 8) { showToast('Password must be at least 8 characters'); return; }
+    const resetPassword = async () => {
+      if (newPw.length < 8) { showToast('Password must be at least 8 characters', 'error'); return; }
       if (newPw !== confirmPw) {
         matchError = true;
         setTimeout(() => { matchError = false; }, 2500);
         return;
       }
-      goToStep(4);
+
+      try {
+        const result = await new ApiRequests().changePassword(emailValue, newPw);
+        if (result.data.success) {
+          showToast(result.data.message, 'success');
+          goToStep(4);
+        }
+      } catch (ex) {
+        if (ex instanceof AxiosError) {
+          const message = getErrorMessage(ex);
+          showToast(message, 'error');
+          goToStep(1);
+        }
+        return;
+      }
+    }
+
+    const init = async () => {
+      const searchParams = page.url.searchParams;
+      if (searchParams.has('email') && searchParams.has('otp')) {
+        const email = searchParams.get('email');
+        const code = searchParams.get('otp');
+
+        if (email && code) {
+          emailValue = email;
+          otp = code.split('').map(c => c.replace(/\D/g, ''));
+
+          try {
+            const result = await new ApiRequests().verifyUser(emailValue, code);
+            if (result.data.success) {
+              showToast(result.data.message, 'success');
+              goToStep(3);
+            }
+          } catch (ex) {
+            if (ex instanceof AxiosError) {
+              const message = getErrorMessage(ex);
+              showToast(message, 'error');
+              goToStep(1);
+            }
+            return;
+          }
+        }
+      }
     }
   
-    // ── Lifecycle ─────────────────────────────────────────────────────────────
-    onMount(() => {
-      const saved = localStorage.getItem('blupodd-theme') as 'light' | 'dark' | null;
-      setTheme(saved ?? 'light');
-    });
+    onMount(() => init());
   
     onDestroy(() => {
       if (countdownInterval) clearInterval(countdownInterval);
@@ -349,6 +398,7 @@
               <div class="field">
                 <label class="auth-label" for="emailInput">Email address</label>
                 <input
+                  required
                   type="email"
                   id="emailInput"
                   class="auth-input"
@@ -455,6 +505,7 @@
                 <label class="auth-label" for="newPwInput">New password</label>
                 <div class="pw-wrap">
                   <input
+                    required
                     type={newPwShow ? 'text' : 'password'}
                     id="newPwInput"
                     class="auth-input"
@@ -490,6 +541,7 @@
                 <label class="auth-label" for="confirmPwInput">Confirm password</label>
                 <div class="pw-wrap">
                   <input
+                    required
                     type={confPwShow ? 'text' : 'password'}
                     id="confirmPwInput"
                     class="auth-input"
@@ -570,8 +622,9 @@
     </div>
   </div>
   
-  <!-- ═══ TOAST ═══ -->
-  <div class="toast" class:show={toastVisible}>{toastMsg}</div>
+  {#if toastMsg  && toastMsg !== ''}
+    <Toast toastMsg={toastMsg} type={toastType} />
+  {/if}
   
   <style>
     /* ── Reset ────────────────────────────────────────────────────────────── */
@@ -962,21 +1015,6 @@
       background: #1A2438; border-color: rgba(255,255,255,0.07); color: #6A7FA0;
     }
     .security-note p { font-family: 'DM Sans', sans-serif; font-size: 12px; font-weight: 300; line-height: 1.65; margin: 0; }
-  
-    /* ── Toast ────────────────────────────────────────────────────────────── */
-    .toast {
-      position: fixed; bottom: 24px; left: 50%;
-      transform: translateX(-50%) translateY(12px);
-      background: #0A2463; color: #fff;
-      font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 400; letter-spacing: 0.04em;
-      padding: 11px 22px; border-radius: 40px;
-      box-shadow: 0 8px 32px rgba(10,36,99,0.30);
-      opacity: 0; pointer-events: none;
-      transition: opacity 0.3s, transform 0.3s;
-      white-space: nowrap; z-index: 9999;
-    }
-    :global([data-theme="dark"]) .toast { background: #1F3F6A; }
-    .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
   
     /* ── Animations ───────────────────────────────────────────────────────── */
     @keyframes fadeUp {

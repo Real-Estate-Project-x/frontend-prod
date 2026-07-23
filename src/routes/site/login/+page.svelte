@@ -1,11 +1,140 @@
 <script lang="ts">
+  import { page } from '$app/state';
+  import { AxiosError } from 'axios';
+  import { goto } from "$app/navigation";
+  import type { ToastType } from '$lib/types';
+  import { ApiRequests } from "$lib/api/api.request";
+  import { AppRole, LSKey } from "$lib/utils/constant";
   import { themeStore } from "$lib/stores/theme.svelte";
+  import Toast from '$lib/components/shared/Toast.svelte';
+  import { PUBLIC_ENCRYPTION_KEY, PUBLIC_SITE_BASE_URL } from "$env/static/public";
+  import { extractLocalStorageInfo, getErrorMessage, setLocalStorageField } from "$lib/utils";
+  import { onMount } from 'svelte';
 
-let showPassword = $state(false);
+  type LoginType = { 
+    email: string, 
+    password: string, 
+    rememberMe: boolean
+  }
+  let payload = $state<LoginType>({
+    email: "",
+    password: "",
+    rememberMe: false,
+  });
+  let showPassword = $state(false);
 
-const togglePw = () => { showPassword = !showPassword; };
+  // Toast
+  let toastMsg     = $state('');
+  let toastType = $state<ToastType>('info');
+  let toastTimer: ReturnType<typeof setTimeout> | null = null;
 
-const handleLogin = () => {}
+  const togglePw = () => showPassword = !showPassword;
+
+  const redirectUser = (role: string, redirectUrl?: string): string => {
+    let baseUrl: string;
+
+    switch (role) {
+      case AppRole.ADMIN:
+      case AppRole.LANDLORD:
+      case AppRole.SUPER_ADMIN:
+        baseUrl = '/admin/dashboard';
+        break;
+
+      case AppRole.AGENT:
+        baseUrl = '/agency';
+        break;
+
+      case AppRole.CUSTOMER:
+        baseUrl = '/users';
+        break;
+
+      case AppRole.SUB_AGENT:
+        baseUrl = '/s-agents';
+        break;
+
+      default:
+        baseUrl = '/';
+    }
+
+    if (!redirectUrl) {
+      return baseUrl;
+    }
+
+    // Remove query params and trailing slashes
+    const sanitizedRedirect = redirectUrl
+      .split('?')[0]
+      .replace(/\/+$/, '');
+
+    // Exact match
+    if (sanitizedRedirect === baseUrl) {
+      return redirectUrl;
+    }
+
+    // Child route match
+    if (sanitizedRedirect.startsWith(`${baseUrl}/`)) {
+      // For even better security, normalize the URL
+      return new URL(
+        redirectUrl,
+        PUBLIC_SITE_BASE_URL,
+      ).pathname;
+  
+    }
+
+    return baseUrl;
+  };
+
+  onMount(() => init());
+
+  const init = () => {
+    const userInfo = extractLocalStorageInfo(PUBLIC_ENCRYPTION_KEY);
+    if (userInfo) {
+      const redirectTo = page.url.searchParams.get('redirect_to');
+      if (redirectTo) {
+        goto(redirectUser(userInfo.roleName, redirectTo));
+      } else {
+        goto(redirectUser(userInfo.roleName));
+      }
+    }
+  }
+
+  const handleLogin = async (e: SubmitEvent) => {
+    e.preventDefault();
+
+    try {
+      const result = await new ApiRequests().login(
+        payload.email, 
+        payload.password, 
+        payload.rememberMe
+      );
+
+      if (result.data.success) {
+        setLocalStorageField(LSKey.blp_data, result.data.data);
+        const userInfo = extractLocalStorageInfo(PUBLIC_ENCRYPTION_KEY);
+        if (userInfo) {
+          const redirectTo = page.url.searchParams.get('redirect_to');
+          if (redirectTo) {
+            goto(redirectUser(userInfo.roleName, redirectTo));
+          } else {
+            goto(redirectUser(userInfo.roleName));
+          }
+        }
+      }
+    } catch(ex) {
+      if (ex instanceof AxiosError) {
+        const message = getErrorMessage(ex);
+        showToast(message, 'error');
+      }
+      return;
+    }
+  }
+
+  // ── Toast ──────────────────────────────────────────────────────────────────
+  const showToast = (msg: string, type: ToastType) => {
+    toastMsg = msg;
+    toastType = type;
+    if (toastTimer) clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => toastMsg = '', 3000);
+  }
 </script>
 
 <!-- ═══════════════════════════════════════════════
@@ -241,9 +370,9 @@ const handleLogin = () => {}
         <span class="font-sans text-[16px] font-medium tracking-em-018">BLUPODD</span>
       </div>
 
+    
       <!-- ────── LOG IN FORM ────── -->
-      <div id="formLogin">
-
+      <form id="formLogin" onsubmit={handleLogin}>
         <div class="mb-7 animate-fadeUp1">
           <h1 class="hero-text font-display font-light leading-[1.1] mb-1" style="font-size: clamp(28px, 3.5vw, 38px);">
             Welcome back.
@@ -278,7 +407,13 @@ const handleLogin = () => {}
         <!-- Email -->
         <div class="mb-4 animate-fadeUp3" id="loginEmailWrap">
           <label class="auth-label" for="loginEmail">Email address</label>
-          <input type="email" id="loginEmail" class="auth-input" placeholder="you@example.com" autocomplete="email">
+          <input required bind:value={payload.email} 
+            type="email" 
+            id="loginEmail" 
+            class="auth-input" 
+            placeholder="you@example.com" 
+            autocomplete="email" 
+          />
           <span class="error-msg">Please enter a valid email address.</span>
         </div>
 
@@ -289,11 +424,40 @@ const handleLogin = () => {}
             <a href="/site/forgot-password" class="auth-link" style="font-size:12px;">Forgot password?</a>
           </div>
           <div class="relative">
-            <input type={ showPassword ? "text" : "password"} id="loginPass" class="auth-input" style="padding-right:48px;"
-                   placeholder="Enter your password" autocomplete="current-password">
+            <input bind:value={payload.password} 
+              required
+              type={ showPassword ? "text" : "password"} 
+              id="loginPass" 
+              class="auth-input" 
+              style="padding-right:48px;"
+              placeholder="Enter your password" 
+              autocomplete="current-password" 
+            />
             <button class="pw-eye" type="button" onclick={togglePw} aria-label="Show password">
-              <svg class="eyeShow" width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M1 10s4-7 9-7 9 7 9 7-4 7-9 7-9-7-9-7z"/><circle cx="10" cy="10" r="3"/></svg>
-              <svg class="eyeHide hidden" width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M13.45 13.45A7.07 7.07 0 0110 14c-5 0-9-4-9-4s1.34-2.29 3.45-3.84M17 10s-1.22 2.08-3.55 3.45M4 4l12 12"/></svg>
+              {#if showPassword}
+                      <svg 
+                        width="16" 
+                        height="16" 
+                        viewBox="0 0 20 20" 
+                        fill="none" 
+                        stroke="currentColor" 
+                        stroke-width="1.5"
+                      >
+                        <path d="M13.45 13.45A7.07 7.07 0 0110 14c-5 0-9-4-9-4s1.34-2.29 3.45-3.84M17 10s-1.22 2.08-3.55 3.45M4 4l12 12" />
+                      </svg>
+                    {:else}
+                      <svg 
+                        width="16" 
+                        height="16" 
+                        viewBox="0 0 20 20" 
+                        fill="none" 
+                        stroke="currentColor" 
+                        stroke-width="1.5"
+                      >
+                        <path d="M1 10s4-7 9-7 9 7 9 7-4 7-9 7-9-7-9-7z" />
+                        <circle cx="10" cy="10" r="3"/>
+                      </svg>
+                    {/if}
             </button>
           </div>
           <span class="error-msg">Incorrect email or password.</span>
@@ -301,12 +465,18 @@ const handleLogin = () => {}
 
         <!-- Remember me -->
         <div class="flex items-center gap-2.5 mt-3.5 mb-7 animate-fadeUp4">
-          <input type="checkbox" id="rememberMe" class="auth-check">
-          <label for="rememberMe" class="font-sans font-normal text-chalk-muted cursor-pointer" style="font-size:13px;">Keep me signed in for 30 days</label>
+          <input bind:checked={payload.rememberMe} 
+            type="checkbox" 
+            id="rememberMe" 
+            class="auth-check" 
+          />
+          <label for="rememberMe" class="font-sans font-normal text-chalk-muted cursor-pointer" style="font-size:13px;">
+            Keep me signed in for 30 days
+          </label>
         </div>
 
         <!-- Submit -->
-        <button class="btn-primary animate-fadeUp5" type="button" onclick={handleLogin} id="loginBtn">
+        <button class="btn-primary animate-fadeUp5" type="submit" id="loginBtn">
           Log in to Blupodd
         </button>
 
@@ -314,38 +484,15 @@ const handleLogin = () => {}
           Don't have an account?&nbsp;<a href="/site/sign-up" class="auth-link">Sign up for free</a>
         </p>
 
-      </div><!-- /formLogin -->
-
-      <!-- ────── FORGOT PASSWORD ────── -->
-      <div id="formForgot" class="hidden">
-
-        <div class="mb-7 animate-fadeUp1">
-          <button class="flex items-center gap-2 font-sans font-normal text-chalk-muted hover:text-navy-dark transition-colors mb-5 bg-transparent border-none cursor-pointer p-0" style="font-size:13px;">
-            <svg width="13" height="13" viewBox="0 0 16 16" fill="none">
-              <path d="M10 3L5 8l5 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-            Back to sign in
-          </button>
-          <h1 class="font-display font-light text-navy-dark leading-[1.1] mb-1" style="font-size: clamp(26px, 3vw, 34px);">Reset password.</h1>
-          <p class="font-sans font-light text-chalk-muted" style="font-size:14px;">Enter your email and we'll send a secure reset link.</p>
-        </div>
-
-        <div class="mb-6 animate-fadeUp2">
-          <label class="auth-label" for="forgotEmail">Email address</label>
-          <input type="email" id="forgotEmail" class="auth-input" placeholder="you@example.com" autocomplete="email">
-        </div>
-
-        <button class="btn-primary animate-fadeUp3" type="button">Send reset link</button>
-
-        <p class="text-center font-sans font-light text-chalk-muted mt-5 animate-fadeUp4" style="font-size:13px;">
-          Remembered it?&nbsp;<a href="#" class="auth-link">Sign in</a>
-        </p>
-
-      </div><!-- /formForgot -->
+      </form><!-- /formLogin -->
 
     </div><!-- /form-card -->
   </div><!-- /panel-right -->
 </div>
+
+{#if toastMsg  && toastMsg !== ''}
+<Toast toastMsg={toastMsg} type={toastType} />
+{/if}
 
 <style>
   /* ── Left panel ── */
@@ -404,6 +551,13 @@ const handleLogin = () => {}
   :global([data-theme="dark"]) .auth-input { background: #1A2438; border-color: rgba(255,255,255,0.10); color: #E8EDF5; }
   :global([data-theme="dark"]) .auth-input::placeholder { color: #6A7FA0; }
   :global([data-theme="dark"]) .auth-input:focus { border-color: rgba(74,144,226,0.55); box-shadow: 0 0 0 3px rgba(74,144,226,0.15); }
+  /* :global([data-theme="dark"]) .auth-input:-webkit-autofill,
+  :global([data-theme="dark"]) .auth-input:-webkit-autofill:hover,
+  :global([data-theme="dark"]) .auth-input:-webkit-autofill:focus {
+    -webkit-box-shadow: 0 0 0 1000px rgba(255,255,255,0.08) inset !important;
+    -webkit-text-fill-color: #fff !important;
+    caret-color: #fff;
+  } */
 
   /* ── Password eye toggle ── */
   .pw-eye {

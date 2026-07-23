@@ -1,7 +1,238 @@
 <script lang="ts">
-const handleResend = () => {}
+  import { page } from '$app/state';
+  import { AxiosError } from 'axios';
+  import { goto } from '$app/navigation';
+  import { onMount, onDestroy, tick} from 'svelte';
+  import { 
+    extractLocalStorageInfo, 
+    getErrorMessage, 
+    maskEmail, 
+    setLocalStorageField 
+  } from '$lib/utils';
+  import type { PageData } from './$types';
+  import type { ToastType } from '$lib/types';
+  import { ApiRequests } from '$lib/api/api.request';
+  import { AppRole, LSKey } from '$lib/utils/constant';
+  import Toast from '$lib/components/shared/Toast.svelte';
+  import { PUBLIC_ENCRYPTION_KEY } from '$env/static/public';
 
-const handleVerify = () => {}
+  let otp        = $state(['', '', '', '', '', '']);
+  let countdown  = $state('09:59');
+  let resendable = $state(false);
+  let isVerifying = $state(false); 
+  let isVerified = $state(false);
+  let successBar: HTMLDivElement;
+
+  // Animate success_bar when user verifies otp
+  $effect(() => {
+    if (isVerified) {
+      tick().then(() => {
+        requestAnimationFrame(() => {
+          if (successBar) {
+            successBar.style.width = '100%';
+          }
+        });
+      });
+    }
+  });
+
+  // Toast
+  let toastMsg     = $state('');
+  let toastType = $state<ToastType>('info');
+  let toastTimer: ReturnType<typeof setTimeout> | null = null;
+  let submitBtn: HTMLButtonElement;
+
+  let { data }: { data: PageData } = $props();
+
+  const profile = $derived(data.userProfile);
+
+  onMount(() => {
+    init();
+    startCountdown();
+  });
+
+  const init = () => {
+    const searchParams = page.url.searchParams;
+    if (searchParams.has('otp')) {
+      otp = [...String(searchParams.get('otp'))];
+      // simulate click to submit button
+      submitBtn.click();
+    }
+  }
+
+  onDestroy(() => {
+    if (countdownInterval) clearInterval(countdownInterval);
+    if (toastTimer) clearTimeout(toastTimer);
+  });
+
+  // ── DOM refs ───────────────────────────────────────────────────────────────
+  let otpRefs: HTMLInputElement[] = $state([]);
+  let countdownInterval: ReturnType<typeof setInterval> | null = null;
+
+    // ── OTP input handling ────────────────────────────────────────────────────
+    const onOtpInput = (e: Event, idx: number) => {
+      const input = e.target as HTMLInputElement;
+      const val = input.value.replace(/\D/g, '');
+      // keep only last char
+      const char = val ? val[val.length - 1] : '';
+      otp[idx] = char;
+      otp = [...otp]; // trigger reactivity
+      if (char && idx < 5) {
+        otpRefs[idx + 1]?.focus();
+      }
+      // auto-submit when full
+      if (otp.every(c => c !== '')) {
+        setTimeout(verifyOtp, 150);
+      }
+    }
+  
+   const onOtpKeydown = (e: KeyboardEvent, idx: number) => {
+      if (e.key === 'Backspace' && !otp[idx] && idx > 0) {
+        otp[idx - 1] = '';
+        otp = [...otp];
+        otpRefs[idx - 1]?.focus();
+      }
+      if (e.key === 'ArrowLeft'  && idx > 0) otpRefs[idx - 1]?.focus();
+      if (e.key === 'ArrowRight' && idx < 5) otpRefs[idx + 1]?.focus();
+    }
+  
+    const onOtpPaste = (e: ClipboardEvent) => {
+      e.preventDefault();
+      const text = (e.clipboardData?.getData('text') ?? '').replace(/\D/g, '').slice(0, 6);
+      text.split('').forEach((ch, i) => { otp[i] = ch; });
+      otp = [...otp];
+      const focusIdx = Math.min(text.length, 5);
+      otpRefs[focusIdx]?.focus();
+      if (text.length === 6) setTimeout(verifyOtp, 150);
+    }
+
+    // ── STEP 2: Countdown ────────────────────────────────────────────────────
+    const startCountdown = () => {
+      let seconds = 599;
+      resendable = false;
+      countdown = '09:59';
+      if (countdownInterval) clearInterval(countdownInterval);
+      countdownInterval = setInterval(() => {
+        seconds--;
+        const m = String(Math.floor(seconds / 60)).padStart(2, '0');
+        const s = String(seconds % 60).padStart(2, '0');
+        countdown = m + ':' + s;
+        if (seconds <= 0) {
+          clearInterval(countdownInterval!);
+          countdown = '00:00';
+          resendable = true;
+        }
+      }, 1000);
+    }
+
+  // ── Toast ──────────────────────────────────────────────────────────────────
+  const showToast = (msg: string, type: ToastType) => {
+    toastMsg = msg;
+    toastType = type;
+    if (toastTimer) clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => toastMsg = '', 3000);
+  }
+
+  const resendCode = async () => {
+    startCountdown();
+    isVerifying = true;
+    try {
+      const result = await new ApiRequests().resendAccountVerificationCode(profile.data.id);
+      if (result.data.success) {
+        isVerifying = false;
+        showToast(result.data.message, 'info');
+        return;
+      }
+    } catch (ex) {
+      if (ex instanceof AxiosError) {
+        const message = getErrorMessage(ex);
+        showToast(message, 'error');
+      }
+      isVerifying = false;
+      return;
+    }
+  }
+
+  const handleVerification = async (e: SubmitEvent) => {
+    e.preventDefault();
+
+    verifyOtp();
+  }
+  
+  const login = async (accountRef: string) => {
+    try {
+      const result = await new ApiRequests().loginViaRef(accountRef);
+      if (result) {
+        return result.data.data;
+      }
+    } catch(ex) {
+      if (ex instanceof AxiosError) {
+        const message = getErrorMessage(ex);
+        showToast(message, 'error');
+      }
+      return;
+    }
+  }
+
+  const redirectUser = (role: string): string => {
+    let baseUrl: string;
+
+    switch (role) {
+      case AppRole.ADMIN:
+      case AppRole.LANDLORD:
+      case AppRole.SUPER_ADMIN:
+        baseUrl = '/admin/dashboard';
+        break;
+
+      case AppRole.AGENT:
+        baseUrl = '/agency';
+        break;
+
+      case AppRole.CUSTOMER:
+        baseUrl = '/users';
+        break;
+
+      case AppRole.SUB_AGENT:
+        baseUrl = '/s-agents';
+        break;
+
+      default:
+        baseUrl = '/';
+    }
+
+    return baseUrl;
+  };
+
+  const verifyOtp = async () => {
+    try {
+      isVerifying = true;
+      const result = await new ApiRequests().verifyAccount(profile.data.email, otp.join(''));
+      if (result.data.success) {
+        showToast(result.data.message, 'success');
+
+        const loginResult = await login(profile.data.slug);
+        if (loginResult && typeof loginResult === 'string') {
+          isVerified = true;
+          isVerifying = false;
+
+          setLocalStorageField(LSKey.blp_data, loginResult);
+          const userInfo = extractLocalStorageInfo(PUBLIC_ENCRYPTION_KEY);
+          if (userInfo?.roleName) {
+            // => redirect in 3 seconds
+            setTimeout(() =>  goto(redirectUser(userInfo.roleName)), 3000);
+          }
+        }
+        return;
+      }
+    } catch(ex) {
+      if (ex instanceof AxiosError) {
+        const message = getErrorMessage(ex);
+        showToast(message, 'error');
+      }
+      isVerifying = false;
+      return;
+    }
+  }
 </script>
 
 <!-- ═══════════════════════════════════════════════
@@ -131,6 +362,7 @@ const handleVerify = () => {}
             <span class="font-sans text-[16px] font-medium tracking-em-018">BLUPODD</span>
         </div>
 
+        {#if !isVerified}
         <!-- ══════════════════════════
             OTP FORM
         ══════════════════════════ -->
@@ -167,22 +399,35 @@ const handleVerify = () => {}
                     <rect x="1" y="3" width="12" height="9" rx="2" stroke="#4A90E2" stroke-width="1.3"/>
                     <path d="M1 5l6 4 6-4" stroke="#4A90E2" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/>
                 </svg>
-                <span id="displayEmail">a•••@example.com</span>
+                <span id="displayEmail">{maskEmail(profile.data.email)}</span>
                 </span>
             </div>
             </div>
 
+            <form onsubmit={handleVerification}>
             <!-- ── 6-digit OTP input row ── -->
             <div class="mb-2 animate-fadeUp3">
             <label class="auth-label" style="margin-bottom:14px;">Verification code</label>
 
             <div id="otpGroup" class="otp-gap flex justify-between" style="gap:10px;">
-                <input class="otp-input" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="1" id="otp1" autocomplete="one-time-code" placeholder="·" aria-label="Digit 1">
-                <input class="otp-input" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="1" id="otp2" autocomplete="off" placeholder="·" aria-label="Digit 2">
-                <input class="otp-input" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="1" id="otp3" autocomplete="off" placeholder="·" aria-label="Digit 3">
-                <input class="otp-input" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="1" id="otp4" autocomplete="off" placeholder="·" aria-label="Digit 4">
-                <input class="otp-input" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="1" id="otp5" autocomplete="off" placeholder="·" aria-label="Digit 5">
-                <input class="otp-input" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="1" id="otp6" autocomplete="off" placeholder="·" aria-label="Digit 6">
+                {#each otp as digit, index}
+                <input class="otp-input" 
+                  type="text" 
+                  inputmode="numeric" 
+                  pattern="[0-9]*" 
+                  maxlength="1" 
+                  id="otp1" 
+                  placeholder="·" 
+                  class:filled={digit !== ''}
+                  value={digit}
+                  bind:this={otpRefs[index]}
+                  oninput={(e) => onOtpInput(e, index)}
+                  onkeydown={(e) => onOtpKeydown(e, index)}
+                  onpaste={onOtpPaste}
+                  autocomplete={index === 0 ? 'one-time-code' : 'off'}
+                  aria-label={`Digit ${index + 1}`}
+                />
+                {/each}
             </div>
 
             <!-- Inline error message -->
@@ -198,39 +443,43 @@ const handleVerify = () => {}
             </p>
             <div class="flex items-center gap-1.5">
                 <button
-                id="resendBtn"
-                class="resend-link cursor-pointer"
-                onclick={handleResend}
-                disabled
-                type="button"
+                  id="resendBtn"
+                  class="resend-link cursor-pointer"
+                  onclick={resendCode}
+                  class:disabled={!resendable}
+                  disabled={!resendable}
+                  type="button"
                 >Resend code</button>
                 <span id="resendTimer" class="font-sans font-light text-chalk-muted" style="font-size:13px;">
-                &nbsp;in <span id="timerVal">0:59</span>
+                &nbsp;in <span id="timerVal">{countdown}</span>
                 </span>
             </div>
             </div>
 
             <!-- Submit CTA -->
             <button
-            class="btn-primary animate-fadeUp5"
-            type="button"
-            onclick={handleVerify}
-            id="verifyBtn"
+              disabled={isVerifying}
+              class:disabled={isVerifying}
+              class="btn-primary animate-fadeUp5"
+              type="submit"
+              id="verifyBtn"
+              bind:this={submitBtn}
             >
-            Verify &amp; activate account
+              Verify &amp; activate account
             </button>
+          
 
             <!-- Footer note -->
             <p class="text-center font-sans font-light text-chalk-muted mt-5 animate-fadeUp6" style="font-size:13px;">
             Already verified?&nbsp;<a href="/site/login" class="auth-link">Sign in</a>
             </p>
-
+          </form>
         </div><!-- /formOtp -->
-
+        {:else}
         <!-- ══════════════════════════
             SUCCESS STATE
         ══════════════════════════ -->
-        <div id="formSuccess" class="hidden text-center">
+        <div id="formSuccess" class="text-center">
 
             <!-- Check ring -->
             <div class="flex justify-center mb-6 animate-checkIn">
@@ -252,21 +501,30 @@ const handleVerify = () => {}
             <!-- Progress bar -->
             <div class="mb-8 animate-fadeUp3">
             <div class="w-full h-[3px] rounded-full overflow-hidden" style="background:#EDE7DC;">
-                <div id="successBar" class="h-full rounded-full" style="background:#4A7848;width:0%;transition:width 1.8s cubic-bezier(0.22,1,0.36,1);"></div>
+                <div bind:this={successBar} 
+                  id="successBar" 
+                  class="h-full rounded-full" 
+                  style="background:#4A7848;width:0%;transition:width 1.8s cubic-bezier(0.22,1,0.36,1);">
+                </div>
             </div>
             <p class="font-sans font-light text-chalk-muted mt-2 text-center" style="font-size:12px;">Redirecting you to your dashboard…</p>
             </div>
 
-            <a href="dashboard.html" class="btn-primary animate-fadeUp4" style="text-decoration:none;display:block;text-align:center;">
-            Go to dashboard
+            <a href="/site/login" class="btn-primary animate-fadeUp4" style="text-decoration:none;display:block;text-align:center;">
+              Go to login
             </a>
 
         </div><!-- /formSuccess -->
+        {/if}
 
         </div><!-- /form-card -->
     </div><!-- /panel-right -->
 
 </div>
+
+{#if toastMsg  && toastMsg !== ''}
+  <Toast toastMsg={toastMsg} type={toastType} />
+{/if}
 
 <style>
     html, body { overflow-x: hidden; }
@@ -431,6 +689,11 @@ const handleVerify = () => {}
 
     :global([data-theme="dark"]) .hero-text { color: #fff; }
     
+    /* navy-dark text → light */
+    :global([data-theme="dark"]) .text-navy-dark {
+      color: #E8EDF5 !important;
+    }
+
     /* ── Auth link ── */
     .auth-link { font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 400; color: #1A6ADE; text-decoration: none; transition: color 0.2s; }
     .auth-link:hover { color: #0A2463; }
@@ -523,6 +786,30 @@ const handleVerify = () => {}
     :global([data-theme="dark"]) #toast { background: #1F3F6A; }
     #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
     
+
+    /* ── OTP row ──────────────────────────────────────────────────────────── */
+    .otp-row { display: flex; gap: 10px; justify-content: space-between; }
+    .otp-cell {
+      width: 52px; height: 60px;
+      background: #ffffff; border: 1.5px solid #EDE7DC; border-radius: 12px;
+      font-family: 'DM Sans', sans-serif; font-size: 24px; font-weight: 500;
+      color: #0A2463; text-align: center; outline: none;
+      transition: border-color 0.22s, box-shadow 0.22s, background 0.3s;
+      caret-color: transparent;
+      -webkit-appearance: none;
+      -moz-appearance: textfield;
+    }
+    .otp-cell::-webkit-outer-spin-button,
+    .otp-cell::-webkit-inner-spin-button { -webkit-appearance: none; }
+    .otp-cell:focus { border-color: rgba(74,144,226,0.65); box-shadow: 0 0 0 3px rgba(74,144,226,0.15); }
+    .otp-cell.filled { border-color: rgba(74,144,226,0.45); }
+    .otp-cell.error  { border-color: #C06035; box-shadow: 0 0 0 3px rgba(192,96,53,0.12); }
+    :global([data-theme="dark"]) .otp-cell { background: #1A2438; border-color: rgba(255,255,255,0.10); color: #E8EDF5; }
+    :global([data-theme="dark"]) .otp-cell:focus  { border-color: rgba(74,144,226,0.55); }
+    :global([data-theme="dark"]) .otp-cell.filled { border-color: rgba(74,144,226,0.40); }
+    @media (max-width: 768px) { .otp-cell { width: 44px; height: 54px; font-size: 20px; } }
+    @media (max-width: 400px) { .otp-cell { width: 38px; height: 48px; font-size: 18px; } }
+  
     /* ── Mobile: hide left panel ── */
     @media (max-width: 768px) {
       .panel-left  { display: none !important; }
