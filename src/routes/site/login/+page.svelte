@@ -1,6 +1,7 @@
 <script lang="ts">
+  import { onMount } from 'svelte';
   import { page } from '$app/state';
-  import { AxiosError } from 'axios';
+  import axios, { AxiosError } from 'axios';
   import { goto } from "$app/navigation";
   import type { ToastType } from '$lib/types';
   import { ApiRequests } from "$lib/api/api.request";
@@ -9,7 +10,6 @@
   import Toast from '$lib/components/shared/Toast.svelte';
   import { PUBLIC_ENCRYPTION_KEY, PUBLIC_SITE_BASE_URL } from "$env/static/public";
   import { extractLocalStorageInfo, getErrorMessage, setLocalStorageField } from "$lib/utils";
-  import { onMount } from 'svelte';
 
   type LoginType = { 
     email: string, 
@@ -98,18 +98,23 @@
   }
 
   const handleLogin = async (e: SubmitEvent) => {
-    e.preventDefault();
+    e.preventDefault(); 
 
     try {
-      const result = await new ApiRequests().login(
-        payload.email, 
-        payload.password, 
-        payload.rememberMe
-      );
+      const response = await axios.post('/api/auth/login', {
+        email:  payload.email, 
+        password: payload.password, 
+        rememberMe: payload.rememberMe
+      }, 
+      {
+        headers: { 'Content-Type': 'application/json' }
+      });
 
-      if (result.data.success) {
-        setLocalStorageField(LSKey.blp_data, result.data.data);
-        const userInfo = extractLocalStorageInfo(PUBLIC_ENCRYPTION_KEY);
+      const result = response.data;
+
+      if (result?.enc) {
+        setLocalStorageField(LSKey.blp_data, result.enc);
+        const userInfo = result.decryptedInfo;
         if (userInfo) {
           const redirectTo = page.url.searchParams.get('redirect_to');
           if (redirectTo) {

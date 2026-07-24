@@ -185,7 +185,6 @@
         if (ex instanceof AxiosError) {
           const message = getErrorMessage(ex);
           showToast(message, 'error');
-          goToStep(1);
         }
         return;
       }

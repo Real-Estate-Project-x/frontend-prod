@@ -28,3 +28,9 @@ export interface NormalizePhoneOptions {
   phone: string;
   countryCode: string; // ISO-2 e.g. "NG", "US"
 }
+
+export interface LoginForm {
+  email: string;
+  password: string;
+  rememberMe: boolean;
+}
