@@ -8,6 +8,7 @@
   import Toast from "$lib/components/shared/Toast.svelte";
   import PhoneInput from "$lib/components/shared/PhoneInput.svelte";
   import { getErrorMessage, isFormComplete, normalizeAndValidatePhone } from "$lib/utils";
+  import { onMount } from "svelte";
 
   type UserForm = { 
     firstName: string, 
@@ -116,6 +117,7 @@
     logoFile.click();
   }
 
+
   const handleEmailInput = (event: Event) => {
     const email = (event.target as HTMLInputElement).value;
 
@@ -178,7 +180,7 @@
     previewUrl = URL.createObjectURL(file);
 
     try {
-      const result = await new ApiRequests().uploadFiles([file]);
+      const result = await new ApiRequests(ip).uploadFiles([file]);
       if (result.data.success) {
         showToast(result.data.message, 'success');
         // Set logo_id
@@ -426,7 +428,10 @@
         countryCode: selected.isoCode,
         phone: agencyFormData.phoneNumber, 
       });
-      const result = await new ApiRequests().agencySignup({ ...agencyFormData, phoneNumber: formattedPhoneNo });
+      const result = await new ApiRequests().agencySignup({
+         ...agencyFormData, 
+         phoneNumber: formattedPhoneNo 
+      });
       if (result.data.success) {
         showToast(result.data.message, 'success');
         const redirectUrl =  `/site/verify-account/${result.data.data.slug}`;

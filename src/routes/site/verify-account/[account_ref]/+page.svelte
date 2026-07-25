@@ -2,12 +2,12 @@
   import { page } from '$app/state';
   import { AxiosError } from 'axios';
   import { goto } from '$app/navigation';
-  import { onMount, onDestroy, tick} from 'svelte';
+  import { onMount, onDestroy, tick } from 'svelte';
   import { 
-    extractLocalStorageInfo, 
-    getErrorMessage, 
     maskEmail, 
-    setLocalStorageField 
+    getErrorMessage,
+    setLocalStorageField,
+    extractLocalStorageInfo
   } from '$lib/utils';
   import type { PageData } from './$types';
   import type { ToastType } from '$lib/types';
@@ -46,7 +46,7 @@
 
   const profile = $derived(data.userProfile);
 
-  onMount(() => {
+  onMount(async () => {
     init();
     startCountdown();
   });

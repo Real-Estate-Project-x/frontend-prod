@@ -38,26 +38,66 @@ const ipCache = {
   promise: null as Promise<string> | null, // ← prevents parallel calls during first fetch
 };
 
+// export async function getUserIp(): Promise<string> {
+//   // Return cached value immediately
+//   if (ipCache.value) return ipCache.value;
+
+//   // If a fetch is already in-flight, reuse it instead of making a new call
+//   if (!ipCache.promise) {
+//     ipCache.promise = axios
+//       // .get("https://api.ipify.org?format=json")
+//       .then(({ data }) => {
+//         ipCache.value = data.ip;
+//         return data.ip;
+//       })
+//       .catch((err) => {
+//         ipCache.promise = null; // reset so it can retry on failure
+//         throw err;
+//       });
+//   }
+
+//   return ipCache.promise;
+// }
+
 export async function getUserIp(): Promise<string> {
-  // Return cached value immediately
   if (ipCache.value) return ipCache.value;
 
-  // If a fetch is already in-flight, reuse it instead of making a new call
   if (!ipCache.promise) {
-    ipCache.promise = axios
-      .get("https://api.ipify.org?format=json")
-      .then(({ data }) => {
+    ipCache.promise = fetch("/api/ip")
+      .then((res) => {
+        if (!res.ok) throw new Error(`IP fetch failed: ${res.status}`);
+        return res.json();
+      })
+      .then((data) => {
         ipCache.value = data.ip;
         return data.ip;
       })
       .catch((err) => {
-        ipCache.promise = null; // reset so it can retry on failure
+        ipCache.promise = null;
         throw err;
       });
   }
 
   return ipCache.promise;
 }
+
+// export async function getUserIp(): Promise<string> {
+//   // Return cached value immediately
+//   if (ipCache.value) return ipCache.value;
+//   // if (inFlight) return inFlight;
+
+//   inFlight = fetch("/api/ip")
+//     .then((res) => res.json())
+//     .then((data) => {
+//       ipCache = data.ip;
+//       return cachedIp as string;
+//     })
+//     .finally(() => {
+//       inFlight = null;
+//     });
+
+//   return inFlight;
+// }
 
 export const extractLocalStorageInfo = (decryptionKey: string) => {
   const data = getLocalStorageField<string>(LSKey.blp_data);

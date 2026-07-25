@@ -4,6 +4,9 @@ import { encryptData, decryptData } from "$lib/utils";
 import { error, json, type RequestHandler } from "@sveltejs/kit";
 import { PUBLIC_API_BASE_URL, PUBLIC_ENCRYPTION_KEY } from "$env/static/public";
 
+const THIRTY_DAYS = 60 * 60 * 24 * 30;
+const TWENTY_FOUR_HOURS = 60 * 60 * 24;
+
 export const POST: RequestHandler = async ({ request, cookies, fetch }) => {
   const body: LoginForm = await request.json();
   const encryptedPassword = encryptData(body.password, PUBLIC_ENCRYPTION_KEY);
@@ -35,7 +38,7 @@ export const POST: RequestHandler = async ({ request, cookies, fetch }) => {
       httpOnly: true,
       secure: true,
       sameSite: "lax",
-      maxAge: 60 * 60 * 24 * 30,
+      maxAge: THIRTY_DAYS,
     });
 
     if (decryptedInfo) {
@@ -44,9 +47,7 @@ export const POST: RequestHandler = async ({ request, cookies, fetch }) => {
         httpOnly: true,
         secure: true,
         sameSite: "lax",
-        maxAge: body.rememberMe
-          ? 60 * 60 * 24 * 30 // 30 days
-          : 60 * 60 * 24, // 24 hours
+        maxAge: body.rememberMe ? THIRTY_DAYS : TWENTY_FOUR_HOURS,
       });
     }
     return json({ decryptedInfo, enc: result.data });

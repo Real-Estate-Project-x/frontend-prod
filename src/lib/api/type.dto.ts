@@ -1,3 +1,19 @@
+import type { InternalAxiosRequestConfig } from "axios";
+
+export interface ApiErrorResponse {
+  url: string;
+  code: number;
+  time: string;
+  name: string;
+  message: string;
+  success: boolean;
+}
+
+// Extend AxiosRequestConfig to track retry state
+export interface RetryableRequestConfig extends InternalAxiosRequestConfig {
+  _retry?: boolean;
+}
+
 export interface CreateUserDTO {
   firstName: string;
   lastName: string;
