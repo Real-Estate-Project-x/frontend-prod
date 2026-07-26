@@ -81,24 +81,6 @@ export async function getUserIp(): Promise<string> {
   return ipCache.promise;
 }
 
-// export async function getUserIp(): Promise<string> {
-//   // Return cached value immediately
-//   if (ipCache.value) return ipCache.value;
-//   // if (inFlight) return inFlight;
-
-//   inFlight = fetch("/api/ip")
-//     .then((res) => res.json())
-//     .then((data) => {
-//       ipCache = data.ip;
-//       return cachedIp as string;
-//     })
-//     .finally(() => {
-//       inFlight = null;
-//     });
-
-//   return inFlight;
-// }
-
 export const extractLocalStorageInfo = (decryptionKey: string) => {
   const data = getLocalStorageField<string>(LSKey.blp_data);
 
