@@ -1,14 +1,21 @@
 <script lang="ts">
     import { AxiosError } from 'axios';
-    import { goto } from '$app/navigation';
+    import { goto, } from '$app/navigation';
+    import type { PageData } from "./$types";
     import type { ToastType } from '$lib/types';
     import { getErrorMessage } from '$lib/utils';
+    import { onMount, onDestroy, tick } from 'svelte';
     import { ApiRequests } from '$lib/api/api.request';
     import Toast from '$lib/components/shared/Toast.svelte';
 
-    
-    // Step 1
-    let emailValue = $state('');
+
+    let { data }: { data: PageData } = $props();
+    const emailValue = $derived<any>(data.email);
+
+    onMount(() => {
+      startCountdown();
+    });
+
     let emailError = $state(false);
 
     // Toast
@@ -16,7 +23,17 @@
     let toastType = $state<ToastType>('info');
     let toastTimer: ReturnType<typeof setTimeout> | null = null;
 
-     // ── Toast ──────────────────────────────────────────────────────────────────
+    // Step 2 — OTP
+    let otp        = $state(['', '', '', '', '', '']);
+    let otpError   = $state(false);
+    let countdown  = $state('09:59');
+    let resendable = $state(false);
+
+    // ── DOM refs ───────────────────────────────────────────────────────────────
+    let otpRefs: HTMLInputElement[] = $state([]);
+    let countdownInterval: ReturnType<typeof setInterval> | null = null;
+
+    // ── Toast ──────────────────────────────────────────────────────────────────
      const showToast = (msg: string, type: ToastType) => {
       toastMsg = msg;
       toastType = type;
@@ -24,7 +41,44 @@
       toastTimer = setTimeout(() => toastMsg = '', 3000);
     }
 
-    // ── STEP 1: Send code ─────────────────────────────────────────────────────
+
+    // ── OTP input handling ────────────────────────────────────────────────────
+    const onOtpInput = (e: Event, idx: number) => {
+      const input = e.target as HTMLInputElement;
+      const val = input.value.replace(/\D/g, '');
+      // keep only last char
+      const char = val ? val[val.length - 1] : '';
+      otp[idx] = char;
+      otp = [...otp]; // trigger reactivity
+      otpError = false;
+      if (char && idx < 5) {
+        otpRefs[idx + 1]?.focus();
+      }
+      // auto-submit when full
+      if (otp.every(c => c !== '')) {
+        setTimeout(verifyOtp, 150);
+      }
+    }
+
+     // ── STEP 2: Countdown ────────────────────────────────────────────────────
+     const startCountdown = () => {
+      let seconds = 599;
+      resendable = false;
+      countdown = '09:59';
+      if (countdownInterval) clearInterval(countdownInterval);
+      countdownInterval = setInterval(() => {
+        seconds--;
+        const m = String(Math.floor(seconds / 60)).padStart(2, '0');
+        const s = String(seconds % 60).padStart(2, '0');
+        countdown = m + ':' + s;
+        if (seconds <= 0) {
+          clearInterval(countdownInterval!);
+          countdown = '00:00';
+          resendable = true;
+        }
+      }, 1000);
+    }
+
     const sendCode = async () => {
       const val = emailValue.trim();
       if (!val || !val.includes('@')) {
@@ -48,10 +102,59 @@
         }
     }
 
-    const handleEmailKey = (e: KeyboardEvent) => {
-      if (e.key === 'Enter') sendCode();
+
+    const resendCode = () => {
+      startCountdown();
+      sendCode();
+    }
+
+   const onOtpKeydown = (e: KeyboardEvent, idx: number) => {
+      if (e.key === 'Backspace' && !otp[idx] && idx > 0) {
+        otp[idx - 1] = '';
+        otp = [...otp];
+        otpRefs[idx - 1]?.focus();
+      }
+      if (e.key === 'ArrowLeft'  && idx > 0) otpRefs[idx - 1]?.focus();
+      if (e.key === 'ArrowRight' && idx < 5) otpRefs[idx + 1]?.focus();
+    }
+  
+    const onOtpPaste = (e: ClipboardEvent) => {
+      e.preventDefault();
+      const text = (e.clipboardData?.getData('text') ?? '').replace(/\D/g, '').slice(0, 6);
+      text.split('').forEach((ch, i) => { otp[i] = ch; });
+      otp = [...otp];
+      const focusIdx = Math.min(text.length, 5);
+      otpRefs[focusIdx]?.focus();
+      if (text.length === 6) setTimeout(verifyOtp, 150);
+    }
+  
+    const verifyOtp = async () => {
+      const code = otp.join('');
+      try {
+        const result = await new ApiRequests().verifyUser(emailValue, code);
+        if (result.data.success) {
+          if (countdownInterval) {
+            clearInterval(countdownInterval);
+          }
+          showToast(result.data.message, 'success');
+          goto(`/site/forgot-password/step-2/${emailValue}`);
+        }
+      } catch (ex) {
+        if (ex instanceof AxiosError) {
+          const message = getErrorMessage(ex);
+          showToast(message, 'error');
+        }
+        return;
+      }
     }
 </script>
+
+<svelte:head>
+  <title>Blupodd — Forgot password [Step 2]</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+</svelte:head>
 
  <!-- ═══ MAIN SPLIT LAYOUT ═══ -->
  <div class="layout">
@@ -149,40 +252,68 @@
 
     <!-- ═══ RIGHT PANEL ═══ -->
     <div class="panel-right">
-        <div class="right-inner">
-            <div class="step-block anim-fadeUp">
-                <p class="step-eyebrow">Account recovery</p>
-                <h1 class="step-heading">
-                  Forgot your<br><em class="italic" style="color:#4A90E2;">password?</em>
-                </h1>
-                <p class="step-body">
-                  No problem. Enter your email address and we'll send you a verification code to reset it.
-                </p>
-      
-                <div class="form-card">
-                  <div class="field">
-                    <label class="auth-label" for="emailInput">Email address</label>
+      <div class="right-inner">
+        <div class="step-block anim-stepIn">
+          <a class="back-btn" href="/site/forgot-password">
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+                <path d="M10 3L5 8l5 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+              Back
+            </a>
+  
+            <p class="step-eyebrow">Step 2 of 3</p>
+            <h1 class="step-heading">
+              Check your<br><em class="italic" style="color:#4A90E2;">inbox.</em>
+            </h1>
+            <p class="step-body">We sent a 6-digit code to:</p>
+            <p class="sent-email">{emailValue}</p>
+  
+            <div class="form-card">
+              <!-- OTP cells -->
+              <div>
+                <label class="auth-label">Verification code</label>
+                <div class="otp-row">
+                  {#each otp as digit, idx}
                     <input
-                      required
-                      type="email"
-                      id="emailInput"
-                      class="auth-input"
-                      class:error={emailError}
-                      placeholder="Enter your registered email"
-                      autocomplete="email"
-                      bind:value={emailValue}
-                      onkeydown={handleEmailKey}
+                      type="text"
+                      maxlength="1"
+                      inputmode="numeric"
+                      pattern="[0-9]"
+                      class="otp-cell"
+                      class:filled={digit !== ''}
+                      class:error={otpError}
+                      value={digit}
+                      bind:this={otpRefs[idx]}
+                      oninput={(e) => onOtpInput(e, idx)}
+                      onkeydown={(e) => onOtpKeydown(e, idx)}
+                      onpaste={onOtpPaste}
+                      autocomplete={idx === 0 ? 'one-time-code' : 'off'}
+                      aria-label={`Digit ${idx + 1}`}
                     >
-                    <p class="field-hint">We'll send a 6-digit verification code to this address.</p>
-                  </div>
-                  <button class="btn-primary" onclick={sendCode}>Send reset code</button>
-                  <div class="form-footer-link">
-                    <a href="/site/login" class="auth-link">← Back to login</a>
-                  </div>
+                  {/each}
                 </div>
+                {#if otpError}
+                  <p class="error-text">Invalid code. Please try again.</p>
+                {/if}
               </div>
+  
+              <!-- Countdown + resend -->
+              <div class="countdown-row">
+                <p class="resend-timer">Code expires in <strong>{countdown}</strong></p>
+                <button
+                  class="auth-link resend-btn"
+                  class:disabled={!resendable}
+                  disabled={!resendable}
+                  onclick={resendCode}
+                >Resend code</button>
+              </div>
+  
+              <button class="btn-navy" onclick={verifyOtp}>Verify code</button>
+            </div>
+  
+            <p class="step-footnote">Didn't get an email? Check your spam folder or try a different address.</p>
         </div>
-
+      </div>
     </div>
 </div>
 

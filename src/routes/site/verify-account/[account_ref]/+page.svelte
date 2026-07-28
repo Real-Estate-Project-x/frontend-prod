@@ -4,7 +4,7 @@
   import { goto } from '$app/navigation';
   import { onMount, onDestroy, tick } from 'svelte';
   import { 
-    maskEmail, 
+    maskEmail,
     getErrorMessage,
     setLocalStorageField,
     extractLocalStorageInfo
@@ -16,12 +16,12 @@
   import Toast from '$lib/components/shared/Toast.svelte';
   import { PUBLIC_ENCRYPTION_KEY } from '$env/static/public';
 
-  let otp        = $state(['', '', '', '', '', '']);
-  let countdown  = $state('09:59');
   let resendable = $state(false);
   let isVerifying = $state(false); 
   let isVerified = $state(false);
   let successBar: HTMLDivElement;
+  let countdown  = $state('09:59');
+  let otp = $state(['', '', '', '', '', '']);
 
   // Animate success_bar when user verifies otp
   $effect(() => {

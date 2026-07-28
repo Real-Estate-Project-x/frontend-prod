@@ -6,10 +6,10 @@ export const load: PageServerLoad = async ({ locals }) => {
   const req = new ApiRequests(locals.clientIp);
   try {
     const [countries, ipCountry] = await Promise.all([
+      req.findCountryByIP(),
       req.listCountries({
         isSignupEnabled: true,
       }),
-      req.findCountryByIP(),
     ]);
 
     return {

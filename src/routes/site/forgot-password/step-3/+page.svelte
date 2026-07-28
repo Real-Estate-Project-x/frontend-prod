@@ -1,59 +1,11 @@
-<script lang="ts">
-    import { AxiosError } from 'axios';
-    import { goto } from '$app/navigation';
-    import type { ToastType } from '$lib/types';
-    import { getErrorMessage } from '$lib/utils';
-    import { ApiRequests } from '$lib/api/api.request';
-    import Toast from '$lib/components/shared/Toast.svelte';
+<svelte:head>
+  <title>Blupodd — Forgot password [Step 4]</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+</svelte:head>
 
-    
-    // Step 1
-    let emailValue = $state('');
-    let emailError = $state(false);
-
-    // Toast
-    let toastMsg     = $state('');
-    let toastType = $state<ToastType>('info');
-    let toastTimer: ReturnType<typeof setTimeout> | null = null;
-
-     // ── Toast ──────────────────────────────────────────────────────────────────
-     const showToast = (msg: string, type: ToastType) => {
-      toastMsg = msg;
-      toastType = type;
-      if (toastTimer) clearTimeout(toastTimer);
-      toastTimer = setTimeout(() => toastMsg = '', 3000);
-    }
-
-    // ── STEP 1: Send code ─────────────────────────────────────────────────────
-    const sendCode = async () => {
-      const val = emailValue.trim();
-      if (!val || !val.includes('@')) {
-        emailError = true;
-        showToast('Please enter a valid email address', 'info');
-        return;
-      }
-
-      try {
-          const result = await new ApiRequests().forgotPassword(val);
-          if (result.data.success) {
-            showToast(result.data.message, 'success');
-            goto(`/site/forgot-password/step-1/${val}`);
-          }
-        } catch(ex) {
-          if (ex instanceof AxiosError) {
-            const message = getErrorMessage(ex);
-            showToast(message, 'error');
-          }
-          return;
-        }
-    }
-
-    const handleEmailKey = (e: KeyboardEvent) => {
-      if (e.key === 'Enter') sendCode();
-    }
-</script>
-
- <!-- ═══ MAIN SPLIT LAYOUT ═══ -->
+<!-- ═══ MAIN SPLIT LAYOUT ═══ -->
  <div class="layout">
   
     <!-- ═══ LEFT PANEL ═══ -->
@@ -150,45 +102,49 @@
     <!-- ═══ RIGHT PANEL ═══ -->
     <div class="panel-right">
         <div class="right-inner">
-            <div class="step-block anim-fadeUp">
-                <p class="step-eyebrow">Account recovery</p>
-                <h1 class="step-heading">
-                  Forgot your<br><em class="italic" style="color:#4A90E2;">password?</em>
+            <div class="step-block anim-stepIn" style="text-align:center;">
+                <!-- Success illustration -->
+                <div class="flex justify-center mb-7">
+                    <div class="w-20 h-20 rounded-full flex items-center justify-center" style="background:rgba(74,120,72,0.10);border:2px solid rgba(74,120,72,0.22);">
+                    <svg width="34" height="34" viewBox="0 0 40 40" fill="none">
+                        <circle cx="20" cy="20" r="18" stroke="#4A7848" stroke-width="1.8" stroke-dasharray="113" stroke-dashoffset="113" style="animation:drawCircle 0.6s 0.1s ease forwards;">
+                        </circle>
+                        <path d="M13 20.5l5 5 9-9" stroke="#4A7848" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="20" stroke-dashoffset="20" style="animation:drawCheck 0.4s 0.5s ease forwards;"/>
+                        <style>
+                            @keyframes drawCircle { to { stroke-dashoffset: 0; } }
+                            @keyframes drawCheck  { to { stroke-dashoffset: 0; } }
+                        </style>
+                    </svg>
+                    </div>
+                </div>
+      
+                <p class="step-eyebrow" style="color:#4A7848;text-align:center;">All done</p>
+                <h1 class="step-heading" style="text-align:center;">
+                  Password <em class="italic" style="color:#4A7848;">updated.</em>
                 </h1>
-                <p class="step-body">
-                  No problem. Enter your email address and we'll send you a verification code to reset it.
+                <p class="step-body" style="text-align:center;max-width:24rem;margin-left:auto;margin-right:auto;margin-bottom:2rem;">
+                  Your password has been successfully reset. You can now sign in to your Blupodd account with your new password.
                 </p>
       
-                <div class="form-card">
-                  <div class="field">
-                    <label class="auth-label" for="emailInput">Email address</label>
-                    <input
-                      required
-                      type="email"
-                      id="emailInput"
-                      class="auth-input"
-                      class:error={emailError}
-                      placeholder="Enter your registered email"
-                      autocomplete="email"
-                      bind:value={emailValue}
-                      onkeydown={handleEmailKey}
-                    >
-                    <p class="field-hint">We'll send a 6-digit verification code to this address.</p>
-                  </div>
-                  <button class="btn-primary" onclick={sendCode}>Send reset code</button>
-                  <div class="form-footer-link">
-                    <a href="/site/login" class="auth-link">← Back to login</a>
-                  </div>
+                <div class="form-card" style="padding:1.5rem;display:flex;flex-direction:column;gap:0.75rem;">
+                  <a href="/site/login" class="btn-primary" style="display:block;text-align:center;text-decoration:none;line-height:normal;">
+                    Go to login
+                  </a>
+                  <a href="/site/properties" class="auth-link" style="font-size:13px;display:block;text-align:center;margin-top:0.25rem;">Browse properties →</a>
+                </div>
+      
+                <!-- Security note -->
+                <div class="security-note">
+                  <svg width="14" height="14" viewBox="0 0 20 20" fill="none" style="flex-shrink:0;margin-top:1px;">
+                    <path d="M10 2l2.5 5 5.5.8-4 3.9.95 5.5L10 14.5l-4.95 2.7.95-5.5-4-3.9 5.5-.8z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/>
+                  </svg>
+                  <p>For your security, all other active sessions have been signed out. You'll need to sign in again on any other devices.</p>
                 </div>
               </div>
         </div>
-
     </div>
-</div>
 
-{#if toastMsg  && toastMsg !== ''}
-    <Toast toastMsg={toastMsg} type={toastType} />
-{/if}
+</div>
 
 <style>
     /* ── Reset ────────────────────────────────────────────────────────────── */

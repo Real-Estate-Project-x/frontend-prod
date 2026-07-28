@@ -8,7 +8,6 @@
   import Toast from "$lib/components/shared/Toast.svelte";
   import PhoneInput from "$lib/components/shared/PhoneInput.svelte";
   import { getErrorMessage, isFormComplete, normalizeAndValidatePhone } from "$lib/utils";
-  import { onMount } from "svelte";
 
   type UserForm = { 
     firstName: string, 
