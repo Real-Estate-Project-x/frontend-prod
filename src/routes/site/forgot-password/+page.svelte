@@ -12,7 +12,7 @@
     let emailError = $state(false);
 
     // Toast
-    let toastMsg     = $state('');
+    let toastMsg = $state('');
     let toastType = $state<ToastType>('info');
     let toastTimer: ReturnType<typeof setTimeout> | null = null;
 
