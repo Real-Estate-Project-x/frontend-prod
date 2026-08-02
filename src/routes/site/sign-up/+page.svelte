@@ -12,8 +12,8 @@
   import { getErrorMessage, isFormComplete, normalizeAndValidatePhone } from "$lib/utils";
   import { authClient } from "$lib/auth-client";
   import { AppRole } from "$lib/utils/constant";
-  import GoogleLoginButton from "$lib/components/shared/GoogleLoginButton.svelte";
   import AppleLoginButton from "$lib/components/shared/AppleLoginButton.svelte";
+  import GoogleLoginButton from "$lib/components/shared/GoogleLoginButton.svelte";
 
   type UserForm = { 
     firstName: string, 

@@ -64,4 +64,15 @@
   opacity: .88;
   transform: scale(1.03);
 }
+
+@media(max-width:900px){
+  .agents-grid-cta{grid-template-columns:1fr!important;gap:44px!important}
+  .agents-arc{right:-260px!important;opacity:.6}
+}
+
+@media(max-width:768px){
+  .agents-grid-cta{grid-template-columns:1fr!important;gap:48px!important}
+  .section-py{padding-top:56px!important;padding-bottom:56px!important}
+  .agents-arc{right:-200px!important}
+}
 </style>
