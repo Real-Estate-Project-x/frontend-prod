@@ -7,6 +7,8 @@ import type {
   CreateUserDTO,
   CreateAgencyDTO,
   CountriesFilterDTO,
+  ThirdPartyAuthDTO,
+  ThirdPartySignupCheckDTO,
 } from "./type.dto";
 
 export class ApiRequests {
@@ -51,6 +53,16 @@ export class ApiRequests {
   async loginViaRef(accountRef: string) {
     const url = `${this.BASE_URL}/auth/login/${accountRef}`;
     return this.axiosInstance.post(url, {});
+  }
+
+  async thirdPartyLogin(payload: ThirdPartyAuthDTO) {
+    const url = `${this.BASE_URL}/auth/login/third-party`;
+    return this.axiosInstance.post(url, payload);
+  }
+
+  async thirdPartySignupCheck(payload: ThirdPartySignupCheckDTO) {
+    const url = `${this.BASE_URL}/auth/third-party/check`;
+    return this.axiosInstance.post(url, payload);
   }
 
   async forgotPassword(email: string) {

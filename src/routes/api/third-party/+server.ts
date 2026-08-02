@@ -1,28 +1,18 @@
+import { decryptData } from "$lib/utils";
 import axios, { AxiosError } from "axios";
-import type { LoginForm } from "$lib/types";
-import { encryptData, decryptData } from "$lib/utils";
+import { TWENTY_FOUR_HOURS } from "$lib/utils/constant";
+import type { ThirdPartyAuthDTO } from "$lib/api/type.dto";
 import { error, json, type RequestHandler } from "@sveltejs/kit";
 import { PUBLIC_API_BASE_URL, PUBLIC_ENCRYPTION_KEY } from "$env/static/public";
 
-const THIRTY_DAYS = 60 * 60 * 24 * 30;
-const TWENTY_FOUR_HOURS = 60 * 60 * 24;
-
 export const POST: RequestHandler = async ({ request, cookies, fetch }) => {
-  const body: LoginForm = await request.json();
-  const encryptedPassword = encryptData(body.password, PUBLIC_ENCRYPTION_KEY);
+  const body: ThirdPartyAuthDTO = await request.json();
 
   try {
-    const url = `${PUBLIC_API_BASE_URL}/auth/login`;
-    const response = await axios.post(
-      url,
-      {
-        ...body,
-        password: encryptedPassword,
-      },
-      {
-        headers: { "Content-Type": "application/json" },
-      }
-    );
+    const url = `${PUBLIC_API_BASE_URL}/auth/login/third-party`;
+    const response = await axios.post(url, body, {
+      headers: { "Content-Type": "application/json" },
+    });
 
     if (response.status !== 201) {
       return json(response.data, { status: response.status });
@@ -38,7 +28,7 @@ export const POST: RequestHandler = async ({ request, cookies, fetch }) => {
       httpOnly: true,
       secure: true,
       sameSite: "lax",
-      maxAge: THIRTY_DAYS,
+      maxAge: TWENTY_FOUR_HOURS,
     });
 
     if (decryptedInfo) {
@@ -47,7 +37,7 @@ export const POST: RequestHandler = async ({ request, cookies, fetch }) => {
         httpOnly: true,
         secure: true,
         sameSite: "lax",
-        maxAge: body.rememberMe ? THIRTY_DAYS : TWENTY_FOUR_HOURS,
+        maxAge: TWENTY_FOUR_HOURS,
       });
     }
     return json({ decryptedInfo, enc: result.data });

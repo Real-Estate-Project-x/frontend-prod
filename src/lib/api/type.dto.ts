@@ -1,3 +1,4 @@
+import type { AppRole, AuthProvider } from "$lib/utils/constant";
 import type { InternalAxiosRequestConfig } from "axios";
 
 export interface ApiErrorResponse {
@@ -20,6 +21,21 @@ export interface CreateUserDTO {
   email: string;
   phoneNumber: string;
   password: string;
+}
+
+export interface ThirdPartyAuthDTO {
+  externalUserId: string;
+  provider: AuthProvider;
+  firstName: string;
+  lastName: string;
+  email: string;
+  role: AppRole;
+  phoneNumber?: string;
+}
+
+export interface ThirdPartySignupCheckDTO {
+  externalUserId: string;
+  provider: AuthProvider;
 }
 
 export interface CreateAgencyDTO {

@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { onMount } from "svelte";
+  import { page } from "$app/state";
   import { AxiosError } from "axios";
   import { goto } from "$app/navigation";
   import type { PageData } from "./$types";
@@ -8,6 +10,10 @@
   import Toast from "$lib/components/shared/Toast.svelte";
   import PhoneInput from "$lib/components/shared/PhoneInput.svelte";
   import { getErrorMessage, isFormComplete, normalizeAndValidatePhone } from "$lib/utils";
+  import { authClient } from "$lib/auth-client";
+  import { AppRole } from "$lib/utils/constant";
+  import GoogleLoginButton from "$lib/components/shared/GoogleLoginButton.svelte";
+  import AppleLoginButton from "$lib/components/shared/AppleLoginButton.svelte";
 
   type UserForm = { 
     firstName: string, 
@@ -90,17 +96,39 @@
   };
   let timeout: ReturnType<typeof setTimeout>;
 
-
   let { data }: { data: PageData } = $props();
 
   const countries = $derived<any[]>(data.countries.data);
   const countryIp = $derived(data.ipCountry.data);
   let selected = $state(countryIp);
 
+  onMount(() => {
+    const queryParams = page.url.searchParams;
+
+    const preSelectedType = queryParams.get('type');
+    if (preSelectedType && ['customer', 'agency'].includes(preSelectedType)) {
+      accountType = preSelectedType as any;
+    }
+  })
+
   // Toast
   let toastMsg     = $state('');
   let toastType = $state<ToastType>('info');
   let toastTimer: ReturnType<typeof setTimeout> | null = null;
+
+  const signInWithGoogle = async (
+    role: AppRole,
+  ) => {
+    const callback = (role === AppRole.AGENT) 
+      ? '/site/third-party-routing/agency?provider=GOOGLE' 
+      : '/site/third-party-routing/customer?provider=GOOGLE';
+
+    await authClient.signIn.social({
+      provider: "google",
+      callbackURL: callback, // where to land after success
+      errorCallbackURL: "/site/login?err=google_login_failed"
+    });
+  }
 
   const STEP_LABELS = [
     '',
@@ -112,9 +140,7 @@
   const STEP_PCTS = ['', '33%', '66%', '100%'];
   const STEP_WIDTHS = ['', '33%', '66%', '100%'];
 
-  const handleClick = () => {
-    logoFile.click();
-  }
+  const handleClick = () =>  logoFile.click()
 
 
   const handleEmailInput = (event: Event) => {
@@ -179,7 +205,7 @@
     previewUrl = URL.createObjectURL(file);
 
     try {
-      const result = await new ApiRequests(ip).uploadFiles([file]);
+      const result = await new ApiRequests().uploadFiles([file]);
       if (result.data.success) {
         showToast(result.data.message, 'success');
         // Set logo_id
@@ -686,31 +712,14 @@
 
         <!-- Social auth -->
         <div class="space-y-2.5 mb-5 animate-fadeUp2">
-          <button class="btn-social" type="button">
-            <svg xmlns="http://www.w3.org/2000/svg"
-              viewBox="0 0 24 24"
-              width="20"
-              height="20"
-              fill="#FFFFFF"
-              aria-hidden="true"
-            >
-            <path d="M16.37 12.73c.02 2.27 2.02 3.03 2.04 3.04-.02.05-.32 1.09-1.05 2.16-.63.93-1.29 1.85-2.32 1.87-1.01.02-1.34-.6-2.5-.6-1.16 0-1.52.58-2.48.62-1 .04-1.76-1-2.4-1.93-1.31-1.9-2.31-5.38-.97-7.7.66-1.15 1.84-1.88 3.13-1.9.98-.02 1.9.66 2.5.66.6 0 1.73-.82 2.91-.7.5.02 1.9.2 2.8 1.52-.07.04-1.67.97-1.66 2.96zM14.57 4.73c.53-.64.9-1.53.8-2.42-.77.03-1.7.5-2.26 1.14-.5.57-.94 1.47-.82 2.33.86.07 1.75-.44 2.28-1.05z"/>
-          </svg>
-            Continue with Apple
-          </button>
-          <button class="btn-social" type="button">
-            <svg width="17" height="17" viewBox="0 0 24 24" fill="none">
-              <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
-              <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
-              <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"/>
-              <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
-            </svg>
-            Continue with Google
-          </button>
+          <!-- <AppleLoginButton onClick={() => {}} /> -->
+          <GoogleLoginButton onClick={() => signInWithGoogle(AppRole.CUSTOMER)} />
         </div>
 
         <div class="auth-divider mb-5 animate-fadeUp3">
-          <span class="font-sans font-light text-chalk-muted whitespace-nowrap" style="font-size:12px;letter-spacing:0.09em;text-transform:uppercase;">or sign up with email</span>
+          <span class="font-sans font-light text-chalk-muted whitespace-nowrap" style="font-size:12px;letter-spacing:0.09em;text-transform:uppercase;">
+            or sign up with email
+          </span>
         </div>
 
         <form onsubmit={handleUserSubmit}>
@@ -915,6 +924,18 @@
            AGENT SIGN-UP — 3-step multi-step form
       ═══════════════════════════════════════ -->
       <div id="panelAgent" class="form-panel">
+
+        <!-- Social auth -->
+        <div class="space-y-2.5 mb-5 animate-fadeUp2">
+          <!-- <AppleLoginButton onClick={() => {}} /> -->
+          <GoogleLoginButton onClick={() => signInWithGoogle(AppRole.AGENT)} />
+        </div>
+
+        <div class="auth-divider mb-5 animate-fadeUp3">
+          <span class="font-sans font-light text-chalk-muted whitespace-nowrap" style="font-size:12px;letter-spacing:0.09em;text-transform:uppercase;">
+            or sign up with email
+          </span>
+        </div>
 
         <!-- Progress bar -->
         <div class="mb-6 animate-fadeUp">
@@ -1721,7 +1742,6 @@
 .section-head::after { content: ''; flex: 1; height: 1px; background: #EDE7DC; transition: background 0.3s; }
 :global([data-theme="dark"]) .section-head::after { background: rgba(255,255,255,0.07); }
 
-/* .ai-agency{font-size:14px;color:rgba(255,255,255,.55);font-weight:300;margin-bottom:7px} */
 .ai-agency strong{color:rgba(255,255,255,.82);font-weight:500}
 .ai-loc{font-size:13px;color:rgba(255,255,255,.42);display:flex;align-items:center;gap:6px;margin-bottom:13px}
 .ai-specs{display:flex;gap:7px;flex-wrap:wrap}

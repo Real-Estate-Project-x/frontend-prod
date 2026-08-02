@@ -4,12 +4,14 @@
   import axios, { AxiosError } from 'axios';
   import { goto } from "$app/navigation";
   import type { ToastType } from '$lib/types';
-  import { ApiRequests } from "$lib/api/api.request";
+  import { authClient } from "$lib/auth-client";
   import { AppRole, LSKey } from "$lib/utils/constant";
   import { themeStore } from "$lib/stores/theme.svelte";
   import Toast from '$lib/components/shared/Toast.svelte';
   import { PUBLIC_ENCRYPTION_KEY, PUBLIC_SITE_BASE_URL } from "$env/static/public";
   import { extractLocalStorageInfo, getErrorMessage, setLocalStorageField } from "$lib/utils";
+  import AppleLoginButton from '$lib/components/shared/AppleLoginButton.svelte';
+  import GoogleLoginButton from '$lib/components/shared/GoogleLoginButton.svelte';
 
   type LoginType = { 
     email: string, 
@@ -27,6 +29,14 @@
   let toastMsg     = $state('');
   let toastType = $state<ToastType>('info');
   let toastTimer: ReturnType<typeof setTimeout> | null = null;
+
+  const signInWithGoogle = async () => {
+    await authClient.signIn.social({
+      provider: "google",
+      callbackURL: '/site/third-party-routing/login?provider=GOOGLE',       // where to land after success
+      errorCallbackURL: "/site/login?err=google_login_failed"
+    });
+  }
 
   const togglePw = () => showPassword = !showPassword;
 
@@ -83,12 +93,30 @@
     return baseUrl;
   };
 
-  onMount(() => init());
+  onMount(() => {
+    const queryParams = page.url.searchParams;
+    const redirectTo = queryParams.get('redirect_to');
 
-  const init = () => {
+    // display any error messages
+    const message = queryParams.get('err');
+    if (message) {
+      showToast(message, 'error');
+
+      if (message === 'no_account_found_sign_up_first') {
+        goto('/site/sign-up');
+      }
+    }
+
+    if (redirectTo) {
+      init(redirectTo);
+    } else {
+      init();
+    }
+  });
+
+  const init = (redirectTo?: string) => {
     const userInfo = extractLocalStorageInfo(PUBLIC_ENCRYPTION_KEY);
     if (userInfo) {
-      const redirectTo = page.url.searchParams.get('redirect_to');
       if (redirectTo) {
         goto(redirectUser(userInfo.roleName, redirectTo));
       } else {
@@ -101,7 +129,7 @@
     e.preventDefault(); 
 
     try {
-      const response = await axios.post('/api/auth/login', {
+      const response = await axios.post('/api/login', {
         email:  payload.email, 
         password: payload.password, 
         rememberMe: payload.rememberMe
@@ -117,11 +145,11 @@
         const userInfo = result.decryptedInfo;
         if (userInfo) {
           const redirectTo = page.url.searchParams.get('redirect_to');
-          if (redirectTo) {
-            goto(redirectUser(userInfo.roleName, redirectTo));
-          } else {
-            goto(redirectUser(userInfo.roleName));
-          }
+          goto(
+            redirectTo 
+            ? redirectUser(userInfo.roleName, redirectTo)
+            : redirectUser(userInfo.roleName) 
+          );
         }
       }
     } catch(ex) {
@@ -387,27 +415,8 @@
 
         <!-- Social auth -->
         <div class="space-y-3 mb-6 animate-fadeUp2">
-          <button class="btn-social" type="button">
-            <svg xmlns="http://www.w3.org/2000/svg"
-              viewBox="0 0 24 24"
-              width="20"
-              height="20"
-              fill="#FFFFFF"
-              aria-hidden="true"
-            >
-            <path d="M16.37 12.73c.02 2.27 2.02 3.03 2.04 3.04-.02.05-.32 1.09-1.05 2.16-.63.93-1.29 1.85-2.32 1.87-1.01.02-1.34-.6-2.5-.6-1.16 0-1.52.58-2.48.62-1 .04-1.76-1-2.4-1.93-1.31-1.9-2.31-5.38-.97-7.7.66-1.15 1.84-1.88 3.13-1.9.98-.02 1.9.66 2.5.66.6 0 1.73-.82 2.91-.7.5.02 1.9.2 2.8 1.52-.07.04-1.67.97-1.66 2.96zM14.57 4.73c.53-.64.9-1.53.8-2.42-.77.03-1.7.5-2.26 1.14-.5.57-.94 1.47-.82 2.33.86.07 1.75-.44 2.28-1.05z"/>
-          </svg>
-            Continue with Apple
-          </button>
-          <button class="btn-social" type="button">
-            <svg width="17" height="17" viewBox="0 0 24 24" fill="none">
-              <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
-              <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
-              <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"/>
-              <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
-            </svg>
-            Continue with Google
-          </button>
+          <!-- <AppleLoginButton onClick={() => {}} /> -->
+          <GoogleLoginButton onClick={signInWithGoogle} />
         </div>
 
         <!-- Divider -->

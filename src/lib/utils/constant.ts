@@ -1,3 +1,6 @@
+export const THIRTY_DAYS = 60 * 60 * 24 * 30;
+export const TWENTY_FOUR_HOURS = 60 * 60 * 24;
+
 export enum AppRole {
   SUPER_ADMIN = "super_admin",
   ADMIN = "admin",
@@ -5,6 +8,12 @@ export enum AppRole {
   SUB_AGENT = "sub_agent",
   CUSTOMER = "customer",
   LANDLORD = "landlord",
+}
+
+export enum AuthProvider {
+  LOCAL = "LOCAL",
+  APPLE = "APPLE",
+  GOOGLE = "GOOGLE",
 }
 
 export enum LSKey {
