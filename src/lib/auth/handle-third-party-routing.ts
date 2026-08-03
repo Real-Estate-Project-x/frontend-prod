@@ -23,7 +23,8 @@ export async function handleThirdPartyRouting(opts: {
       // need to complete a profile (RC Number etc.) before they're live.
       const result = await new ApiRequests().thirdPartySignupCheck({
         provider,
-        externalUserId: session.user.id,
+        externalUserId: session.user.email,
+        // externalUserId: session.user.id,
       });
 
       if (result.data) {
@@ -67,7 +68,8 @@ async function loginAndRedirect(
     role,
     provider,
     email: user.email,
-    externalUserId: user.id,
+    // externalUserId: user.id,
+    externalUserId: user.email,
     firstName: name[0],
     ...(name[1] && { lastName: name[1] }),
     ...(user.phoneNumber && { phoneNumber: user.phoneNumber }),

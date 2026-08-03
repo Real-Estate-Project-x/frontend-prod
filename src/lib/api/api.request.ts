@@ -9,6 +9,7 @@ import type {
   CountriesFilterDTO,
   ThirdPartyAuthDTO,
   ThirdPartySignupCheckDTO,
+  CompleteAgencyProfileDTO,
 } from "./type.dto";
 
 export class ApiRequests {
@@ -98,6 +99,19 @@ export class ApiRequests {
     });
   }
 
+  async agencyThirdPartySignupCompletion(payload: CompleteAgencyProfileDTO) {
+    const url = `${this.BASE_URL}/agency/sign-up/third-party`;
+    const encryptedPassword = encryptData(
+      payload.password,
+      PUBLIC_ENCRYPTION_KEY
+    );
+
+    return this.axiosInstance.post(url, {
+      ...payload,
+      password: encryptedPassword,
+    });
+  }
+
   async verifyAccount(email: string, otp: string) {
     const url = `${this.BASE_URL}/user/sign-up/verify`;
     return this.axiosInstance.post(url, { email, otp });
@@ -117,6 +131,11 @@ export class ApiRequests {
     return this.axiosInstance.post(url, payload, {
       headers: { "Content-Type": "multipart/form-data" },
     });
+  }
+
+  async uploadAvatar(avatarUrl: string) {
+    const url = `${this.BASE_URL}/upload-files/avatar`;
+    return this.axiosInstance.post(url, { url: avatarUrl });
   }
 
   async agencySignup(payload: CreateAgencyDTO) {

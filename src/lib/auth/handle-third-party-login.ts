@@ -15,7 +15,8 @@ export async function handleThirdPartyLogin(opts: {
   redirectTo?: string | null;
 }) {
   const { provider, session, redirectTo } = opts;
-  const externalUserId = session.user.id;
+  // const externalUserId = session.user.id;
+  const externalUserId = session.user.email;
 
   try {
     // 1. Gate — do not touch the upsert endpoint until we know the account exists.

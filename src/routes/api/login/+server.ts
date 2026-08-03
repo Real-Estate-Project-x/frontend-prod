@@ -7,9 +7,7 @@ import { PUBLIC_API_BASE_URL, PUBLIC_ENCRYPTION_KEY } from "$env/static/public";
 
 export const POST: RequestHandler = async ({ request, cookies, fetch }) => {
   const body: LoginForm = await request.json();
-  console.log({ body });
   const encryptedPassword = encryptData(body.password, PUBLIC_ENCRYPTION_KEY);
-  console.log({ encryptedPassword });
 
   try {
     const url = `${PUBLIC_API_BASE_URL}/auth/login`;

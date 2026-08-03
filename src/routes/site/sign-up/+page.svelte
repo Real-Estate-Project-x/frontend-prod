@@ -5,15 +5,15 @@
   import { goto } from "$app/navigation";
   import type { PageData } from "./$types";
   import type { ToastType } from "$lib/types";
+  import { authClient } from "$lib/auth-client";
+  import { AppRole } from "$lib/utils/constant";
   import { ApiRequests } from "$lib/api/api.request";
   import { themeStore } from "$lib/stores/theme.svelte";
   import Toast from "$lib/components/shared/Toast.svelte";
   import PhoneInput from "$lib/components/shared/PhoneInput.svelte";
-  import { getErrorMessage, isFormComplete, normalizeAndValidatePhone } from "$lib/utils";
-  import { authClient } from "$lib/auth-client";
-  import { AppRole } from "$lib/utils/constant";
   import AppleLoginButton from "$lib/components/shared/AppleLoginButton.svelte";
   import GoogleLoginButton from "$lib/components/shared/GoogleLoginButton.svelte";
+  import { getErrorMessage, isFormComplete, normalizeAndValidatePhone } from "$lib/utils";
 
   type UserForm = { 
     firstName: string, 

@@ -23,6 +23,24 @@ export interface CreateUserDTO {
   password: string;
 }
 
+export interface CompleteAgencyProfileDTO {
+  logoId: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  phoneNumber: string;
+  password: string;
+  agencyName: string;
+  agencyBio: string;
+  businessAddress: string;
+  isRegistered: boolean;
+  regNumber: string;
+  focusAreas: string[];
+  externalUserId: string;
+  profileImageId: string;
+  provider: AuthProvider;
+}
+
 export interface ThirdPartyAuthDTO {
   externalUserId: string;
   provider: AuthProvider;

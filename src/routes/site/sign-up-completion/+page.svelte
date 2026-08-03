@@ -1,19 +1,25 @@
 <script lang="ts">
-  import { isEmpty } from 'lodash-es';
   import { onMount } from "svelte";
   import { page } from "$app/state";
   import { AxiosError } from "axios";
+  import { isEmpty } from 'lodash-es';
   import type { PageData } from "./$types";
   import type { ToastType } from "$lib/types";
   import { authClient } from "$lib/auth-client";
   import { ApiRequests } from "$lib/api/api.request";
+  import { AuthProvider } from '$lib/utils/constant';
+  import Toast from "$lib/components/shared/Toast.svelte";
   import PhoneInput from "$lib/components/shared/PhoneInput.svelte";
-  import { capitalize, getErrorMessage, normalizeAndValidatePhone } from "$lib/utils";
   import Welcome from "$lib/components/sign-up-completion/welcome.svelte";
-
+  import { handleThirdPartyLogin } from '$lib/auth/handle-third-party-login';
+  import { capitalize, getErrorMessage, normalizeAndValidatePhone } from "$lib/utils";
+  import RegisteredCompanyToggle from '$lib/components/shared/RegisteredCompanyToggle.svelte';
 
   type AgencyForm = { 
     logoId: string;
+    password: string;
+    profileImageId: string;
+    externalUserId: string;
     phoneNumber: string;
     firstName: string;
     lastName: string;
@@ -24,8 +30,9 @@
     isTAndCAgreed: boolean;
     agencyName: string;
     agencyBio: string;
+    provider: AuthProvider;
     businessAddress: string;
-  }
+  };
 
   let { data }: { data: PageData } = $props();
 
@@ -48,11 +55,39 @@
     "Property Investment Advisory",
   ]);
 
+  export const isFormComplete = <T extends Record<string, any>>(
+    form: T,
+    requiredBooleanFields: (keyof T)[] = []
+  ): boolean => {
+    return Object.entries(form).every(([key, value]) => {
+      const k = key as keyof T;
+
+      // Must be true for required boolean fields (e.g. terms & conditions)
+      if (requiredBooleanFields.includes(k)) {
+        return value === true;
+      }
+
+      // Reject null/undefined
+      if (value === null || value === undefined) return false;
+
+      // Strings must not be empty
+      if (typeof value === "string") {
+        return value.trim() !== "";
+      }
+
+      // Everything else (numbers, booleans not required, etc.)
+      return true;
+    });
+  };
+
   let agencyFormData = $state<AgencyForm>({ 
     agencyName: '',
     agencyBio: '',
+    externalUserId: '',
+    password: '',
     businessAddress: '',
     logoId: '',
+    profileImageId: '',
     phoneNumber: '',
     email: '',
     firstName: '',
@@ -61,7 +96,9 @@
     isRegistered: false,
     regNumber: '',
     isTAndCAgreed: false,
+    provider: AuthProvider.LOCAL,
   });
+  const isAgencyFormValid = $derived(isFormComplete(agencyFormData, ['isTAndCAgreed']));
 
   // Toast
   let toastMsg     = $state('');
@@ -69,19 +106,43 @@
   let toastTimer: ReturnType<typeof setTimeout> | null = null;
 
 
-  let provider = $state<string | null>('');
+  let provider = $state<string | null>();
   let showForm = $state(false);
 
   let isCountryOpen = $state(false);
   let selected = $state(countryIp);
 
   let user = $state<any>(null);
+  let fullSession = $state<any>(null);
+  let showUserPassword = $state(false);
 
   let timeout: ReturnType<typeof setTimeout>;
 
-  const prefillProfile = (user: any) => {
+  const toggleUserPw = () => showUserPassword = !showUserPassword;
+
+  const colours = ['', '#C06035', '#D4AE3A', '#4A90E2', '#4A7848'];
+  const labels = ['', 'Weak', 'Fair', 'Strong', 'Very strong'];
+
+  // derived strength
+  const strength = $derived(() => {
+    let score = 0;
+
+    const password = agencyFormData.password
+    if (password.length >= 8) score++;
+    if (/[A-Z]/.test(password)) score++;
+    if (/[0-9]/.test(password)) score++;
+    if (/[^A-Za-z0-9]/.test(password)) score++;
+
+    return score;
+  });
+
+  const prefillProfile = (user: any, profileImageId: string, provider: AuthProvider) => {
     setAgencyFormField('email', user.email);
-      
+    setAgencyFormField('provider', provider);
+    // setAgencyFormField('externalUserId', user.id);
+    setAgencyFormField('externalUserId', user.email);
+    setAgencyFormField('profileImageId', profileImageId);
+    
     const names = user.name.split(' ');
     setAgencyFormField('firstName', names[0]);
 
@@ -176,16 +237,65 @@
 	  agencyFormData[field] = value;
   }
 
+  const uploadAvatar = async (url: string) => {
+   try {
+      const result = await new ApiRequests().uploadAvatar(url);
+      return result.data;
+   } catch (ex) {
+      console.error('[sign_up_completion]', ex);
+      throw ex;
+    }
+  }
+
+  const handleSubmit = async (e: SubmitEvent) => {
+    e.preventDefault();
+
+    try {
+      if (!isFormComplete(agencyFormData, ['isTAndCAgreed'])) {
+        showToast('Please complete all fields and accept Terms & Conditions', 'error');
+        return;
+      }
+
+      const formattedPhoneNo = normalizeAndValidatePhone({
+        countryCode: selected.isoCode,
+        phone: agencyFormData.phoneNumber,
+      });
+
+      const result = await new ApiRequests().agencyThirdPartySignupCompletion({ 
+        ...agencyFormData,
+        phoneNumber: formattedPhoneNo,
+      });
+      
+      if (result.data.success) {
+        showToast(result.data.message, 'success');
+        handleThirdPartyLogin({ 
+          session: fullSession,
+          provider: agencyFormData.provider, 
+         });
+      }
+      return;
+
+    } catch(ex) {
+      if (ex instanceof AxiosError) {
+        const message = getErrorMessage(ex);
+        showToast(message, 'error');
+      } else if (ex instanceof Error) {
+        showToast(ex.message, 'error');
+      }
+      return;
+    }
+  }
+
    onMount(async () => {
     const queryParams = page.url.searchParams;
-
     provider = queryParams.get('provider');
 
     const { data: session, error } = await authClient.getSession();
-    console.log({ session });
-    if (session) {
+    if (session && !error && provider) {
       user = session.user;
-      prefillProfile(user);
+      fullSession = session;
+      const avatar = await uploadAvatar(String(user.image));
+      prefillProfile(user, avatar.data.id, provider);
     }
   });
 </script>
@@ -359,8 +469,8 @@
            COMPLETION FORM — agent only, no tabs
       ═══════════════════════════════════════ -->
       {#if showForm}
-      <div id="completionForm">
-
+      <form onsubmit={handleSubmit} id="completionForm">
+      
         <div class="mb-7 animate-fadeUp">
           <h1 class="font-display font-light leading-[1.1] mb-1.5" style="font-size: clamp(26px, 3vw, 36px);">
             Complete Your Agent Account
@@ -419,6 +529,74 @@
           />
           <p class="helper-text">Provided by {capitalize(provider ?? '')} — can't be changed here</p>
         </div>
+
+        <!-- Password -->
+        <div class="mb-2 animate-fadeUp4" id="cPassWrap">
+          <label class="auth-label" for="cPass">Password</label>
+          <div class="relative">
+            <input type={showUserPassword ? "text" : "password"} 
+                oninput={(e) => setAgencyFormField('password', (e.target as HTMLInputElement).value)}
+                bind:value={agencyFormData.password}
+                id="cPass" 
+                required
+                class="auth-input" 
+                style="padding-right:48px;" 
+                placeholder="At least 8 characters" 
+                autocomplete="new-password" />
+                <button 
+                  class="pw-eye" 
+                  type="button" 
+                  onclick={toggleUserPw}
+                  aria-label={showUserPassword ? "Hide password" : "Show password"}
+                >
+                  {#if showUserPassword}
+                    <svg 
+                      width="16" 
+                      height="16" 
+                      viewBox="0 0 20 20" 
+                      fill="none" 
+                      stroke="currentColor" 
+                      stroke-width="1.5"
+                    >
+                      <path d="M13.45 13.45A7.07 7.07 0 0110 14c-5 0-9-4-9-4s1.34-2.29 3.45-3.84M17 10s-1.22 2.08-3.55 3.45M4 4l12 12" />
+                    </svg>
+                  {:else}
+                    <svg 
+                      width="16" 
+                      height="16" 
+                      viewBox="0 0 20 20" 
+                      fill="none" 
+                      stroke="currentColor" 
+                      stroke-width="1.5"
+                    >
+                      <path d="M1 10s4-7 9-7 9 7 9 7-4 7-9 7-9-7-9-7z" />
+                      <circle cx="10" cy="10" r="3"/>
+                    </svg>
+                  {/if}
+                </button>
+          </div>
+        <!-- Strength bars -->
+        <div class="flex gap-1.5 mt-2">
+            {#each [1, 2, 3, 4] as i}
+            <div
+                class="str-seg"
+                style="background: {i <= strength() && strength() > 0 ? colours[strength()] : ''}"
+            ></div>
+            {/each}
+        </div>
+        <span
+            class="font-sans font-light text-chalk-muted mt-1 block text-[11px]"
+            style="color: {colours[strength()] || ''}"
+        >
+            {agencyFormData.password.length ? labels[strength()] : ''}
+        </span>
+
+        <!-- Error -->
+        {#if agencyFormData.password.length > 0 && agencyFormData.password.length < 8}
+        <span class="error-msg block">Password must be at least 8 characters.</span>
+        {/if}
+        </div>
+
         <!-- Fix the on_input handler -->
         <PhoneInput 
           onchange={(country) => selectCountry(country)}
@@ -512,17 +690,6 @@
         </div>
 
         <div class="mb-5 animate-fadeUp4">
-          <label class="auth-label" for="fState">State of operation</label>
-          <select id="fState" class="auth-select">
-            <option value="" disabled selected>Select state</option>
-            <option>Rivers State</option><option>Lagos State</option><option>Abuja FCT</option>
-            <option>Anambra State</option><option>Delta State</option><option>Edo State</option>
-            <option>Enugu State</option><option>Oyo State</option><option>Kano State</option>
-            <option>Cross River State</option><option>Imo State</option><option>Kaduna State</option>
-          </select>
-        </div>
-
-        <div class="mb-5 animate-fadeUp4">
           <label class="auth-label" for="aDesc">Focus Areas</label>
           <div class="ai-specs" id="agentSpecs">
             {#each realEstateFocusAreas as _}
@@ -535,21 +702,9 @@
           </div>
           <p class="mt-5 helper-text">Choose the property types you specialize in — helps buyers find you</p>
         </div>
- 
 
-        <div class="space-y-3 mb-4 animate-fadeUp3">
-          <div class="flex items-start gap-2.5">
-            <input bind:checked={agencyFormData.isRegistered} 
-              type="checkbox" 
-              id="aTerms" 
-              class="auth-check" 
-              style="margin-top:2px;" 
-            />
-            <label for="aTerms" class="font-sans font-light text-chalk-muted cursor-pointer leading-[1.7]" style="font-size:12px;">
-              Yes, I am a registered real estate company
-            </label>
-          </div>
-        </div>
+         <!-- Registered company toggle -->
+         <RegisteredCompanyToggle bind:registered={agencyFormData.isRegistered} />
 
         {#if agencyFormData.isRegistered}
         <div class="mb-3 animate-fadeUp2" id="aAgencyRegNumbeWrap">
@@ -583,18 +738,24 @@
           </div>
         </div>
 
-        <button class="btn-primary animate-fadeUp5" type="button">
+        <button 
+          class:disabled={!isAgencyFormValid}
+          disabled={!isAgencyFormValid} 
+          class="btn-primary animate-fadeUp5" 
+          type="submit"
+        >
           Create agent account
         </button>
-      </div>
+      </form>
       {/if}
      
     </div>
-  
   </div>
-
 </div>
 
+{#if toastMsg  && toastMsg !== ''}
+<Toast toastMsg={toastMsg} type={toastType} />
+{/if}
 
 <style>
   html, body { overflow-x: hidden; }
@@ -719,6 +880,21 @@
     margin-bottom: 7px; transition: color 0.3s;
   }
   :global([data-theme="dark"]) .auth-label { color: #6A7FA0; }
+
+  /* ── Password eye toggle ── */
+  .pw-eye {
+    position: absolute; right: 14px; top: 50%; transform: translateY(-50%); z-index: 99;
+    background: none; border: none; cursor: pointer; padding: 4px;
+    color: #8C8070; transition: color 0.2s;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .pw-eye:hover { color: #0A2463; }
+  :global([data-theme="dark"]) .pw-eye { color: #6A7FA0; }
+  :global([data-theme="dark"]) .pw-eye:hover { color: #E8EDF5; }
+
+  /* ── Password strength (identical to login) ── */
+  .str-seg { height: 3px; border-radius: 3px; flex: 1; background: #EDE7DC; transition: background 0.3s; }
+  :global([data-theme="dark"]) .str-seg { background: rgba(255,255,255,0.08); }
   
   /* ── Links ── */
   .auth-link { font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 400; color: #1A6ADE; text-decoration: none; transition: color 0.2s; }
