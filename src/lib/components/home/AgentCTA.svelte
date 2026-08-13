@@ -12,7 +12,7 @@
             <li class="flex items-start gap-3"><div class="w-2 h-2 rounded-full bg-blue-bright flex-shrink-0 mt-[6px]"></div><p class="text-14px font-light text-white/65"><strong class="text-white font-medium">Boost for visibility</strong> and feature at the top of search results.</p></li>
             <li class="flex items-start gap-3"><div class="w-2 h-2 rounded-full bg-blue-bright flex-shrink-0 mt-[6px]"></div><p class="text-14px font-light text-white/65"><strong class="text-white font-medium">Instant viewing requests</strong> land straight in your inbox.</p></li>
           </ul>
-          <a href="#" class="btn-gold">Become an agent</a>
+          <a href="/site/sign-up/?type=agency" class="btn-gold">Become an agent</a>
         </div>
   
         <!-- Aspirational inline SVG illustration -->

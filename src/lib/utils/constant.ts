@@ -10,10 +10,47 @@ export enum AppRole {
   LANDLORD = "landlord",
 }
 
+export enum ListingMediaType {
+  VIDEO = "video",
+  PHOTO = "photo",
+  ARCH_PLANS = "arch_plans",
+  OWNERSHIP_DOCS = "ownership_docs",
+}
+
 export enum AuthProvider {
   LOCAL = "LOCAL",
   APPLE = "APPLE",
   GOOGLE = "GOOGLE",
+}
+
+export enum ListingPaymentDuration {
+  WEEKLY = "WEEKLY",
+  MONTHLY = "MONTHLY",
+  YEARLY = "YEARLY",
+  BI_ANNUALLY = "BI_ANNUALLY",
+}
+
+export enum RegionScope {
+  WEST_AFRICA = "WEST_AFRICA",
+  AFRICA_OTHER = "AFRICA_OTHER",
+  INTERNATIONAL = "INTERNATIONAL",
+}
+
+export enum PropertyCategory {
+  RESIDENTIAL = "RESIDENTIAL",
+  COMMERCIAL = "COMMERCIAL",
+  LAND = "LAND",
+}
+
+export enum ListingFor {
+  RENT = "RENT",
+  SALE = "SALE",
+}
+
+export enum ListingCategory {
+  LAND = "LAND",
+  RESIDENTIAL = "RESIDENTIAL",
+  COMMERCIAL = "COMMERCIAL",
 }
 
 export enum LSKey {

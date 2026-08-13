@@ -85,8 +85,8 @@
             </div>
   
             <div class="hero-cta-row flex gap-4 justify-center lg:justify-start flex-wrap mt-6">
-              <a href="#listings-near-you" class="btn-primary no-underline inline-block">Browse properties</a>
-              <a href="#agent-cta" class="btn-secondary no-underline inline-block">Become an agent</a>
+              <a href="/site/properties" class="btn-primary no-underline inline-block">Browse properties</a>
+              <a href="/site/sign-up/?type=agency" class="btn-secondary no-underline inline-block">Become an agent</a>
             </div>
   
             <div class="flex gap-[9px] flex-wrap justify-center lg:justify-start mt-6">

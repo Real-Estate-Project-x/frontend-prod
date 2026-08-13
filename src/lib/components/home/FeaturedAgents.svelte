@@ -6,7 +6,7 @@
           <h2 class="section-title">Featured agents</h2>
           <p class="text-13px font-light text-chalk-muted dark:text-white/50 mt-2">Verified professionals, reviewed by real clients.</p>
         </div>
-        <a href="#" class="view-more-btn">All agents <svg width="12" height="12" viewBox="0 0 14 14" fill="none"><path d="M2 7h10M8 3l4 4-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
+        <a href="/site/agents" class="view-more-btn">All agents <svg width="12" height="12" viewBox="0 0 14 14" fill="none"><path d="M2 7h10M8 3l4 4-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
       </div>
       <div class="grid grid-cols-[repeat(auto-fill,minmax(220px,1fr))] gap-5" id="agentsGrid"><div class="agent-card">
         <div class="agent-avatar-lg">

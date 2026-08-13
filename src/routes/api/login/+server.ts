@@ -24,9 +24,7 @@ export const POST: RequestHandler = async ({ request, cookies, fetch }) => {
     }
 
     const result = response.data;
-    const decryptedInfo = JSON.parse(
-      decryptData(result.data, PUBLIC_ENCRYPTION_KEY)
-    );
+    const decryptedInfo = decryptData(result.data, PUBLIC_ENCRYPTION_KEY);
 
     cookies.set("blp_data", result, {
       path: "/",
@@ -36,14 +34,17 @@ export const POST: RequestHandler = async ({ request, cookies, fetch }) => {
       maxAge: THIRTY_DAYS,
     });
 
-    if (decryptedInfo) {
-      cookies.set("access_token", decryptedInfo.jwtToken, {
+    const decryptedInfoJson = JSON.parse(decryptedInfo);
+    if (decryptedInfoJson) {
+      const cookieConfig: any = {
         path: "/",
         httpOnly: true,
         secure: true,
         sameSite: "lax",
         maxAge: body.rememberMe ? THIRTY_DAYS : TWENTY_FOUR_HOURS,
-      });
+      };
+      cookies.set("user_id", decryptedInfoJson.userId, cookieConfig);
+      cookies.set("access_token", decryptedInfoJson.jwtToken, cookieConfig);
     }
     return json({ decryptedInfo, enc: result.data });
   } catch (ex) {

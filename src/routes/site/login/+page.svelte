@@ -8,10 +8,10 @@
   import { AppRole, LSKey } from "$lib/utils/constant";
   import { themeStore } from "$lib/stores/theme.svelte";
   import Toast from '$lib/components/shared/Toast.svelte';
-  import { PUBLIC_ENCRYPTION_KEY, PUBLIC_SITE_BASE_URL } from "$env/static/public";
-  import { extractLocalStorageInfo, getErrorMessage, setLocalStorageField } from "$lib/utils";
   import AppleLoginButton from '$lib/components/shared/AppleLoginButton.svelte';
   import GoogleLoginButton from '$lib/components/shared/GoogleLoginButton.svelte';
+  import { PUBLIC_ENCRYPTION_KEY, PUBLIC_SITE_BASE_URL } from "$env/static/public";
+  import { extractLocalStorageInfo, getErrorMessage, setLocalStorageField } from "$lib/utils";
 
   type LoginType = { 
     email: string, 

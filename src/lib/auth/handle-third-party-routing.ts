@@ -1,3 +1,4 @@
+import { isEmpty } from "lodash-es";
 import { goto } from "$app/navigation";
 import axios, { AxiosError } from "axios";
 import { ApiRequests } from "$lib/api/api.request";
@@ -49,8 +50,9 @@ export async function handleThirdPartyRouting(opts: {
     await loginAndRedirect(role, provider, session, redirectTo);
   } catch (ex) {
     if (ex instanceof AxiosError) {
-      const message = getErrorMessage(ex);
-      goto(`/site/sign-up/?err=${message}`);
+      console.error(ex);
+      goto(`/site/sign-up/?err=${getErrorMessage(ex)}`);
+      return;
     }
   }
 }
@@ -62,20 +64,19 @@ async function loginAndRedirect(
   redirectTo?: string | null
 ) {
   const user = session.user;
+  console.log({ user, role, provider });
   const name = user.name.split(" ");
 
-  const payload = {
+  const response = await axios.post("/api/third-party", {
     role,
     provider,
     email: user.email,
     // externalUserId: user.id,
     externalUserId: user.email,
     firstName: name[0],
-    ...(name[1] && { lastName: name[1] }),
-    ...(user.phoneNumber && { phoneNumber: user.phoneNumber }),
-  };
-
-  const response = await axios.post("/api/third-party", payload);
+    ...(isEmpty(name[1]) && { lastName: name[1] }),
+    ...(isEmpty(user.phoneNumber) && { phoneNumber: user.phoneNumber }),
+  });
   const result = response.data;
 
   if (result?.enc) {

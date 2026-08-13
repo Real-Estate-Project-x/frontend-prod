@@ -1,3 +1,4 @@
+import { isEmpty } from "lodash-es";
 import { goto } from "$app/navigation";
 import axios, { AxiosError } from "axios";
 import { redirectUser } from "./redirect-user";
@@ -6,7 +7,12 @@ import { LSKey, type AuthProvider } from "$lib/utils/constant";
 import { getErrorMessage, setLocalStorageField } from "$lib/utils";
 
 type ThirdPartySession = {
-  user: { id: string; name: string; email: string; phoneNumber?: string };
+  user: {
+    id: string;
+    name: string;
+    email: string;
+    phoneNumber?: string;
+  };
 };
 
 export async function handleThirdPartyLogin(opts: {
@@ -41,8 +47,8 @@ export async function handleThirdPartyLogin(opts: {
       externalUserId,
       email: user.email,
       firstName: name[0],
-      ...(name[1] && { lastName: name[1] }),
-      ...(user.phoneNumber && { phoneNumber: user.phoneNumber }),
+      ...(isEmpty(name[1]) && { lastName: name[1] }),
+      ...(isEmpty(user.phoneNumber) && { phoneNumber: user.phoneNumber }),
     });
 
     const result = response.data;

@@ -10,7 +10,14 @@ import type {
   ThirdPartyAuthDTO,
   ThirdPartySignupCheckDTO,
   CompleteAgencyProfileDTO,
+  FindListingTypesDTO,
+  FindStatesDTO,
+  FindListingAmenitiesDTO,
+  CreateListingDTO,
+  CreateIntlListingDTO,
+  FindCountriesDTO,
 } from "./type.dto";
+import { ListingMediaType } from "$lib/utils/constant";
 
 export class ApiRequests {
   private ip?: string;
@@ -38,6 +45,16 @@ export class ApiRequests {
 
       return config;
     });
+  }
+
+  async findCreatedAgency(userId: string) {
+    const url = `${this.BASE_URL}/agency/created/${userId}`;
+    return this.axiosInstance.get(url);
+  }
+
+  async tncCheck(externalUserId: string) {
+    const url = `${this.BASE_URL}/user/sign-up/accept-tnc/check/${externalUserId}`;
+    return this.axiosInstance.get(url);
   }
 
   async login(email: string, password: string, rememberMe = false) {
@@ -182,5 +199,87 @@ export class ApiRequests {
   async verifyPhoneNumberAvailability(phoneNumber: string) {
     const url = `${this.BASE_URL}/user/verify/phone/${phoneNumber}`;
     return this.axiosInstance.get(url);
+  }
+
+  async findListingTypes(payload: Partial<FindListingTypesDTO>) {
+    const url = `${this.BASE_URL}/listing/types`;
+    return this.axiosInstance.get(url, {
+      params: payload,
+    });
+  }
+
+  async findCountries(payload: Partial<FindCountriesDTO>) {
+    const url = `${this.BASE_URL}/data/countries`;
+    return this.axiosInstance.get(url, {
+      params: payload,
+    });
+  }
+
+  async findStates(payload: Partial<FindStatesDTO>) {
+    const url = `${this.BASE_URL}/data/states`;
+    return this.axiosInstance.get(url, {
+      params: payload,
+    });
+  }
+
+  async findCountryByIp() {
+    const url = `${this.BASE_URL}/data/countries/ip`;
+    return this.axiosInstance.get(url);
+  }
+
+  async findListingAmenities(payload: Partial<FindListingAmenitiesDTO>) {
+    const url = `${this.BASE_URL}/listings/listing-amenities`;
+    return this.axiosInstance.get(url, {
+      params: payload,
+    });
+  }
+
+  async autocompleteAddress(address: string) {
+    const url = `${this.BASE_URL}/map/address-autocomplete/${address}`;
+    return this.axiosInstance.get(url);
+  }
+
+  async createListing(payload: CreateListingDTO) {
+    const url = `${this.BASE_URL}/listings`;
+    return this.axiosInstance.post(url, payload);
+  }
+
+  async createIntlListing(payload: CreateIntlListingDTO) {
+    const url = `${this.BASE_URL}/listings/intl`;
+    return this.axiosInstance.post(url, payload);
+  }
+
+  async publishListing(listingId: string) {
+    const url = `${this.BASE_URL}/listings/manage/publish/${listingId}`;
+    return this.axiosInstance.patch(url, {});
+  }
+
+  async uploadMedia(files: File[], type: ListingMediaType) {
+    let url = this.BASE_URL;
+
+    switch (type) {
+      default:
+      case ListingMediaType.PHOTO:
+        url += "/listings/uploads/photos";
+        break;
+      case ListingMediaType.VIDEO:
+        url += "/listings/uploads/videos";
+        break;
+      case ListingMediaType.ARCH_PLANS:
+        url += "/listings/uploads/arch-plans";
+        break;
+      case ListingMediaType.OWNERSHIP_DOCS:
+        url += "/listings/uploads/owner-docs";
+        break;
+    }
+
+    const payload = new FormData();
+    files.forEach((file) => {
+      payload.append("files[]", file);
+    });
+
+    return this.axiosInstance.post(url, payload, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
   }
 }

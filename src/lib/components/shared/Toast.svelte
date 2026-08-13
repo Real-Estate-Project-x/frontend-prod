@@ -25,7 +25,10 @@
 </script>
 
 <!-- ═══ TOAST ═══ -->
-<div class="toast {type}" class:show={shown} role="status" aria-live="polite">
+<div class="toast {type}" 
+	class:show={shown} 
+	role="status" 
+	aria-live="polite">
 	{#if type === 'success'}
 		<svg class="toast-icon" width="16" height="16" viewBox="0 0 20 20" fill="none" aria-hidden="true">
 			<circle cx="10" cy="10" r="9" fill="#34A853" />
@@ -36,6 +39,12 @@
 			<circle cx="10" cy="10" r="9" fill="#EA4335" />
 			<path d="M10 6.2v5" stroke="#fff" stroke-width="1.8" stroke-linecap="round" />
 			<circle cx="10" cy="13.6" r="1" fill="#fff" />
+		</svg>
+	{:else if type === 'info'}
+		<svg class="toast-icon" width="16" height="16" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+			<circle cx="10" cy="10" r="9" fill="#4285F4" />
+			<circle cx="10" cy="6.4" r="1" fill="#fff" />
+			<path d="M10 9.2v4.4" stroke="#fff" stroke-width="1.8" stroke-linecap="round" />
 		</svg>
 	{/if}
 	<span class="toast-text">{capitalizeSentences(toastMsg)}</span>
@@ -53,7 +62,7 @@
 		align-items: center;
 		gap: 10px;
 
-		max-width: min(92vw, 380px);
+		max-width: min(92vw, 580px);
 		background: #323232;
 		color: rgba(255, 255, 255, 0.94);
 
@@ -100,4 +109,12 @@
 		background: #1f1f1f;
 		border: 1px solid rgba(255, 255, 255, 0.08);
 	}
+
+	@media (max-width: 640px) { 
+		.toast {
+			width: 80%;
+			left: 20%;
+			transform: translateX(-50%) translateY(8px);
+		}
+  	}
 </style>

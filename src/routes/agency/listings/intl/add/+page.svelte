@@ -2,10 +2,10 @@
   import { onMount } from "svelte";
   import { AxiosError } from "axios";
   import { goto } from "$app/navigation";
-  import { capitalize, isEmpty, toLower } from "lodash-es";
   import type { PageData } from "./$types";
-  import type { PFileType, ToastType } from "$lib/types";
+  import { capitalize, isEmpty, toLower, toUpper } from "lodash-es";
   import { ApiRequests } from "$lib/api/api.request";
+  import type { PFileType, ToastType } from "$lib/types";
   import Toast from "$lib/components/shared/Toast.svelte";
   import type { ExtraFee, GeoPoint } from "$lib/api/type.dto";
   import AmenityIcon from "$lib/components/shared/AmenityIcon.svelte";
@@ -15,47 +15,44 @@
   import { cleanObject, currencyFormatter, generatePreviewUrls, getAmenityNames, getErrorMessage, getListingType, toFileArray } from "$lib/utils";
 
   type ListingForm = {
-    regionScope: string;
     paymentPeriod: string;
+    regionScope: string;
     title: string;
     description: string;
-    listingFor: string;
     listingTypeId: string;
     agencyId: string;
-    address: string;
-    landmark: string;
     geoPoint: GeoPoint;
-    stateName: string;
+    stateName :string;
     cityName: string;
     countryName: string;
-    hasVirtualTour: boolean;
     priceAmount: number;
     extraFees: ExtraFee[];
     bedrooms: number;
     toilets: number;
     sizeSqm: number;
     requirements: string[];
-    amenities: string[];
-    broadbandMbps: number;
+    amenities: string[]
     isBrandNew: boolean;
-    photoIds: string[];
+    photoIds: string[],
     videoId: string;
-    ownershipDocIds: string[];
     archPlanIds: string[];
+    priceCurrency: string;
+    broadbandMbps: number;
+    listingFor: string;
+    hasVirtualTour: boolean;
+    address: string;
   };
 
-  // Files
-  let pPhotos: HTMLInputElement;
-  let pVideo: HTMLInputElement;
-  let pOwnerDocuments: HTMLInputElement;
-  let pArchPlans: HTMLInputElement;
+    // Files
+    let pPhotos: HTMLInputElement;
+    let pVideo: HTMLInputElement;
+    let pArchPlans: HTMLInputElement;
 
-  let previewPhotos = $state<PFileType[]>([]);
-  let previewVideo = $state<PFileType>();
-  let previewArchPlans = $state<PFileType[]>([]);
-  let previewOwnerDocs = $state<PFileType[]>([]);
+    let previewPhotos = $state<PFileType[]>([]);
+    let previewVideo = $state<PFileType>();
+    let previewArchPlans = $state<PFileType[]>([]);
 
-  let isPhotoDragging = $state(false);
+    let isPhotoDragging = $state(false);
 
     let step = $state(1);
     const steps = [
@@ -66,47 +63,49 @@
         {label:'preview', step: 5 }
     ];
 
+    const setListingFormField = <K extends keyof ListingForm>(
+        field: K,
+        value: ListingForm[K]
+    ) => {
+	  listingFormData[field] = value;
+    };
+
     let { data }: { data: PageData } = $props();
 
     const agency = $derived(data.agency.data);
     const states = $derived(data.states.data);
+    const currencies = $derived(data.currencies.data);
     const countryIp = $derived(data.countryIp.data);
+    const listingTypes = $derived<any[]>(data.listingTypes.data);
     const listingAmenities = $derived<any[]>(data.amenities.data);
 
-    // Toast
-    let toastMsg     = $state('');
-    let toastType = $state<ToastType>('info');
-    let toastTimer: ReturnType<typeof setTimeout> | null = null;
-        
-    let listingTypes = $state<any[]>([]);
-    let listingFormData = $state<ListingForm>({ 
+    let listingFormData = $state<ListingForm>({  //  
         regionScope: countryIp.bpRegion ?? RegionScope.WEST_AFRICA,
         title: '',
         description: '',
         address: '',
         agencyId: '', // preset from local_storage
         amenities: [],
+        requirements: ['curfew'],
         archPlanIds: [],
         bedrooms: 0,
         broadbandMbps: 0,
         cityName: '',
         countryName: '',
         extraFees: [{ label: 'Agency fee', amount: 0 }],
-        requirements: ['curfew'],
         geoPoint: { latitude: 0, longitude: 0 },
-        hasVirtualTour: false,
+        hasVirtualTour: true,
         isBrandNew: false,
-        landmark: '',
-        listingFor: ListingFor.RENT,
-        paymentPeriod: ListingPaymentDuration.YEARLY,
         listingTypeId: '',
         photoIds: [],
-        ownershipDocIds: [],
         priceAmount: 0,
         sizeSqm: 0,
         stateName: '',
         toilets: 0,
         videoId: '',
+        priceCurrency: countryIp.currency ?? '',
+        listingFor: ListingFor.RENT,
+        paymentPeriod: ListingPaymentDuration.MONTHLY,
     });
     const prelaunchList = $derived([
         { condition: !!listingFormData.title, label: 'Property title added' },
@@ -117,9 +116,66 @@
 	    { condition: listingFormData.amenities.length >= 1, label: 'Amenities selected' },
     ]);
 
-    let broadbandMbps = $state(String(listingFormData.broadbandMbps));
     let sizeSqm = $state(String(listingFormData.sizeSqm));
+    let broadbandMbps = $state(String(listingFormData.broadbandMbps));
     let addressSelections = $state<any[]>([]);
+
+
+    const dragOver = (event: DragEvent) => {
+      event.preventDefault();
+      isPhotoDragging = true;
+    }
+
+    const dragLeave = () => {
+      isPhotoDragging = false;
+    }
+
+    const dropFiles = (event: DragEvent, type: 'photos' | 'video' | 'plans' | 'docs') => {
+    event.preventDefault();
+    isPhotoDragging = false;
+
+    const files = event.dataTransfer?.files;
+    if (!files?.length) return;
+
+    handleFiles(files, type);
+  };
+
+  const handleFiles = async(
+    files: FileList,
+    type: 'photos' | 'video' | 'plans' | 'docs'
+  ) => {
+    if (!files.length) return;
+
+    // PHOTOS
+    if (type === 'photos') {
+      for (const file of Array.from(files)) {
+        if (!file.type.startsWith('image/')) continue;
+
+        previewPhotos.push({
+          file,
+          preview: URL.createObjectURL(file),
+        });
+
+        // preview
+      }
+    }
+    // VIDEO
+    else if (type === 'video') {
+        previewVideo = { 
+            file: files[0], 
+            preview: URL.createObjectURL(files[0]) 
+        };
+    }
+    else if (type === 'plans') {
+        for (const file of Array.from(files)) {
+
+        previewArchPlans.push({
+          file,
+          preview: URL.createObjectURL(file),
+        });
+      }
+    }
+  }
 
     const handleAddressInput = (address: string) => {
         setTimeout(async () => {
@@ -127,7 +183,7 @@
             if (result.data.success) {
                 addressSelections = result.data.data;
             }
-        }, 3000)
+        }, 3000);
     }
 
     const onAddressSelect = (addressObject: any) => {
@@ -151,56 +207,14 @@
         setListingFormField('extraFees', [...listingFormData.extraFees]);
     }
 
-    const updateRequirements = () => {
-        setListingFormField('requirements', [...listingFormData.requirements]);
-    }
+    onMount(async () => {
+        // if (countryIp.bpRegion === RegionScope.WEST_AFRICA) {
+        //     goto('/agency/listing/add');
+        // }
 
-    const init = async () => {
+        // preset agency id as constant
         setListingFormField('agencyId', agency.id);
-
-        // Query for listingTypes
-        if (!isEmpty(listingFormData.listingFor)) {
-            await findListingType(listingFormData.listingFor as any);
-        }
-    }
-
-    onMount(() => {
-        if (countryIp.bpRegion !== RegionScope.WEST_AFRICA) {
-            goto('/agency/listing/intl/add');
-        }
-
-        init();
     });
-
-    const findListingType = async (listingFor: ListingFor) => {
-        try {
-            const result = await new ApiRequests().findListingTypes({
-                listingFor,
-                regionScope: countryIp.bpRegion,
-            });
-
-            if (result.data.success) {
-                listingTypes = result.data.data;
-            }
-        } catch (ex) {
-            console.error('[listing_add.svelte]', ex);
-        }
-    }
-
-    // ── Toast ──────────────────────────────────────────────────────────────────
-    const showToast = (msg: string, type: ToastType) => {
-      toastMsg = msg;
-      toastType = type;
-      if (toastTimer) clearTimeout(toastTimer);
-      toastTimer = setTimeout(() => toastMsg = '', 3000);
-    }
-
-    const setListingFormField = <K extends keyof ListingForm>(
-        field: K,
-        value: ListingForm[K]
-    ) => {
-	  listingFormData[field] = value;
-    }
 
     let amenitiesById = $derived(new Map(listingAmenities.map((a) => [a.id, a])));
     let selectedNames = $derived(getAmenityNames(listingFormData.amenities, amenitiesById));
@@ -233,6 +247,10 @@
         const newList = listingFormData.extraFees.filter((_, index) => index !== indexToRemove)
         setListingFormField('extraFees', newList);
         updateExtraFees();
+    }
+
+    const updateRequirements = () => {
+        setListingFormField('requirements', [...listingFormData.requirements]);
     }
 
     const addRequirementRow = () => {
@@ -350,36 +368,6 @@
         }
     }
 
-    const handleOwnerDocUploads = async () => {
-        const files = pOwnerDocuments?.files;
-        if (!files || files.length === 0) {
-            showToast('Please upload at least 1 plan', 'error');
-            return;
-        }
-
-        // convert FileList to File[]
-        const fileArray = toFileArray(files);
-
-        // create preview urls
-        previewOwnerDocs = generatePreviewUrls(fileArray as any);
-
-        try {
-            // upload to cloud
-            const result = await new ApiRequests().uploadMedia(fileArray, ListingMediaType.OWNERSHIP_DOCS);
-            if (result.data.success) {
-                // set to state
-                const ownerDocIds = (result.data.data as any[]).map(({ id }) => id);
-                setListingFormField('ownershipDocIds', ownerDocIds);
-            }
-        } catch (ex) {
-            if (ex instanceof AxiosError) {
-                const message = getErrorMessage(ex);
-                showToast(message, 'error');
-            }
-            return;
-        }
-    }
-
     const setStep = (value: number) => {
         if (value <= 5) step = value
     };
@@ -388,8 +376,27 @@
         // send to backend and prefill if agent comes back
     }
 
+    
+    // Toast
+    let toastMsg     = $state('');
+    let toastType = $state<ToastType>('info');
+    let toastTimer: ReturnType<typeof setTimeout> | null = null;
+
+    // ── Toast ──────────────────────────────────────────────────────────────────
+    const showToast = (msg: string, type: ToastType) => {
+      toastMsg = msg;
+      toastType = type;
+      if (toastTimer) clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => toastMsg = '', 3000);
+    };
+
     const handleSubmit = async (e: SubmitEvent) => {
         e.preventDefault();
+
+        if (isEmpty(listingFormData.videoId)) {
+            showToast('Please upload a listing video', 'error');
+            return;
+        }
 
         // Check if form is valid [all required fields filled out]
      
@@ -397,7 +404,7 @@
 
         try {
             // save listing
-            const result = await new ApiRequests().createListing(payload as any);
+            const result = await new ApiRequests().createIntlListing(payload as any);
             if (result.data.success) {
                 showToast(result.data.message, 'success');
                 setTimeout(() => goto('/agency/listings'), 2000);
@@ -418,7 +425,7 @@
 
         try {
             // save listing
-            const result = await req.createListing(payload as any);
+            const result = await req.createIntlListing(payload as any);
             if (result.data.success) {
                 const listingId = result.data.data.id;
                 if (isEmpty(listingId)) {
@@ -443,73 +450,6 @@
             return;
         }
     };
-
-    const dragOver = (event: DragEvent) => {
-      event.preventDefault();
-      isPhotoDragging = true;
-    }
-
-    const dragLeave = () => {
-      isPhotoDragging = false;
-    }
-
-    const dropFiles = (event: DragEvent, type: 'photos' | 'video' | 'plans' | 'docs') => {
-    event.preventDefault();
-    isPhotoDragging = false;
-
-    const files = event.dataTransfer?.files;
-    if (!files?.length) return;
-
-    handleFiles(files, type);
-  }
-
-  const handleFiles = async(
-    files: FileList,
-    type: 'photos' | 'video' | 'plans' | 'docs'
-  ) => {
-    if (!files.length) return;
-
-    // PHOTOS
-    if (type === 'photos') {
-      for (const file of Array.from(files)) {
-        if (!file.type.startsWith('image/')) continue;
-
-        previewPhotos.push({
-          file,
-          preview: URL.createObjectURL(file),
-        });
-
-        // preview
-      }
-    }
-
-    // VIDEO
-    else if (type === 'video') {
-        previewVideo = { 
-            file: files[0], 
-            preview: URL.createObjectURL(files[0]) 
-        };
-    }
-    else if (type === 'docs') {
-        for (const file of Array.from(files)) {
-
-        previewOwnerDocs.push({
-          file,
-          preview: URL.createObjectURL(file),
-        });
-      }
-    }
-
-    else if (type === 'plans') {
-        for (const file of Array.from(files)) {
-
-        previewArchPlans.push({
-          file,
-          preview: URL.createObjectURL(file),
-        });
-      }
-    }
-  }
 </script>
 
 <!-- ══ LAYOUT SHELL ══ -->
@@ -587,44 +527,45 @@
                     <!-- Property type + Listing type -->
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-5 mb-5">
                         <div>
-                        <label for="propertyUpfor" class="block text-[11px] font-medium tracking-[.08em] uppercase text-chalk-muted dark:text-[#6A7FA0] mb-2">Listed for <span class="text-ember">*</span></label>
-                        <div id="propertyUpfor" class="flex gap-2">
-                        {#each Object.keys(ListingFor) as _}
-                            <button type="button"
-                                class:active={listingFormData.listingFor === _} 
-                                class="upfor-btn" 
-                                id={`upfor-${_}`}
-                                onclick={() => {
-                                    setListingFormField('listingFor', _);
-                                    findListingType(listingFormData.listingFor as any)
-                                }}>
-                                For {capitalize(_)}
-                            </button>
-                        {/each}
+                            <label class="block text-[11px] font-medium tracking-[.08em] uppercase text-chalk-muted dark:text-[#6A7FA0] mb-2">Listed for <span class="text-ember">*</span></label>
+                            <div class="flex gap-2">
+                              <!-- <div onclick={() => setListingFormField('listingFor', ListingFor.RENT)} 
+                                    class="upfor-btn active" 
+                                    id="upfor-rent" 
+                                    style="cursor:default">
+                                For Rent
+                               </div> -->
+                               <button type="button" 
+                                onclick={() => setListingFormField('listingFor', ListingFor.RENT)} 
+                                class="upfor-btn active" 
+                                id="upfor-rent" 
+                                style="cursor:default">
+                                For Rent
+                                </button>
+                            </div>
+                            <p class="text-[11px] text-chalk-muted dark:text-[#6A7FA0] mt-1.5">International agent listings are rental-only.</p>
+                            <input type="hidden" id="upForVal" bind:value={listingFormData.listingFor} />
                         </div>
-                        <input type="hidden" id="upForVal" bind:value={listingFormData.listingFor} />
-                    </div>
 
-                    <div>
-                        <label for="propertyType" class="block text-[11px] font-medium tracking-[.08em] uppercase text-chalk-muted dark:text-[#6A7FA0] mb-2">Property type <span class="text-ember">*</span></label>
-                        <div class="sel-wrap">
-                        <select id="propertyType" 
-                            required
-                            class="inp cursor-pointer pr-8" 
-                            bind:value={listingFormData.listingTypeId}
-                            onchange={(e) =>
-                                setListingFormField('listingTypeId', (e.currentTarget as HTMLSelectElement).value)
-                            }
-                            >
-                            <option value="">Select property type</option>
-                            {#each listingTypes as _}
-                                <option value={_.id}>{_.displayName}</option>
-                            {/each}
-                        </select>
+                        <div>
+                            <label for="propertyType" class="block text-[11px] font-medium tracking-[.08em] uppercase text-chalk-muted dark:text-[#6A7FA0] mb-2">Property type <span class="text-ember">*</span></label>
+                            <div class="sel-wrap">
+                            <select id="propertyType" 
+                                required
+                                class="inp cursor-pointer pr-8" 
+                                bind:value={listingFormData.listingTypeId}
+                                onchange={(e) =>
+                                    setListingFormField('listingTypeId', (e.currentTarget as HTMLSelectElement).value)
+                                }
+                                >
+                                <option value="">Select property type</option>
+                                {#each listingTypes as _}
+                                    <option value={_.id}>{_.displayName}</option>
+                                {/each}
+                            </select>
+                            </div>
+                            <p class="field-err" id="err-propertyType">Please select a property type.</p>
                         </div>
-                        <p class="field-err" id="err-propertyType">Please select a property type.</p>
-                    </div>
-                    
                     </div>
             
                     <!-- Title -->
@@ -714,67 +655,44 @@
                     </div>
                     <p class="field-err" id="err-desc">Please add a description (min 80 characters).</p>
                     </div>
-            
+
                     <!-- Virtual viewing -->
                     <div class="mb-2">
-                    <div class="flex items-center gap-2 mb-3">
-                        <label for="virt-yes" class="block text-[11px] font-medium tracking-[.08em] uppercase text-chalk-muted dark:text-[#6A7FA0]">Virtual viewing availability</label>
+                        <div class="flex items-center gap-2 mb-3">
+                        <label class="block text-[11px] font-medium tracking-[.08em] uppercase text-chalk-muted dark:text-[#6A7FA0]">Virtual viewing availability</label>
                         <!-- tooltip -->
                         <div class="tooltip-wrap relative flex-shrink-0">
-                        <div class="w-4 h-4 rounded-full border border-chalk-4 dark:border-white/20 flex items-center justify-center cursor-default">
-                            <svg width="8" height="8" viewBox="0 0 10 10" fill="none">
-                                <circle cx="5" cy="5" r="4.5" stroke="#8C8070" stroke-width="1"/>
-                                <path d="M5 4.5v3M5 3h.01" stroke="#8C8070" stroke-width="1" stroke-linecap="round"/>
-                            </svg>
-                        </div>
-                        <div class="tooltip-text">
-                            Listings with virtual viewing tend to get 3× more engagement. Highly recommended.
+                            <div class="w-4 h-4 rounded-full border border-chalk-4 dark:border-white/20 flex items-center justify-center cursor-default">
+                            <svg width="8" height="8" viewBox="0 0 10 10" fill="none"><circle cx="5" cy="5" r="4.5" stroke="#8C8070" stroke-width="1"/><path d="M5 4.5v3M5 3h.01" stroke="#8C8070" stroke-width="1" stroke-linecap="round"/></svg>
+                            </div>
+                            <div class="tooltip-text">Virtual tours let buyers book a video walkthrough from anywhere — standard for all international listings.</div>
                         </div>
                         </div>
-                    </div>
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        <div class="virt-card" 
+                        <div class="grid grid-cols-1 gap-3">
+                        <div class="virt-card active" 
                             id="virt-yes" 
-                            class:active={listingFormData.hasVirtualTour} 
+                            style="cursor:default"
                             onclick={() => setListingFormField('hasVirtualTour', true)}>
                             <div class="flex items-center gap-3">
-                                <div class="w-10 h-10 rounded-xl bg-sage-light dark:bg-sage/15 flex items-center justify-center flex-shrink-0">
+                            <div class="w-10 h-10 rounded-xl bg-sage-light dark:bg-sage/15 flex items-center justify-center flex-shrink-0">
                                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#4A7848" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 10l4.553-2.069A1 1 0 0121 8.87v6.261a1 1 0 01-1.447.894L15 14M3 8a2 2 0 012-2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V8z"/></svg>
-                                </div>
-                                <div>
+                            </div>
+                            <div>
                                 <div class="text-[13px] font-medium text-navy-dark dark:text-blue-100">Virtual tour available</div>
                                 <div class="text-[11px] text-chalk-muted dark:text-[#6A7FA0] mt-0.5">Buyers can book a video walkthrough</div>
-                                </div>
-                                <div class={`ml-auto w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${listingFormData.hasVirtualTour ? 'bg-sage border-sage' : 'dark:border-white/20'}`}>
-                                {#if listingFormData.hasVirtualTour}
-                                <svg width="9" height="9" viewBox="0 0 10 10" fill="none">
-                                    <path d="M2 5l2.5 2.5 3.5-4" stroke="white" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+                            </div>
+                            <div class="ml-auto w-5 h-5 rounded-full border-2 border-sage flex items-center justify-center flex-shrink-0 bg-sage">
+                               {#if listingFormData.hasVirtualTour}
+                               <svg width="9" height="9" viewBox="0 0 10 10" fill="none">
+                                    <path d="M2 5l2.5 2.5 3.5-4" stroke="white" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" />
                                 </svg>
-                                {/if}
-                                </div>
+                               {/if}
+                            </div>
                             </div>
                         </div>
-                        <div class="virt-card" 
-                            class:active={!listingFormData.hasVirtualTour} 
-                            id="virt-no" 
-                            onclick={() => setListingFormField('hasVirtualTour', false)}>
-                            <div class="flex items-center gap-3">
-                                <div class="w-10 h-10 rounded-xl bg-chalk-2 dark:bg-[#1A2438] flex items-center justify-center flex-shrink-0">
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#8C8070" stroke-width="1.5" stroke-linecap="round"><rect x="3" y="8" width="14" height="10" rx="2"/><path d="M17 11l4-2v5l-4-2"/><path d="M3 8l9-5 5 3"/></svg>
-                                </div>
-                                <div>
-                                <div class="text-[13px] font-medium text-navy-dark dark:text-blue-100">In-person only</div>
-                                <div class="text-[11px] text-chalk-muted dark:text-[#6A7FA0] mt-0.5">Physical viewings only at this time</div>
-                                </div>
-                                <div class={`ml-auto w-5 h-5 rounded-full border-2 dark:border-white/20 flex items-center justify-center flex-shrink-0 ${!listingFormData.hasVirtualTour ? 'bg-sage border-sage' : 'dark:border-white/20'}`} id="virt-no-check">
-                                    {#if !listingFormData.hasVirtualTour}
-                                    <svg width="9" height="9" viewBox="0 0 10 10" fill="none"><path d="M2 5l2.5 2.5 3.5-4" stroke="white" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                                    {/if}
-                                </div>
-                            </div>
                         </div>
-                    </div>
-                    <input type="hidden" id="virtualVal" bind:value={listingFormData.hasVirtualTour} />
+                        <p class="text-[11px] text-chalk-muted dark:text-[#6A7FA0] mt-2">Virtual viewings are available for international listings.</p>
+                        <input type="hidden" id="virtualVal" bind:value={listingFormData.hasVirtualTour} />
                     </div>
                 </div><!-- /panel1 -->
                 {/if}
@@ -784,15 +702,15 @@
                 <div class="step-panel active fu" id="panel2">
                     <h2 class="font-display font-light text-navy-dark dark:text-blue-100 mb-1" style="font-size:clamp(22px,2.5vw,30px)">Pricing &amp; details</h2>
                     <p class="text-[13px] text-chalk-muted dark:text-[#6A7FA0] mb-7">
-                        Set accurate pricing to attract serious buyers and renters.
+                        Set accurate pricing to attract serious renters.
                     </p>
-            
-                    <!-- Price + Duration -->
-                    <div class={`grid grid-cols-1 gap-5 mb-5 ${listingFormData.listingFor === 'RENT' ? 'sm:grid-cols-2' : ''}`}>
+
+                    <!-- Price + Currency + Duration -->
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-5 mb-1">
                         <div>
-                            <label for="propPrice" class="block text-[11px] font-medium tracking-[.08em] uppercase text-chalk-muted dark:text-[#6A7FA0] mb-2">Price (₦) <span class="text-ember">*</span></label>
-                            <div class="relative">
-                            <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-[13px] font-medium text-chalk-muted dark:text-[#6A7FA0]">₦</span>
+                        <label class="block text-[11px] font-medium tracking-[.08em] uppercase text-chalk-muted dark:text-[#6A7FA0] mb-2">Rent price <span class="text-ember">*</span></label>
+                        <div class="relative">
+                            <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-[13px] font-medium text-chalk-muted dark:text-[#6A7FA0]" id="priceCurrencySymbol">£</span>
                             <input type="number" 
                                 required
                                 id="propPrice" 
@@ -800,30 +718,45 @@
                                 placeholder="e.g. 850000" 
                                 min="0" 
                                 bind:value={listingFormData.priceAmount}
-                                oninput={(e) => setListingFormField('priceAmount', Number((e.target as HTMLInputElement).value))}
+                                oninput={(e) => setListingFormField('priceAmount', Number((e.target as HTMLInputElement).value))} 
                             />
-                            </div>
                         </div>
-
-                        {#if listingFormData.listingFor === ListingFor.RENT}
+                        </div>
                         <div>
-                            <label for="paymentDuration" class="block text-[11px] font-medium tracking-[.08em] uppercase text-chalk-muted dark:text-[#6A7FA0] mb-2">Payment period <span class="text-ember">*</span></label>
-                            <div class="sel-wrap">
-                            <select required 
+                        <label class="block text-[11px] font-medium tracking-[.08em] uppercase text-chalk-muted dark:text-[#6A7FA0] mb-2">Base currency <span class="text-ember">*</span></label>
+                        <div class="sel-wrap">
+                            <select required
+                                id="baseCurrency" 
+                                class="inp cursor-pointer pr-8" 
+                                bind:value={listingFormData.priceCurrency}
+                                onchange={(e) =>
+                                    setListingFormField('priceCurrency', (e.currentTarget as HTMLSelectElement).value)
+                                }>
+                                {#each currencies as _}
+                                <option value={_.currency} data-symbol={_.currencySymbol}>
+                                    {_.currency} — {_.currencySymbol} ({toUpper(_.name)})
+                                </option>
+                                {/each}
+                            </select>
+                        </div>
+                        </div>
+                        <div>
+                        <label class="block text-[11px] font-medium tracking-[.08em] uppercase text-chalk-muted dark:text-[#6A7FA0] mb-2">Payment period <span class="text-ember">*</span></label>
+                        <div class="sel-wrap">
+                            <select required
                                 id="paymentDuration" 
                                 class="inp cursor-pointer pr-8"
                                 bind:value={listingFormData.paymentPeriod}
                                 onchange={(e) =>
                                     setListingFormField('paymentPeriod', (e.currentTarget as HTMLSelectElement).value)
                                 }>
-                                <option value="">Select (for rentals)</option>
+                                <option value="">Select payment period</option>
                                 {#each Object.values(ListingPaymentDuration) as _}
                                 <option value={_}>{capitalize(_)}</option>
                                 {/each}
                             </select>
-                            </div>
                         </div>
-                        {/if}
+                        </div>
                     </div>
             
                     <!-- Agency + Size -->
@@ -951,9 +884,9 @@
                         </div>
                         <div class="text-[11px] text-chalk-muted dark:text-[#6A7FA0] italic" id="noCosts">No additional costs added yet.</div>
                     </div>
-                    
-                    <!-- Requirements -->
-                    <div class="mt-5">
+
+                     <!-- Requirements -->
+                     <div class="mt-5">
                         <div class="flex items-center justify-between mb-3">
                         <label class="block text-[11px] font-medium tracking-[.08em] uppercase text-chalk-muted dark:text-[#6A7FA0]">Requirements</label>
                         <button onclick={addRequirementRow} 
@@ -1193,44 +1126,6 @@
                     </div>
                     {/if}
                     </div>
-
-                    {#if listingFormData.listingFor === ListingFor.SALE}
-                    <!-- Ownership docs -->
-                    <div>
-                        <label for="docInput" class="block text-[13px] font-medium text-navy-dark dark:text-blue-100 mb-0.5">Ownership documents</label>
-                        <p class="text-[11px] text-chalk-muted dark:text-[#6A7FA0] mb-3">C of O, Survey, Receipt of purchase etc. Documents are kept private and only visible to verified buyers.</p>
-                        <div class="upload-zone" 
-                            id="docZone" 
-                            onclick={() => pOwnerDocuments.click()} 
-                            ondragover={dragOver}
-                            ondragleave={dragLeave}
-                            ondrop={(e) => dropFiles(e, 'docs')}
-                        >
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#8C8070" stroke-width="1.5" stroke-linecap="round" class="mx-auto mb-2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-                            <p class="text-[12px] text-chalk-muted dark:text-[#6A7FA0]">Upload ownership documents (PDF)</p>
-                            <input type="file" 
-                                bind:this={pOwnerDocuments} 
-                                id="docInput" 
-                                class="hidden" 
-                                multiple 
-                                accept=".pdf,image/*" 
-                                onchange={handleOwnerDocUploads} />
-                        </div>
-
-                        {#if previewOwnerDocs.length > 0}
-                        <div id="docPreviews" class="flex flex-wrap gap-2 mt-2">
-                        {#each previewOwnerDocs as p}
-                        <div class="flex items-center gap-1.5 text-[11px] text-chalk-muted dark:text-[#6A7FA0] bg-chalk-2 dark:bg-[#1A2438] rounded-lg px-2.5 py-1.5 tt">
-                            <svg width="11" height="11" viewBox="0 0 14 14" fill="none" stroke="#8C8070" stroke-width="1.3">
-                                <path d="M2 2h7l3 3v7a1 1 0 01-1 1H2a1 1 0 01-1-1V3a1 1 0 011-1z"></path>
-                            </svg>
-                        {p.file.name}
-                        </div>
-                        {/each}
-                        </div>
-                        {/if}
-                    </div>
-                    {/if}
                 </div><!-- /panel4 -->
                 {/if}
 
@@ -1473,7 +1368,6 @@
                     </button>
                     {/if}
                 </div>
-            
                 </div>
             </div>
         </form>
@@ -1483,7 +1377,6 @@
 {#if toastMsg  && toastMsg !== ''}
     <Toast toastMsg={toastMsg} type={toastType} />
 {/if}
-
 
 <style>
     /* ── core tokens ── */

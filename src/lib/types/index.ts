@@ -34,3 +34,8 @@ export interface LoginForm {
   password: string;
   rememberMe: boolean;
 }
+
+export interface PFileType {
+  file: File;
+  preview: string;
+}

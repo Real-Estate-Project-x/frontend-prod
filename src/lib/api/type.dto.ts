@@ -1,4 +1,11 @@
-import type { AppRole, AuthProvider } from "$lib/utils/constant";
+import type {
+  AppRole,
+  AuthProvider,
+  ListingCategory,
+  ListingFor,
+  ListingPaymentDuration,
+  RegionScope,
+} from "$lib/utils/constant";
 import type { InternalAxiosRequestConfig } from "axios";
 
 export interface ApiErrorResponse {
@@ -80,4 +87,96 @@ export interface PaginationRequestDTO {
 export interface CountriesFilterDTO extends PaginationRequestDTO {
   isSignupEnabled?: boolean;
   searchTerm?: string;
+}
+
+export interface FindListingTypesDTO extends PaginationRequestDTO {
+  searchTerm: string;
+  regionScope: RegionScope;
+  listingFor: ListingFor;
+  propertyCategory: ListingCategory;
+}
+
+export interface FindCountriesDTO extends PaginationRequestDTO {
+  fields: string;
+  isSignupEnabled: boolean;
+  isFxConversionEnabled?: boolean;
+}
+
+export interface FindStatesDTO extends PaginationRequestDTO {
+  searchTerm: string;
+  countryId: string;
+}
+
+export interface FindListingAmenitiesDTO extends PaginationRequestDTO {
+  regionScope: RegionScope;
+}
+
+export interface ExtraFee {
+  label: string;
+  amount: number;
+}
+
+export interface GeoPoint {
+  latitude: number;
+  longitude: number;
+}
+
+export interface CreateListingDTO {
+  regionScope: RegionScope;
+  paymentPeriod: ListingPaymentDuration;
+  title: string;
+  description: string;
+  listingFor: ListingFor;
+  listingTypeId: string;
+  agencyId: string;
+  address: string;
+  landmark: string;
+  geoPoint: GeoPoint;
+  stateName: string;
+  cityName: string;
+  countryName: string;
+  hasVirtualTour: boolean;
+  priceAmount: 0;
+  extraFees: ExtraFee[];
+  bedrooms: number;
+  toilets: number;
+  sizeSqm: number;
+  requirements: string[];
+  amenities: string[];
+  broadbandMbps: number;
+  isBrandNew: boolean;
+  photoIds: string[];
+  videoId: string;
+  ownershipDocIds: string[];
+  archPlanIds: string[];
+}
+
+export interface CreateIntlListingDTO
+  extends Pick<
+    CreateListingDTO,
+    | "paymentPeriod"
+    | "archPlanIds"
+    | "videoId"
+    | "amenities"
+    | "sizeSqm"
+    | "photoIds"
+    | "title"
+    | "description"
+    | "extraFees"
+    | "priceAmount"
+    | "listingTypeId"
+    | "geoPoint"
+    | "cityName"
+    | "stateName"
+    | "countryName"
+    | "agencyId"
+    | "bedrooms"
+    | "toilets"
+    | "isBrandNew"
+    | "regionScope"
+    | "listingFor"
+    | "hasVirtualTour"
+    | "address"
+  > {
+  broadbandMbps: number;
 }

@@ -1,0 +1,42 @@
+// Auto-generated amenity icon registry — inner SVG markup only (no outer <svg> wrapper).
+// Keys match ListingAmenity.iconKey exactly, so the API's iconKey can be used directly as the lookup key.
+
+export const AMENITY_ICON_PATHS: Record<string, string> = {
+  backup_generator: `<rect x="4" y="8" width="16" height="10" rx="1.5"/><path d="M8 8V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v3"/><path d="M13.5 11l-3 4h3l-3 4"/>`,
+  borehole_water: `<path d="M12 3c-2.5 3-4 5.5-4 7.5a4 4 0 0 0 8 0C16 8.5 14.5 6 12 3z"/><ellipse cx="12" cy="19" rx="7" ry="2"/><path d="M5 19v-3a7 7 0 0 1 14 0v3"/>`,
+  gated_estate: `<path d="M4 21V8M20 21V8"/><path d="M4 8l4-4 4 4 4-4 4 4"/><path d="M4 14h16"/><circle cx="12" cy="17" r="1.4"/>`,
+  cctv_surveillance: `<rect x="2" y="9" width="10" height="6" rx="1.5"/><path d="M12 10.3l7-3.3v10l-7-3.3"/><circle cx="6" cy="12" r="1.3"/><path d="M4.3 15l-1 4M9 15l1 4"/>`,
+  secure_parking: `<path d="M12 2l8 3v6c0 5-3.5 8.5-8 11-4.5-2.5-8-6-8-11V5l8-3z"/><path d="M10 9h2.5a2 2 0 0 1 0 4H10V9zM10 9v7"/>`,
+  fibre_internet: `<rect x="9" y="14" width="6" height="6" rx="1"/><path d="M12 14v-3"/><path d="M8.3 8a6 6 0 0 1 7.4 0M6 5.3a9.5 9.5 0 0 1 12 0"/>`,
+  fenced_compound: `<path d="M4 21V7l2-3 2 3v14M11 21V7l2-3 2 3v14M18 21V7l2-3 2 3v14"/><path d="M2 12h20M2 17h20"/>`,
+  serviced_apartment: `<rect x="6" y="3" width="10" height="18" rx="1"/><path d="M9 7h1M14 7h1M9 11h1M14 11h1M9 15h1M14 15h1"/><path d="M19 5l.7 1.6 1.6.7-1.6.7L19 9.6l-.7-1.6-1.6-.7 1.6-.7L19 5z"/>`,
+  waste_disposal: `<path d="M5 7h14M9 7V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2M7 7l1 13a2 2 0 0 0 2 2h4a2 2 0 0 0 2-2l1-13"/><path d="M10 11v6M14 11v6"/>`,
+  tarred_road_access: `<path d="M9 21L7 3M15 21l2-18"/><path d="M12 4v2M12 9v2M12 14v2M12 19v2"/>`,
+  outdoor_relaxation_space: `<path d="M3 14l4-8h6l-2 8"/><path d="M3 14h15a3 3 0 0 1 3 3v1H6"/><path d="M6 18v2M18 18v2"/>`,
+  good_drainage: `<rect x="4" y="10" width="16" height="9" rx="1.5"/><path d="M7 13v3M11 13v3M15 13v3M19 13v3"/><path d="M12 2c-1.8 2.2-3 4-3 5.4A3 3 0 0 0 12 10a3 3 0 0 0 3-2.6C15 6 13.8 4.2 12 2z"/>`,
+  private_pool: `<path d="M3 17c1.2 1 2.3 1 3.5 0s2.3-1 3.5 0 2.3 1 3.5 0 2.3-1 3.5 0 2.3 1 3.5 0"/><path d="M3 21c1.2 1 2.3 1 3.5 0s2.3-1 3.5 0 2.3 1 3.5 0 2.3-1 3.5 0 2.3 1 3.5 0"/><path d="M6 17V6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v3"/><path d="M6 8h4"/>`,
+  central_air_conditioning: `<rect x="2" y="6" width="20" height="8" rx="1.5"/><path d="M6 14v3M10 14v4M14 14v4M18 14v3"/><path d="M12 8v4M9.5 9l5 3M14.5 9l-5 3"/>`,
+  underfloor_heating: `<path d="M3 19h18"/><path d="M7 19v-2M12 19v-2M17 19v-2"/><path d="M6 13c1-1 1-2 0-3M11 13c1-1 1-2 0-3M16 13c1-1 1-2 0-3"/>`,
+  electric_fencing: `<path d="M4 21V9M20 21V9"/><path d="M4 9l8-5 8 5"/><path d="M2 14h6M16 14h6"/><path d="M10.5 13l-2 3h3l-2 3"/>`,
+  alarm_response_service: `<path d="M12 4a5 5 0 0 0-5 5v3l-2 4h14l-2-4V9a5 5 0 0 0-5-5z"/><path d="M10 19a2 2 0 0 0 4 0"/><path d="M4 8a8 8 0 0 1 2-5M20 8a8 8 0 0 0-2-5"/>`,
+  estate_hoa_amenities: `<rect x="2" y="10" width="7" height="11"/><rect x="10.5" y="5" width="7" height="16"/><rect x="19" y="12" width="3" height="9"/><path d="M5 13h1M5 16h1M13 8h2M13 12h2M13 16h2"/>`,
+  solar_power_system: `<circle cx="7" cy="6" r="3"/><path d="M7 1v1M7 10v1M2 6h1M11 6h1M3.5 2.5l.7.7M9.8 2.5l-.7.7"/><rect x="10" y="12" width="11" height="7" rx="1"/><path d="M13 12v7M17 12v7M10 15.5h11"/>`,
+  braai_outdoor_area: `<ellipse cx="12" cy="10" rx="8" ry="3"/><path d="M4 10v4a8 3 0 0 0 16 0v-4"/><path d="M8 8h8"/><path d="M12 17v4M8 21h8"/>`,
+  pet_friendly_building: `<circle cx="7" cy="8" r="1.6"/><circle cx="12" cy="6" r="1.6"/><circle cx="17" cy="8" r="1.6"/><path d="M12 12c-3 0-5.5 2-5.5 4.5S8.5 21 12 21s5.5-1.8 5.5-4.5S15 12 12 12z"/>`,
+  scenic_view: `<circle cx="18" cy="6" r="2.5"/><path d="M2 19l6-9 4 5 3-4 7 8z"/>`,
+  interior_courtyard: `<rect x="3" y="3" width="18" height="18" rx="1"/><rect x="9" y="9" width="6" height="6" rx="0.5"/>`,
+  rooftop_terrace: `<rect x="4" y="10" width="16" height="11"/><path d="M4 10h16"/><path d="M7 10V7M10 10V7M13 10V7M16 10V7"/>`,
+  in_unit_laundry: `<rect x="4" y="3" width="16" height="18" rx="2"/><circle cx="12" cy="13" r="5"/><path d="M9 13a3 3 0 0 0 3 3"/><circle cx="7" cy="6" r="0.8"/><circle cx="10" cy="6" r="0.8"/>`,
+  central_heating: `<rect x="3" y="6" width="18" height="12" rx="1"/><path d="M7 6v12M11 6v12M15 6v12M19 6v12"/><path d="M5 20v1M19 20v1"/>`,
+  attached_garage: `<path d="M3 21V10l9-6 9 6v11"/><path d="M3 10h18"/><path d="M6 13h12M6 16h12M6 19h12"/>`,
+  finished_basement: `<path d="M4 11L12 4l8 7"/><path d="M4 11v9h16v-9"/><path d="M4 15h16"/><path d="M12 15v4M10 17l2 2 2-2"/>`,
+  energy_efficiency_rating: `<path d="M4 15a8 8 0 0 1 16 0"/><path d="M12 15l4-5"/><path d="M4 15h1M19 15h1"/>`,
+  fireplace: `<path d="M4 21h16"/><path d="M6 21V10h12v11"/><path d="M12 8c-2 2-3 3.5-3 5a3 3 0 0 0 6 0c0-1-.5-2-1.5-3 .2 1-.3 1.8-1 1.8-.9 0-1-1-.5-1.8C12.3 9.5 12 8.8 12 8z"/>`,
+  elevator_access: `<rect x="6" y="3" width="12" height="18" rx="1"/><path d="M12 3v18"/><path d="M15 8l2-2 2 2M15 16l2 2 2-2"/>`,
+  storage_unit: `<path d="M3 8l9-5 9 5-9 5-9-5z"/><path d="M3 8v9l9 5 9-5V8"/><path d="M12 13v9"/>`,
+  stainless_steel_appliances: `<rect x="6" y="2" width="12" height="20" rx="1.5"/><path d="M6 9h12"/><path d="M9 5v2M9 12v3"/>`,
+  school_catchment_zone: `<path d="M12 4L2 9l10 5 10-5-10-5z"/><path d="M6 11.5V16c0 1.5 3 3 6 3s6-1.5 6-3v-4.5"/><path d="M22 9v6"/>`,
+  fallback: `<circle cx="12" cy="12" r="9"/><path d="M9.2 9.5a2.8 2.8 0 1 1 4.3 2.4c-.9.5-1.5 1-1.5 2.1"/><path d="M12 17.5h.01"/>`,
+};
+
+export type AmenityIconKey = keyof typeof AMENITY_ICON_PATHS;

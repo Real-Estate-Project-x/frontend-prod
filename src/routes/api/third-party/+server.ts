@@ -19,28 +19,27 @@ export const POST: RequestHandler = async ({ request, cookies, fetch }) => {
     }
 
     const result = response.data;
-    const decryptedInfo = JSON.parse(
-      decryptData(result.data, PUBLIC_ENCRYPTION_KEY)
-    );
+    const decryptedInfo = decryptData(result.data, PUBLIC_ENCRYPTION_KEY);
 
-    cookies.set("blp_data", result, {
+    const cookieConfig: any = {
       path: "/",
       httpOnly: true,
       secure: true,
       sameSite: "lax",
       maxAge: TWENTY_FOUR_HOURS,
-    });
+    };
 
-    if (decryptedInfo) {
-      cookies.set("access_token", decryptedInfo.jwtToken, {
-        path: "/",
-        httpOnly: true,
-        secure: true,
-        sameSite: "lax",
-        maxAge: TWENTY_FOUR_HOURS,
-      });
+    cookies.set("blp_data", result, cookieConfig);
+
+    const decryptedInfoJson = JSON.parse(decryptedInfo);
+    if (decryptedInfoJson) {
+      cookies.set("user_id", decryptedInfoJson.userId, cookieConfig);
+      cookies.set("access_token", decryptedInfoJson.jwtToken, cookieConfig);
     }
-    return json({ decryptedInfo, enc: result.data });
+    return json({
+      enc: result.data,
+      decryptedInfo: decryptedInfoJson,
+    });
   } catch (ex) {
     if (ex instanceof AxiosError) {
       throw error(

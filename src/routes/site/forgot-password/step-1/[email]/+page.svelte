@@ -1,20 +1,17 @@
 <script lang="ts">
+    import { onMount } from 'svelte';
     import { AxiosError } from 'axios';
     import { goto, } from '$app/navigation';
     import type { PageData } from "./$types";
     import type { ToastType } from '$lib/types';
     import { getErrorMessage } from '$lib/utils';
-    import { onMount, onDestroy, tick } from 'svelte';
     import { ApiRequests } from '$lib/api/api.request';
     import Toast from '$lib/components/shared/Toast.svelte';
-
 
     let { data }: { data: PageData } = $props();
     const emailValue = $derived<any>(data.email);
 
-    onMount(() => {
-      startCountdown();
-    });
+    onMount(() => startCountdown());
 
     let emailError = $state(false);
 

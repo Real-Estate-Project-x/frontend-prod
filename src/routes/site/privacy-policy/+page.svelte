@@ -477,10 +477,6 @@ const toggleSectionTwo = (index: number) => {
       </div>
       <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
         <span class="meta-version">Version 1.0</span>
-        <button class="print-btn" onclick={() => {}}>
-          <svg width="12" height="12" viewBox="0 0 14 14" fill="none"><rect x="1" y="5" width="12" height="8" rx="1.5" stroke="currentColor" stroke-width="1.2"/><path d="M4 5V3a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" stroke="currentColor" stroke-width="1.2"/><rect x="4" y="9" width="6" height="1.5" rx=".75" fill="currentColor" opacity=".6"/></svg>
-          Print / save PDF
-        </button>
       </div>
     </div>
   

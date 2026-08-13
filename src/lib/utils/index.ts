@@ -1,9 +1,9 @@
-import axios, { AxiosError } from "axios";
 import {
-  parsePhoneNumberFromString,
   type CountryCode,
+  parsePhoneNumberFromString,
 } from "libphonenumber-js";
 import CryptoJS from "crypto-js";
+import { AxiosError } from "axios";
 import { LSKey } from "./constant";
 import type { NormalizePhoneOptions } from "$lib/types";
 
@@ -37,27 +37,6 @@ const ipCache = {
   value: null as string | null,
   promise: null as Promise<string> | null, // ← prevents parallel calls during first fetch
 };
-
-// export async function getUserIp(): Promise<string> {
-//   // Return cached value immediately
-//   if (ipCache.value) return ipCache.value;
-
-//   // If a fetch is already in-flight, reuse it instead of making a new call
-//   if (!ipCache.promise) {
-//     ipCache.promise = axios
-//       // .get("https://api.ipify.org?format=json")
-//       .then(({ data }) => {
-//         ipCache.value = data.ip;
-//         return data.ip;
-//       })
-//       .catch((err) => {
-//         ipCache.promise = null; // reset so it can retry on failure
-//         throw err;
-//       });
-//   }
-
-//   return ipCache.promise;
-// }
 
 export async function getUserIp(): Promise<string> {
   if (ipCache.value) return ipCache.value;
@@ -208,4 +187,60 @@ export const normalizeAndValidatePhone = ({
 
   // Always store in E.164 format
   return parsed.format("E.164");
+};
+
+export const toFileArray = (fileList: FileList | null): File[] => {
+  return fileList ? Array.from(fileList) : [];
+};
+
+export const generatePreviewUrls = (files: []) =>
+  files.map((f) => ({ file: f, preview: URL.createObjectURL(f) }));
+
+export const getAmenityNames = (
+  selectedIds: string[],
+  lookup: Map<string, any>
+): string[] => {
+  return selectedIds
+    .map((id) => lookup.get(id)?.displayName)
+    .filter((name): name is string => Boolean(name));
+};
+
+export const getListingType = (
+  listingTypeId: string,
+  lookup: Map<string, any>
+) => lookup.get(listingTypeId);
+
+export const currencyFormatter = (amount: number): string =>
+  new Intl.NumberFormat("en-NG").format(amount);
+
+export const cleanObject = (obj: Record<string, any>): Record<string, any> => {
+  const cleaned: Record<string, any> = {};
+
+  Object.entries(obj).forEach(([key, value]) => {
+    // Remove empty string, undefined, or null
+    if (value === "" || value === undefined || value === null) {
+      return;
+    }
+
+    // Handle empty arrays
+    if (Array.isArray(value) && value.length <= 0) {
+      return;
+    }
+
+    // Handle nested objects
+    if (typeof value === "object" && !Array.isArray(value)) {
+      const nested = cleanObject(value);
+
+      // Only keep object if it has valid keys
+      if (Object.keys(nested).length > 0) {
+        cleaned[key] = nested;
+      }
+
+      return;
+    }
+
+    cleaned[key] = value;
+  });
+
+  return cleaned;
 };
