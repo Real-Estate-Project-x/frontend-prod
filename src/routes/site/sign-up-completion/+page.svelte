@@ -2,7 +2,7 @@
   import { onMount } from "svelte";
   import { page } from "$app/state";
   import { AxiosError } from "axios";
-  import { isEmpty } from 'lodash-es';
+  import { isEmpty, toUpper } from 'lodash-es';
   import type { PageData } from "./$types";
   import type { ToastType } from "$lib/types";
   import { authClient } from "$lib/auth-client";
@@ -294,8 +294,14 @@
     if (session && !error && provider) {
       user = session.user;
       fullSession = session;
+
+      // upload third-party user avatar to cloud
       const avatar = await uploadAvatar(String(user.image));
-      prefillProfile(user, avatar.data.id, provider);
+      prefillProfile(
+        user, 
+        avatar.data.id, 
+        AuthProvider[toUpper(provider) as keyof typeof AuthProvider]
+      );
     }
   });
 </script>

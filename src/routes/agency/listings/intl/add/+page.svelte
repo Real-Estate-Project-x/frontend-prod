@@ -2,8 +2,8 @@
   import { onMount } from "svelte";
   import { AxiosError } from "axios";
   import { goto } from "$app/navigation";
-  import type { PageData } from "./$types";
   import { capitalize, isEmpty, toLower, toUpper } from "lodash-es";
+  import type { PageData } from "./$types";
   import { ApiRequests } from "$lib/api/api.request";
   import type { PFileType, ToastType } from "$lib/types";
   import Toast from "$lib/components/shared/Toast.svelte";
@@ -11,9 +11,9 @@
   import AmenityIcon from "$lib/components/shared/AmenityIcon.svelte";
   import AgencySidebar from "$lib/components/shared/AgencySidebar.svelte";
   import PrelaunchChecklist from "$lib/components/add-listing/PrelaunchChecklist.svelte";
-  import { ListingFor, ListingMediaType, ListingPaymentDuration, ListingResponseStatus, PropertyCategory, RegionScope } from "$lib/utils/constant";
-  import { cleanObject, currencyFormatter, generatePreviewUrls, getAmenityNames, getErrorMessage, getListingType, toFileArray } from "$lib/utils";
   import SuccessNotification from "$lib/components/add-listing/SuccessNotification.svelte";
+  import { cleanObject, currencyFormatter, generatePreviewUrls, getAmenityNames, getErrorMessage, getListingType, toFileArray } from "$lib/utils";
+  import { ListingFor, ListingMediaType, ListingPaymentDuration, ListingResponseStatus, PropertyCategory, RegionScope } from "$lib/utils/constant";
 
   type ListingForm = {
     paymentPeriod: string;
