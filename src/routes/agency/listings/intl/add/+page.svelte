@@ -11,8 +11,9 @@
   import AmenityIcon from "$lib/components/shared/AmenityIcon.svelte";
   import AgencySidebar from "$lib/components/shared/AgencySidebar.svelte";
   import PrelaunchChecklist from "$lib/components/add-listing/PrelaunchChecklist.svelte";
-  import { ListingFor, ListingMediaType, ListingPaymentDuration, PropertyCategory, RegionScope } from "$lib/utils/constant";
+  import { ListingFor, ListingMediaType, ListingPaymentDuration, ListingResponseStatus, PropertyCategory, RegionScope } from "$lib/utils/constant";
   import { cleanObject, currencyFormatter, generatePreviewUrls, getAmenityNames, getErrorMessage, getListingType, toFileArray } from "$lib/utils";
+  import SuccessNotification from "$lib/components/add-listing/SuccessNotification.svelte";
 
   type ListingForm = {
     paymentPeriod: string;
@@ -115,6 +116,8 @@
 	    { condition: listingFormData.photoIds.length >= 3, label: 'At least 3 photos uploaded' },
 	    { condition: listingFormData.amenities.length >= 1, label: 'Amenities selected' },
     ]);
+    let listingObject = $state<any>();
+    let listingSuccessStatus = $state<ListingResponseStatus | null>();
 
     let sizeSqm = $state(String(listingFormData.sizeSqm));
     let broadbandMbps = $state(String(listingFormData.broadbandMbps));
@@ -208,9 +211,10 @@
     }
 
     onMount(async () => {
-        // if (countryIp.bpRegion === RegionScope.WEST_AFRICA) {
-        //     goto('/agency/listing/add');
-        // }
+        if (countryIp.bpRegion === RegionScope.WEST_AFRICA) {
+            goto('/agency/listing/add');
+            return;
+        }
 
         // preset agency id as constant
         setListingFormField('agencyId', agency.id);
@@ -376,7 +380,37 @@
         // send to backend and prefill if agent comes back
     }
 
-    
+    const clearForm = () => {
+        listingFormData = {  //  
+            regionScope: countryIp.bpRegion ?? RegionScope.WEST_AFRICA,
+            title: '',
+            description: '',
+            address: '',
+            agencyId: '', // preset from local_storage
+            amenities: [],
+            requirements: ['curfew'],
+            archPlanIds: [],
+            bedrooms: 0,
+            broadbandMbps: 0,
+            cityName: '',
+            countryName: '',
+            extraFees: [{ label: 'Agency fee', amount: 0 }],
+            geoPoint: { latitude: 0, longitude: 0 },
+            hasVirtualTour: true,
+            isBrandNew: false,
+            listingTypeId: '',
+            photoIds: [],
+            priceAmount: 0,
+            sizeSqm: 0,
+            stateName: '',
+            toilets: 0,
+            videoId: '',
+            priceCurrency: countryIp.currency ?? '',
+            listingFor: ListingFor.RENT,
+            paymentPeriod: ListingPaymentDuration.MONTHLY,
+        };
+    };
+
     // Toast
     let toastMsg     = $state('');
     let toastType = $state<ToastType>('info');
@@ -407,7 +441,14 @@
             const result = await new ApiRequests().createIntlListing(payload as any);
             if (result.data.success) {
                 showToast(result.data.message, 'success');
-                setTimeout(() => goto('/agency/listings'), 2000);
+                
+                // clear form
+                clearForm();
+
+                // show success div
+                listingObject = result.data.data;
+                listingSuccessStatus = ListingResponseStatus[listingFormData.listingFor === ListingFor.SALE ? "AWAITING_CONFIRMATION" : "DRAFT"];
+                return;
             }
         } catch (ex) {
             if (ex instanceof AxiosError) {
@@ -440,7 +481,14 @@
                 const publishResult = await req.publishListing(listingId);
                 if (publishResult.data.success) {
                     showToast(publishResult.data.message, 'success');
-                    setTimeout(() => goto('/agency/listings'), 2000);
+                    
+                    // clear form
+                    clearForm();
+
+                    // navigate to listing page
+                    listingObject = result.data.data;
+                    listingSuccessStatus = ListingResponseStatus.LIVE;
+                    return;
                 }
             }
         } catch (ex) {
@@ -1127,10 +1175,11 @@
                     {/if}
                     </div>
                 </div><!-- /panel4 -->
-                {/if}
+            {/if}
 
-                {#if step === 5}
+            {#if step === 5}
                 <!-- ══ STEP 5: PREVIEW ══ -->
+                {#if listingFormData.title !== '' && listingFormData.description !== ''}
                 <div class="step-panel active fu" id="panel5">
                     <h2 class="font-display font-light text-navy-dark dark:text-blue-100 mb-1" style="font-size:clamp(22px,2.5vw,30px)">Listing preview</h2>
                     <p class="text-[13px] text-chalk-muted dark:text-[#6A7FA0] mb-7">This is how your property will appear to buyers. Review everything before going live.</p>
@@ -1297,7 +1346,16 @@
                     {/each}
                     </div>
                 </div><!-- /panel5 -->
+                {:else}
+                    {#if listingObject && listingSuccessStatus}
+                        <SuccessNotification 
+                            listingSlug={listingObject.slug} 
+                            status={listingSuccessStatus} 
+                            onClick={() => setStep(1)} 
+                        />
+                    {/if}
                 {/if}
+            {/if}
             </div> <!----<Form Area-->
 
             <!-- STICKY BOTTOM NAV BUTTONS -->
@@ -1327,13 +1385,18 @@
                     <div class="flex items-center gap-3">
                         <!-- Step 5 actions: draft is the default outcome, publish is optional -->
                         <button type="submit" 
+                            disabled={listingObject && listingSuccessStatus}
                             id="saveDraftStep5Btn" 
                             class="flex items-center gap-2 text-[13px] font-medium text-white bg-navy-dark dark:bg-blue-bright hover:opacity-90 px-6 py-[10px] rounded-full border-none cursor-pointer tt">
-                        <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M2 7a6 6 0 1112 0 6 6 0 01-12 0z"/><path d="M5 7l1.5 1.5L11 4.5"/></svg>
+                        <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M2 7a6 6 0 1112 0 6 6 0 01-12 0z"/>
+                            <path d="M5 7l1.5 1.5L11 4.5" />
+                        </svg>
                         Save as draft
                         </button>
                         {#if listingFormData.listingFor === ListingFor.SALE}
                         <button type="button" 
+                            disabled={listingObject && listingSuccessStatus}
                             id="goLiveBtn" 
                             onclick={publishListing}
                             class="flex items-center gap-2 text-[13px] font-medium text-white bg-sage hover:bg-[#3a6038] px-6 py-[10px] rounded-full border-none cursor-pointer tt">
@@ -1345,6 +1408,7 @@
                         </button>
                         {:else}
                         <button type="button" 
+                            disabled={listingObject && listingSuccessStatus}
                             id="goLiveBtn" 
                             onclick={publishListing}
                             class="flex items-center gap-2 text-[13px] font-medium text-white bg-sage hover:bg-[#3a6038] px-6 py-[10px] rounded-full border-none cursor-pointer tt">

@@ -62,3 +62,9 @@ export enum ERROR_CODES {
   REGION_NOT_SUPPORTED = "region_not_currently_supported",
   BLACK_LISTED_TOKEN = "blacklisted_token_user_already_logged_out",
 }
+
+export enum ListingResponseStatus {
+  DRAFT = "draft",
+  LIVE = "live",
+  AWAITING_CONFIRMATION = "awaiting_confirmation",
+}

@@ -11,8 +11,9 @@
   import AmenityIcon from "$lib/components/shared/AmenityIcon.svelte";
   import AgencySidebar from "$lib/components/shared/AgencySidebar.svelte";
   import PrelaunchChecklist from "$lib/components/add-listing/PrelaunchChecklist.svelte";
-  import { ListingFor, ListingMediaType, ListingPaymentDuration, PropertyCategory, RegionScope } from "$lib/utils/constant";
+  import { ListingFor, ListingMediaType, ListingPaymentDuration, ListingResponseStatus, PropertyCategory, RegionScope } from "$lib/utils/constant";
   import { cleanObject, currencyFormatter, generatePreviewUrls, getAmenityNames, getErrorMessage, getListingType, toFileArray } from "$lib/utils";
+  import SuccessNotification from "$lib/components/add-listing/SuccessNotification.svelte";
 
   type ListingForm = {
     regionScope: string;
@@ -116,6 +117,8 @@
 	    { condition: listingFormData.photoIds.length >= 3, label: 'At least 3 photos uploaded' },
 	    { condition: listingFormData.amenities.length >= 1, label: 'Amenities selected' },
     ]);
+    let listingObject = $state<any>();
+    let listingSuccessStatus = $state<ListingResponseStatus | null>();
 
     let broadbandMbps = $state(String(listingFormData.broadbandMbps));
     let sizeSqm = $state(String(listingFormData.sizeSqm));
@@ -167,6 +170,7 @@
     onMount(() => {
         if (countryIp.bpRegion !== RegionScope.WEST_AFRICA) {
             goto('/agency/listing/intl/add');
+            return;
         }
 
         init();
@@ -381,8 +385,40 @@
     }
 
     const setStep = (value: number) => {
-        if (value <= 5) step = value
+        if (value <= 5) step = value;
     };
+
+    const clearForm = () => {
+        listingFormData = { 
+            regionScope: countryIp.bpRegion ?? RegionScope.WEST_AFRICA,
+            title: '',
+            description: '',
+            address: '',
+            agencyId: '', // preset from local_storage
+            amenities: [],
+            archPlanIds: [],
+            bedrooms: 0,
+            broadbandMbps: 0,
+            cityName: '',
+            countryName: '',
+            extraFees: [{ label: 'Agency fee', amount: 0 }],
+            requirements: ['curfew'],
+            geoPoint: { latitude: 0, longitude: 0 },
+            hasVirtualTour: false,
+            isBrandNew: false,
+            landmark: '',
+            listingFor: ListingFor.RENT,
+            paymentPeriod: ListingPaymentDuration.YEARLY,
+            listingTypeId: '',
+            photoIds: [],
+            ownershipDocIds: [],
+            priceAmount: 0,
+            sizeSqm: 0,
+            stateName: '',
+            toilets: 0,
+            videoId: '',
+        }
+    }
 
     const saveDraft = () => {
         // send to backend and prefill if agent comes back
@@ -400,7 +436,14 @@
             const result = await new ApiRequests().createListing(payload as any);
             if (result.data.success) {
                 showToast(result.data.message, 'success');
-                setTimeout(() => goto('/agency/listings'), 2000);
+                
+                // clear form
+                clearForm();
+
+                // show success div
+                listingObject = result.data.data;
+                listingSuccessStatus = ListingResponseStatus[listingFormData.listingFor === ListingFor.SALE ? "AWAITING_CONFIRMATION" : "DRAFT"];
+                return;
             }
         } catch (ex) {
             if (ex instanceof AxiosError) {
@@ -424,8 +467,6 @@
                 if (isEmpty(listingId)) {
                     const message = "Listing saved. Could not get listing_id..try publishing manually"
                     showToast(message, 'error');
-                    // navigate to listing page
-                    setTimeout(() => goto('/agency/listings'), 2000);
                     return;
                 }
 
@@ -433,7 +474,14 @@
                 const publishResult = await req.publishListing(listingId);
                 if (publishResult.data.success) {
                     showToast(publishResult.data.message, 'success');
-                    setTimeout(() => goto('/agency/listings'), 2000);
+
+                    // clear form
+                    clearForm();
+
+                    // navigate to listing page
+                    listingObject = result.data.data;
+                    listingSuccessStatus = ListingResponseStatus.LIVE;
+                    return;
                 }
             }
         } catch (ex) {
@@ -1236,174 +1284,184 @@
 
                 {#if step === 5}
                 <!-- ══ STEP 5: PREVIEW ══ -->
-                <div class="step-panel active fu" id="panel5">
-                    <h2 class="font-display font-light text-navy-dark dark:text-blue-100 mb-1" style="font-size:clamp(22px,2.5vw,30px)">Listing preview</h2>
-                    <p class="text-[13px] text-chalk-muted dark:text-[#6A7FA0] mb-7">This is how your property will appear to buyers. Review everything before going live.</p>
-            
-                    <!-- Preview card -->
-                    <div class="bg-white dark:bg-[#131C2E] border border-chalk-3 dark:border-white/[.08] rounded-2xl overflow-hidden tt mb-6 shadow-[0_4px_24px_rgba(10,36,99,.06)]">
-            
-                    <!-- Preview image -->
-                    <div class="relative h-[220px] sm:h-[260px] sky-1 overflow-hidden" id="previewImageArea">
-                        <!-- Building illustration placeholder -->
-                        <div class="absolute inset-0 flex items-end justify-center pb-4">
-                            <div style="position:relative;width:260px;height:180px">
-                                {#if listingFormData.photoIds.length > 0}
-                                    <div style="position:relative;width:260px;height:180px">
-                                        <img src={previewPhotos[0].preview} 
-                                            alt={listingFormData.title} 
-                                            class="img-full-fit" 
-                                        />
-                                    </div>
-                                {:else}
-                                    <div style="position:absolute;bottom:0;left:20px;width:90px;height:120px;background:rgba(255,255,255,.13);border-radius:4px 4px 0 0"></div>
-                                    <div style="position:absolute;background:rgba(212,174,58,.68);border-radius:2px;width:13px;height:17px;left:30px;bottom:90px"></div>
-                                    <div style="position:absolute;background:rgba(212,174,58,.68);border-radius:2px;width:13px;height:17px;left:50px;bottom:90px"></div>
-                                    <div style="position:absolute;background:rgba(212,174,58,.68);border-radius:2px;width:13px;height:17px;left:30px;bottom:62px"></div>
-                                    <div style="position:absolute;background:rgba(212,174,58,.68);border-radius:2px;width:13px;height:17px;left:50px;bottom:62px"></div>
-                                    <div style="position:absolute;background:rgba(212,174,58,.68);border-radius:2px;width:13px;height:17px;left:30px;bottom:35px"></div>
-                                    <div style="position:absolute;bottom:0;left:150px;width:62px;height:76px;background:rgba(255,255,255,.1);border-radius:4px 4px 0 0"></div>
-                                    <div style="position:absolute;background:rgba(212,174,58,.65);border-radius:2px;width:10px;height:13px;left:158px;bottom:52px"></div>
-                                    <div style="position:absolute;background:rgba(212,174,58,.65);border-radius:2px;width:10px;height:13px;left:174px;bottom:52px"></div>
-                                {/if}
+                {#if listingFormData.title !== '' && listingFormData.description !== ''}
+                    <div class="step-panel active fu" id="panel5">
+                        <h2 class="font-display font-light text-navy-dark dark:text-blue-100 mb-1" style="font-size:clamp(22px,2.5vw,30px)">Listing preview</h2>
+                        <p class="text-[13px] text-chalk-muted dark:text-[#6A7FA0] mb-7">This is how your property will appear to buyers. Review everything before going live.</p>
+                
+                        <!-- Preview card -->
+                        <div class="bg-white dark:bg-[#131C2E] border border-chalk-3 dark:border-white/[.08] rounded-2xl overflow-hidden tt mb-6 shadow-[0_4px_24px_rgba(10,36,99,.06)]">
+                
+                        <!-- Preview image -->
+                        <div class="relative h-[220px] sm:h-[260px] sky-1 overflow-hidden" id="previewImageArea">
+                            <!-- Building illustration placeholder -->
+                            <div class="absolute inset-0 flex items-end justify-center pb-4">
+                                <div style="position:relative;width:260px;height:180px">
+                                    {#if listingFormData.photoIds.length > 0}
+                                        <div style="position:relative;width:260px;height:180px">
+                                            <img src={previewPhotos[0].preview} 
+                                                alt={listingFormData.title} 
+                                                class="img-full-fit" 
+                                            />
+                                        </div>
+                                    {:else}
+                                        <div style="position:absolute;bottom:0;left:20px;width:90px;height:120px;background:rgba(255,255,255,.13);border-radius:4px 4px 0 0"></div>
+                                        <div style="position:absolute;background:rgba(212,174,58,.68);border-radius:2px;width:13px;height:17px;left:30px;bottom:90px"></div>
+                                        <div style="position:absolute;background:rgba(212,174,58,.68);border-radius:2px;width:13px;height:17px;left:50px;bottom:90px"></div>
+                                        <div style="position:absolute;background:rgba(212,174,58,.68);border-radius:2px;width:13px;height:17px;left:30px;bottom:62px"></div>
+                                        <div style="position:absolute;background:rgba(212,174,58,.68);border-radius:2px;width:13px;height:17px;left:50px;bottom:62px"></div>
+                                        <div style="position:absolute;background:rgba(212,174,58,.68);border-radius:2px;width:13px;height:17px;left:30px;bottom:35px"></div>
+                                        <div style="position:absolute;bottom:0;left:150px;width:62px;height:76px;background:rgba(255,255,255,.1);border-radius:4px 4px 0 0"></div>
+                                        <div style="position:absolute;background:rgba(212,174,58,.65);border-radius:2px;width:10px;height:13px;left:158px;bottom:52px"></div>
+                                        <div style="position:absolute;background:rgba(212,174,58,.65);border-radius:2px;width:10px;height:13px;left:174px;bottom:52px"></div>
+                                    {/if}
+                                </div>
+                            </div>
+                            <!-- Tags -->
+                            <div class="absolute top-4 left-4 flex gap-2 flex-wrap">
+                            {#if listingFormData.listingFor === ListingFor.SALE}
+                            <span  id="prev-upfor" class="preview-badge bg-ember-light text-ember-deep">For Sale</span>
+                            {/if}
+
+                            {#if listingFormData.listingFor === ListingFor.RENT}
+                            <span  id="prev-upfor" class="preview-badge bg-[#E8EDF5] text-navy-strong">For Rent</span>
+                            {/if}
+
+                            {#if listingFormData.hasVirtualTour}
+                            <span class="preview-badge bg-sage-light text-sage" id="prev-virtual-badge">Virtual tour</span>
+                            {/if}
+                            </div>
+
+                            {#if listingFormData.photoIds.length <= 0}
+                            <p class="absolute bottom-4 right-4 text-[11px] text-white/50 italic">Preview — add photos in step 4</p>
+                            {/if}
+                        </div>
+                
+                        <!-- Preview body -->
+                        <div class="px-6 py-5">
+                            {#if listingFormData.priceAmount}
+                            <div id="prev-price" class="font-display text-[24px] font-semibold text-navy-dark dark:text-blue-100 mb-1">
+                                ₦ {currencyFormatter(listingFormData.priceAmount)}
+                            </div>
+                            {/if}
+                            
+                            {#if listingFormData.title}
+                            <div id="prev-title" class="text-[14px] font-medium text-navy-dark dark:text-blue-100 mb-1 capitalize">
+                                {listingFormData.title}
+                            </div>
+                            {/if}
+
+                            {#if listingFormData.address}
+                            <div class="text-[12px] text-chalk-muted dark:text-[#6A7FA0] flex items-center gap-1.5 mb-4">
+                                <svg width="11" height="11" viewBox="0 0 14 14" fill="none">
+                                    <path d="M7 1C4.79 1 3 2.79 3 5c0 3 4 8 4 8s4-5 4-8c0-2.21-1.79-4-4-4z" stroke="#4A90E2" stroke-width="1.3"/>
+                                    <circle cx="7" cy="5" r="1.5" stroke="#4A90E2" stroke-width="1.3"/>
+                                </svg>
+                                <span id="prev-address">{listingFormData.address}</span>
+                            </div>
+                            {/if}
+                
+                            <!-- Key stats -->
+                            <div class="flex gap-4 pb-4 border-b border-chalk-3 dark:border-white/[.07] mb-4 flex-wrap">
+                            {#if listingFormData.bedrooms}
+                            <div class="text-[12px] text-navy-accent dark:text-[#8DAACC] flex items-center gap-1.5">
+                                <svg width="12" height="12" viewBox="0 0 16 16" fill="none">
+                                    <rect x="2" y="6" width="12" height="8" rx="1.5" stroke="currentColor" stroke-width="1.3"/>
+                                    <path d="M5 6V4a3 3 0 016 0v2" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" />
+                                </svg>
+                                <span id="prev-beds">{listingFormData.bedrooms} bedroom</span>
+                            </div>
+                            {/if}
+
+                            {#if listingFormData.toilets}
+                            <div class="text-[12px] text-navy-accent dark:text-[#8DAACC] flex items-center gap-1.5">
+                                <svg width="12" height="12" viewBox="0 0 16 16" fill="none">
+                                    <path d="M2 9h12M2 9v3a1 1 0 001 1h10a1 1 0 001-1V9" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
+                                </svg>
+                                <span id="prev-baths">2 bathrooms</span>
+                            </div>
+                            {/if}
+
+                            {#if listingFormData.sizeSqm}
+                            <div class="text-[12px] text-navy-accent dark:text-[#8DAACC] flex items-center gap-1.5">
+                                <svg width="12" height="12" viewBox="0 0 16 16" fill="none">
+                                    <rect x="2" y="2" width="12" height="12" rx="1.5" stroke="currentColor" stroke-width="1.3"/>
+                                </svg>
+                                <span id="prev-size">{listingFormData.sizeSqm} m²</span>
+                            </div>
+                            {/if}
+
+                            <div class="text-[12px] text-navy-accent dark:text-[#8DAACC] flex items-center gap-1.5">
+                                <svg width="12" height="12" viewBox="0 0 16 16" fill="none">
+                                    <path d="M1 9h4l3-7 3 14 3-9 2 2h3" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/>
+                                </svg>
+                                <span id="prev-type">Detached house</span>
+                            </div>
+                            </div>
+                
+                            {#if listingFormData.description}
+                            <!-- Description preview -->
+                            <p id="prev-desc" class="text-[13px] font-light text-chalk-muted dark:text-[#6A7FA0] leading-[1.7] mb-4 line-clamp-3">{listingFormData.description}</p>
+                            {/if}
+                
+                            <!-- Selected amenities -->
+                            <div class="flex flex-wrap gap-1.5" id="prev-amenities">
+
+                            {#if selectedNames.length > 0}
+                                {#each selectedNames as a}
+                                <span class="uppercase text-[11px] font-medium text-navy-accent dark:text-[#8DAACC] bg-[#E8EDF5] dark:bg-navy-strong/40 px-2.5 py-[4px] rounded-full">{a}</span>
+                                {/each}
+                            {:else}
+                            <span class="text-[11px] text-chalk-muted dark:text-[#6A7FA0] italic">
+                                No amenities selected yet
+                            </span>
+                            {/if}
                             </div>
                         </div>
-                        <!-- Tags -->
-                        <div class="absolute top-4 left-4 flex gap-2 flex-wrap">
-                        {#if listingFormData.listingFor === ListingFor.SALE}
-                        <span  id="prev-upfor" class="preview-badge bg-ember-light text-ember-deep">For Sale</span>
-                        {/if}
-
-                        {#if listingFormData.listingFor === ListingFor.RENT}
-                        <span  id="prev-upfor" class="preview-badge bg-[#E8EDF5] text-navy-strong">For Rent</span>
-                        {/if}
-
-                        {#if listingFormData.hasVirtualTour}
-                        <span class="preview-badge bg-sage-light text-sage" id="prev-virtual-badge">Virtual tour</span>
-                        {/if}
                         </div>
-
-                        {#if listingFormData.photoIds.length <= 0}
-                        <p class="absolute bottom-4 right-4 text-[11px] text-white/50 italic">Preview — add photos in step 4</p>
-                        {/if}
-                    </div>
-            
-                    <!-- Preview body -->
-                    <div class="px-6 py-5">
-                        {#if listingFormData.priceAmount}
-                        <div id="prev-price" class="font-display text-[24px] font-semibold text-navy-dark dark:text-blue-100 mb-1">
-                            ₦ {currencyFormatter(listingFormData.priceAmount)}
-                        </div>
-                        {/if}
-                        
-                        {#if listingFormData.title}
-                        <div id="prev-title" class="text-[14px] font-medium text-navy-dark dark:text-blue-100 mb-1 capitalize">
-                            {listingFormData.title}
-                        </div>
-                        {/if}
-
-                        {#if listingFormData.address}
-                        <div class="text-[12px] text-chalk-muted dark:text-[#6A7FA0] flex items-center gap-1.5 mb-4">
-                            <svg width="11" height="11" viewBox="0 0 14 14" fill="none">
-                                <path d="M7 1C4.79 1 3 2.79 3 5c0 3 4 8 4 8s4-5 4-8c0-2.21-1.79-4-4-4z" stroke="#4A90E2" stroke-width="1.3"/>
-                                <circle cx="7" cy="5" r="1.5" stroke="#4A90E2" stroke-width="1.3"/>
-                            </svg>
-                            <span id="prev-address">{listingFormData.address}</span>
-                        </div>
-                        {/if}
-            
-                        <!-- Key stats -->
-                        <div class="flex gap-4 pb-4 border-b border-chalk-3 dark:border-white/[.07] mb-4 flex-wrap">
-                        {#if listingFormData.bedrooms}
-                        <div class="text-[12px] text-navy-accent dark:text-[#8DAACC] flex items-center gap-1.5">
-                            <svg width="12" height="12" viewBox="0 0 16 16" fill="none">
-                                <rect x="2" y="6" width="12" height="8" rx="1.5" stroke="currentColor" stroke-width="1.3"/>
-                                <path d="M5 6V4a3 3 0 016 0v2" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" />
-                            </svg>
-                            <span id="prev-beds">{listingFormData.bedrooms} bedroom</span>
-                        </div>
-                        {/if}
-
-                        {#if listingFormData.toilets}
-                        <div class="text-[12px] text-navy-accent dark:text-[#8DAACC] flex items-center gap-1.5">
-                            <svg width="12" height="12" viewBox="0 0 16 16" fill="none">
-                                <path d="M2 9h12M2 9v3a1 1 0 001 1h10a1 1 0 001-1V9" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
-                            </svg>
-                            <span id="prev-baths">2 bathrooms</span>
-                        </div>
-                        {/if}
-
-                        {#if listingFormData.sizeSqm}
-                        <div class="text-[12px] text-navy-accent dark:text-[#8DAACC] flex items-center gap-1.5">
-                            <svg width="12" height="12" viewBox="0 0 16 16" fill="none">
-                                <rect x="2" y="2" width="12" height="12" rx="1.5" stroke="currentColor" stroke-width="1.3"/>
-                            </svg>
-                            <span id="prev-size">{listingFormData.sizeSqm} m²</span>
-                        </div>
-                        {/if}
-
-                        <div class="text-[12px] text-navy-accent dark:text-[#8DAACC] flex items-center gap-1.5">
-                            <svg width="12" height="12" viewBox="0 0 16 16" fill="none">
-                                <path d="M1 9h4l3-7 3 14 3-9 2 2h3" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/>
-                            </svg>
-                            <span id="prev-type">Detached house</span>
-                        </div>
-                        </div>
-            
-                        {#if listingFormData.description}
-                        <!-- Description preview -->
-                        <p id="prev-desc" class="text-[13px] font-light text-chalk-muted dark:text-[#6A7FA0] leading-[1.7] mb-4 line-clamp-3">{listingFormData.description}</p>
-                        {/if}
-            
-                        <!-- Selected amenities -->
-                        <div class="flex flex-wrap gap-1.5" id="prev-amenities">
-
-                        {#if selectedNames.length > 0}
-                            {#each selectedNames as a}
-                            <span class="uppercase text-[11px] font-medium text-navy-accent dark:text-[#8DAACC] bg-[#E8EDF5] dark:bg-navy-strong/40 px-2.5 py-[4px] rounded-full">{a}</span>
+                
+                        <!-- Review checklist -->
+                        <div class="bg-chalk-2 dark:bg-[#131C2E] rounded-2xl p-5 tt mb-6">
+                            <div class="text-[11px] font-medium tracking-[.1em] uppercase text-chalk-muted dark:text-[#6A7FA0] mb-3">Pre-launch checklist</div>
+                            <div class="space-y-2.5" id="checklist">
+                            {#each prelaunchList as item}
+                            <PrelaunchChecklist 
+                                label={item.label} 
+                                condition={item.condition} 
+                            />
                             {/each}
-                        {:else}
-                        <span class="text-[11px] text-chalk-muted dark:text-[#6A7FA0] italic">
-                            No amenities selected yet
-                        </span>
-                        {/if}
                         </div>
                     </div>
-                    </div>
-            
-                    <!-- Review checklist -->
-                    <div class="bg-chalk-2 dark:bg-[#131C2E] rounded-2xl p-5 tt mb-6">
-                        <div class="text-[11px] font-medium tracking-[.1em] uppercase text-chalk-muted dark:text-[#6A7FA0] mb-3">Pre-launch checklist</div>
-                        <div class="space-y-2.5" id="checklist">
-                        {#each prelaunchList as item}
-                        <PrelaunchChecklist 
-                            label={item.label} 
-                            condition={item.condition} 
-                        />
-                        {/each}
-                    </div>
-                </div>
 
-                    <!-- Publish reassurance note -->
-                    <p class="text-[12px] text-chalk-muted dark:text-[#6A7FA0] mb-6 leading-[1.7]">
-                        Your listing is saved as a draft by default — publishing isn't required right now. When you're ready, choose <strong class="text-navy-dark dark:text-blue-100 font-medium">Publish listing</strong> below to make it live, or continue as a draft and publish later from <strong class="text-navy-dark dark:text-blue-100 font-medium">Update Listing</strong> or <strong class="text-navy-dark dark:text-blue-100 font-medium">View Listings</strong>.
-                    </p>
-            
-                    <!-- Edit step buttons -->
-                    <div class="flex flex-wrap gap-2 mb-6">
-                    {#each steps as s, index}
-                    <!-- Avoid showing the last step as shortcut -->
-                    {#if index !== steps.length - 1}
-                    <button onclick={() => setStep(s.step)} 
-                        class="text-[12px] font-medium text-chalk-muted dark:text-[#6A7FA0] border border-chalk-3 dark:border-white/[.1] hover:border-navy-dark hover:text-navy-dark dark:hover:text-white px-4 py-2 rounded-full cursor-pointer bg-transparent tt">
-                        Edit {s.label}
-                    </button>
+                        <!-- Publish reassurance note -->
+                        <p class="text-[12px] text-chalk-muted dark:text-[#6A7FA0] mb-6 leading-[1.7]">
+                            Your listing is saved as a draft by default — publishing isn't required right now. When you're ready, choose <strong class="text-navy-dark dark:text-blue-100 font-medium">Publish listing</strong> below to make it live, or continue as a draft and publish later from <strong class="text-navy-dark dark:text-blue-100 font-medium">Update Listing</strong> or <strong class="text-navy-dark dark:text-blue-100 font-medium">View Listings</strong>.
+                        </p>
+                
+                        <!-- Edit step buttons -->
+                        <div class="flex flex-wrap gap-2 mb-6">
+                        {#each steps as s, index}
+                        <!-- Avoid showing the last step as shortcut -->
+                        {#if index !== steps.length - 1}
+                        <button onclick={() => setStep(s.step)} 
+                            class="text-[12px] font-medium text-chalk-muted dark:text-[#6A7FA0] border border-chalk-3 dark:border-white/[.1] hover:border-navy-dark hover:text-navy-dark dark:hover:text-white px-4 py-2 rounded-full cursor-pointer bg-transparent tt">
+                            Edit {s.label}
+                        </button>
+                        {/if}
+                        {/each}
+                        </div>
+                    </div><!-- /panel5 -->
+                {:else}
+                   {#if listingObject && listingSuccessStatus}
+                    <SuccessNotification 
+                        listingSlug={listingObject.slug} 
+                        status={listingSuccessStatus} 
+                        onClick={() => setStep(1)} 
+                    />
                     {/if}
-                    {/each}
-                    </div>
-                </div><!-- /panel5 -->
                 {/if}
-            </div> <!----<Form Area-->
+            {/if}
+            </div><!----<Form Area-->
 
             <!-- STICKY BOTTOM NAV BUTTONS -->
             <div class="w-full z-30 bg-white dark:bg-[#0D1422] border-t border-chalk-3 dark:border-white/[.07] px-4 sm:px-6 py-4 tt flex justify-center">
@@ -1432,13 +1490,18 @@
                     <div class="flex items-center gap-3">
                         <!-- Step 5 actions: draft is the default outcome, publish is optional -->
                         <button type="submit" 
+                            disabled={listingObject && listingSuccessStatus}
                             id="saveDraftStep5Btn" 
                             class="flex items-center gap-2 text-[13px] font-medium text-white bg-navy-dark dark:bg-blue-bright hover:opacity-90 px-6 py-[10px] rounded-full border-none cursor-pointer tt">
-                        <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M2 7a6 6 0 1112 0 6 6 0 01-12 0z"/><path d="M5 7l1.5 1.5L11 4.5"/></svg>
+                        <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M2 7a6 6 0 1112 0 6 6 0 01-12 0z"/>
+                            <path d="M5 7l1.5 1.5L11 4.5"/>
+                        </svg>
                         Save as draft
                         </button>
                         {#if listingFormData.listingFor === ListingFor.SALE}
                         <button type="button" 
+                            disabled={listingObject && listingSuccessStatus}
                             id="goLiveBtn" 
                             onclick={publishListing}
                             class="flex items-center gap-2 text-[13px] font-medium text-white bg-sage hover:bg-[#3a6038] px-6 py-[10px] rounded-full border-none cursor-pointer tt">
@@ -1450,6 +1513,7 @@
                         </button>
                         {:else}
                         <button type="button" 
+                            disabled={listingObject && listingSuccessStatus}
                             id="goLiveBtn" 
                             onclick={publishListing}
                             class="flex items-center gap-2 text-[13px] font-medium text-white bg-sage hover:bg-[#3a6038] px-6 py-[10px] rounded-full border-none cursor-pointer tt">
