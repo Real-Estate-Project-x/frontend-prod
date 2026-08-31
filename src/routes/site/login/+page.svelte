@@ -157,6 +157,7 @@
         const message = getErrorMessage(ex);
         showToast(message, 'error');
       }
+      console.error(ex);
       return;
     }
   }

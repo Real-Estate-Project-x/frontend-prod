@@ -459,7 +459,9 @@
       });
       if (result.data.success) {
         showToast(result.data.message, 'success');
-        const redirectUrl =  `/site/verify-account/${result.data.data.slug}`;
+        const newAgency = result.data.data;
+        const slug = newAgency.mainAgent.slug;
+        const redirectUrl =  `/site/verify-account/${slug}`;
         setTimeout(() => goto(redirectUrl), 3000);
       }
     } catch(ex) {
