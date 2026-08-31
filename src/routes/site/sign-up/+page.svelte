@@ -419,7 +419,8 @@
       });
       if (result.data.success) {
         showToast(result.data.message, 'success');
-        const redirectUrl =  `/site/verify-account/${result.data.data.slug}`;
+        const newUser = result.data.data;
+        const redirectUrl =  `/site/verify-account/${newUser.slug}`;
         setTimeout(() => goto(redirectUrl), 3000);
       }
     } catch(ex) {
