@@ -2,10 +2,9 @@ import { error } from "@sveltejs/kit";
 import type { PageServerLoad } from "./$types";
 import { ApiRequests } from "$lib/api/api.request";
 
-export const load: PageServerLoad = async ({ locals, cookies }) => {
-  const ip = locals.clientIp;
-  const req = new ApiRequests(ip);
-  const userId = String(cookies.get("user_id"));
+export const load: PageServerLoad = async ({ locals }) => {
+  const { clientIp, userId } = locals;
+  const req = new ApiRequests(clientIp);
 
   try {
     let states, agency, amenities;

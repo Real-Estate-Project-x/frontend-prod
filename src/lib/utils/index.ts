@@ -4,8 +4,10 @@ import {
 } from "libphonenumber-js";
 import CryptoJS from "crypto-js";
 import { AxiosError } from "axios";
+import { isEmpty } from "lodash-es";
 import { LSKey } from "./constant";
 import type { NormalizePhoneOptions } from "$lib/types";
+import { PUBLIC_ENCRYPTION_KEY } from "$env/static/public";
 
 export const encryptData = <T>(rawData: T, encryptionKey: string): string => {
   let data: any = rawData;
@@ -114,6 +116,19 @@ export function onLogOff(saveCurrentRoute = false) {
   window.location.href = "/login";
 }
 
+/**
+ *
+ * @param key ['roleId', 'roleName', 'agencyId', 'userId']
+ * @returns
+ */
+export const getUserInfo = (key?: string) => {
+  const enc = getLocalStorageField<string>(LSKey.blp_data);
+  if (!isEmpty(enc) && enc) {
+    const decryptedInfo = JSON.parse(decryptData(enc, PUBLIC_ENCRYPTION_KEY));
+    return key ? decryptedInfo[key] : decryptedInfo;
+  }
+};
+
 export const onRegionNotSupported = () => {
   window.location.href = "/region-not-supported";
 };
@@ -213,12 +228,20 @@ export const getListingType = (
 export const currencyFormatter = (amount: number): string =>
   new Intl.NumberFormat("en-NG").format(amount);
 
-export const cleanObject = (obj: Record<string, any>): Record<string, any> => {
+export const cleanObject = (
+  obj: Record<string, any>,
+  removeBool = false
+): Record<string, any> => {
   const cleaned: Record<string, any> = {};
 
   Object.entries(obj).forEach(([key, value]) => {
     // Remove empty string, undefined, or null
     if (value === "" || value === undefined || value === null) {
+      return;
+    }
+
+    // Optionally remove booleans set to "false"
+    if (removeBool && value === false) {
       return;
     }
 

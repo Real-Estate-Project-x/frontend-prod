@@ -5,6 +5,32 @@ import { dev, building } from "$app/environment";
 import { ipContext } from "$lib/server/request-context";
 import { svelteKitHandler } from "better-auth/svelte-kit";
 
+export const currentUserHook: Handle = async ({ event, resolve }) => {
+  const userId = event.cookies.get("user_id");
+  const agencyId = event.cookies.get("agency_id");
+  const accessToken = event.cookies.get("access_token");
+
+  if (userId && accessToken) {
+    event.locals.userId = userId;
+    event.locals.access_token = accessToken;
+
+    if (agencyId) {
+      // Extract agencyId from stored payload/cookie if available
+      event.locals.agencyId = agencyId;
+    }
+  }
+  console.log(
+    "[hooks.server.ts] bound currentUser:",
+    {
+      userId: event.locals.userId,
+      agencyId: event.locals.agencyId,
+    },
+    "for",
+    event.url.pathname
+  );
+  return resolve(event);
+};
+
 export const ipHook: Handle = async ({ event, resolve }) => {
   let clientIp = event.getClientAddress();
   if (dev && (clientIp === "::1" || clientIp === "127.0.0.1")) {
@@ -38,4 +64,4 @@ export const thirdPartyAuthHook: Handle = async ({ event, resolve }) => {
   return svelteKitHandler({ event, resolve, auth, building });
 };
 
-export const handle = sequence(ipHook, thirdPartyAuthHook);
+export const handle = sequence(ipHook, currentUserHook, thirdPartyAuthHook);

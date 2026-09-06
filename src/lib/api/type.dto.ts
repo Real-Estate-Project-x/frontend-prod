@@ -1,12 +1,13 @@
+import type { InternalAxiosRequestConfig } from "axios";
 import type {
   AppRole,
+  ListingFor,
+  RegionScope,
   AuthProvider,
   ListingCategory,
-  ListingFor,
   ListingPaymentDuration,
-  RegionScope,
+  ListingStatus,
 } from "$lib/utils/constant";
-import type { InternalAxiosRequestConfig } from "axios";
 
 export interface ApiErrorResponse {
   url: string;
@@ -20,6 +21,11 @@ export interface ApiErrorResponse {
 // Extend AxiosRequestConfig to track retry state
 export interface RetryableRequestConfig extends InternalAxiosRequestConfig {
   _retry?: boolean;
+}
+
+export interface RangePartial {
+  start: number;
+  end: number;
 }
 
 export interface CreateUserDTO {
@@ -179,4 +185,18 @@ export interface CreateIntlListingDTO
     | "address"
   > {
   broadbandMbps: number;
+}
+
+export interface AgentListingFilterDTO extends PaginationRequestDTO {
+  searchTerm: string;
+  listingTypeId: string;
+  stateId: string;
+  countryId: string;
+  listingStatus: ListingStatus;
+  bedrooms: number;
+  priceRange: RangePartial;
+  floorSizeRange: RangePartial;
+  paymentPeriod: ListingPaymentDuration;
+  hasVirtualTour: boolean;
+  isBrandNew: boolean;
 }

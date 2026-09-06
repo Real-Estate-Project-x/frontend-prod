@@ -10,8 +10,8 @@
   import type { ExtraFee, GeoPoint } from "$lib/api/type.dto";
   import AmenityIcon from "$lib/components/shared/AmenityIcon.svelte";
   import AgencySidebar from "$lib/components/shared/AgencySidebar.svelte";
-  import PrelaunchChecklist from "$lib/components/add-listing/PrelaunchChecklist.svelte";
-  import SuccessNotification from "$lib/components/add-listing/SuccessNotification.svelte";
+  import PrelaunchChecklist from "$lib/components/agency/add-listing/PrelaunchChecklist.svelte";
+  import SuccessNotification from "$lib/components/agency/add-listing/SuccessNotification.svelte";
   import { cleanObject, currencyFormatter, generatePreviewUrls, getAmenityNames, getErrorMessage, getListingType, toFileArray } from "$lib/utils";
   import { ListingFor, ListingMediaType, ListingPaymentDuration, ListingResponseStatus, PropertyCategory, RegionScope } from "$lib/utils/constant";
 

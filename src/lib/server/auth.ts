@@ -1,10 +1,10 @@
+import { betterAuth } from "better-auth";
 import {
   PUBLIC_GOOGLE_CLIENT_SECRET,
   PUBLIC_GOOGLE_CLIENT_ID,
   PUBLIC_APPLE_CLIENT_ID,
   PUBLIC_APPLE_CLIENT_SECRET,
 } from "$env/static/public";
-import { betterAuth } from "better-auth";
 
 export const auth = betterAuth({
   socialProviders: {

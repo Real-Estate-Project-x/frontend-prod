@@ -5,9 +5,12 @@ declare module "lodash-es";
 declare global {
   namespace App {
     interface Locals {
+      user: any;
       clientIp: string;
       session: any;
-      user: any;
+      userId: string;
+      agencyId: string;
+      access_token: string;
     }
     // interface Error {}
     // interface Locals {}

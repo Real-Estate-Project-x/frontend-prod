@@ -1,1661 +1,1414 @@
 <script lang="ts">
-  import AgencySidebar from "$lib/components/shared/AgencySidebar.svelte";
+	import { onMount } from 'svelte';
+	import type { PageData } from "./$types";
+	import BoostModal from '$lib/components/agency/view-listing/BoostModal.svelte';
+	import ArchiveModal from '$lib/components/agency/view-listing/ArchiveModal.svelte';
+    import AgencySidebar from '$lib/components/shared/AgencySidebar.svelte';
+    import Toast from '$lib/components/shared/Toast.svelte';
+	import { ListingFor, ListingPaymentDuration, ListingStatus, PropertyCategory, RegionScope } from '$lib/utils/constant';
+	import { capitalize, cleanObject, getErrorMessage, getUserInfo } from '$lib/utils';
+	import { ApiRequests } from '$lib/api/api.request';
+	import Pagination from '$lib/components/shared/Pagination.svelte';
+  import type { ToastType } from '$lib/types';
+  import { AxiosError } from 'axios';
 
-  type ViewType = 'list' | 'grid';
-  type StatusType = 'all' | 'active' | 'boosted' | 'taken';
-  let selectedView = $state<ViewType>('list');
-  let selectedStatus = $state<StatusType>('all');
-  let isBoostModalOpen = $state(false);
-  let showMoreActions = $state(false);
-  let isArchivedModalOpen = $state(false);
-  let isTakenModalOpen = $state(false);
-  let list = [1];
+  	type ListingFilter = {
+		searchTerm: string;
+		listingTypeId: string;
+		stateId: string;
+		countryId: string;
+		listingStatus: string;
+		paymentPeriod: string;
+		hasVirtualTour: boolean;
+		isBrandNew: boolean;
+		bedrooms?: number;
+		priceRange: {
+			start?: number;
+			end?: number;
+		};
+		floorSizeRange: {
+			start?: number;
+			end?: number;
+		};
+	};
 
+	let { data }: { data: PageData } = $props();
 
-    const restoreListing = () => {};
+	const kpis = $derived(data.kpis.data);
+	const country = $derived(data.country.data);
+	const listingTypes = $derived<any[]>(data.listingTypes.data);
+	let listings = $derived<any[]>(data.listings.data);
+	let paginationControl = $derived(data.listings.paginationControl);
+	let filter = $state<ListingFilter>({
+		searchTerm: "",
+		listingTypeId: "",
+		stateId: "",
+		countryId: "",
+		listingStatus: "",
+		paymentPeriod: "",
+		hasVirtualTour: false,
+  		isBrandNew: false,
+  		bedrooms: undefined,
+		priceRange: { start: undefined, end: undefined },
+  		floorSizeRange: { start: undefined, end: undefined },
+	});
+	let selectedPageSize = $state(12);
 
-    const setView = (value: ViewType) => selectedView = value;
+	const generateAddListingUrl = () => {
+		if (country.bpRegion === RegionScope.INTERNATIONAL) return '/agency/listings/intl/add';
+		
+		// default
+		return '/agency/listings/add';
+	}
 
-    const setStatus = (value: StatusType) => selectedStatus = value;
+	const setFilterField =  <K extends keyof ListingFilter>(field: K, value: ListingFilter[K]) => {
+		filter[field] = value;
 
-    const toggleBoostModal = () => isBoostModalOpen = !isBoostModalOpen;
+		// refetch data based on user filter
+		setTimeout(() => goto(1, selectedPageSize, cleanObject(filter, true)), 700);
+	}
 
-    const toggleShowMoreActions = () => showMoreActions = !showMoreActions;
+	const findCoverImage = (listing: any) => {
+		// TODO: [use later after "isCoverImage" boolean is set]
+		// const cover = listing.mediaItems.find((m) => m.type === 'PHOTO' && m.isCoverImage);
+		const cover = listing.mediaItems.find((m) => m.type === 'PHOTO');
 
-    const toggleArchivedModal = () => isArchivedModalOpen = !isArchivedModalOpen;
+		if (!cover) return;
 
-    const toggleTakenModal = () => isTakenModalOpen = !isTakenModalOpen;
+		return cover.upload.url;
+	} 
 
+	const goto = async (
+		pageNumber = 1, 
+		pageSize = 12, 
+		filter = {}
+	) => {
+		const agencyId = getUserInfo('agencyId');
+		if (!agencyId) return;
+
+		const result = await new ApiRequests().findAgencyListings(agencyId, {
+			pageSize,
+			pageNumber,
+			...filter,
+        });
+		if (result.data.success) {
+			listings  = result.data.data;
+			paginationControl = result.data.paginationControl;
+		}
+	}
+
+	const handlePageChange = (page: number) => {
+    	// fetch new data for `page`, then update paginationData
+		goto(page, selectedPageSize, cleanObject(filter, true));
+  	}
+
+	const handlePerPageChange = (size: number) => {
+		selectedPageSize = size;
+		// refetch from page 1 with new page size
+		goto(1, size, cleanObject(filter, true));
+	}
+
+	/* ────────────────────────────────────────────
+	   LOOKUP TABLES
+	──────────────────────────────────────────── */
+
+	const TYPE_LABEL = {
+		apartment: 'Apartment',
+		house: 'House',
+		duplex: 'Duplex',
+		land: 'Land',
+		commercial: 'Commercial',
+		office: 'Office',
+		shop: 'Shop'
+	};
+
+	const STATUS_CFG = {
+		draft: { css: 'sp-draft', label: 'Draft' },
+		published: { css: 'sp-published', label: 'Published' },
+		archived: { css: 'sp-archived', label: 'Archived' }
+	};
+
+	const PLANS = [
+		{ id: '3d', label: '3 days', hours: 72 },
+		{ id: '7d', label: '7 days', hours: 168 },
+		{ id: '14d', label: '14 days', hours: 336 },
+		{ id: '30d', label: '30 days', hours: 720 }
+	];
+
+	const SORT_LABELS = {
+		'updated-desc': 'Recently Updated',
+		'added-desc': 'Recently Added',
+		'price-asc': 'Price: Low to High',
+		'price-desc': 'Price: High to Low',
+		'views-desc': 'Most Viewed',
+		'leads-desc': 'Most Leads',
+		'size-desc': 'Largest',
+		'size-asc': 'Smallest',
+		'boost-asc': 'Boost Expiring Soon'
+	};
+
+	/* ────────────────────────────────────────────
+	   MOCK DATA
+	   In production this would come from a `load` function instead.
+	──────────────────────────────────────────── */
+	function createInitialProps() {
+		const now = Date.now();
+		const day = 86400000;
+		const hour = 3600000;
+
+		return [
+			{ id: 'p1', title: '3-Bed Duplex GRA Phase 2', location: 'GRA Phase 2, Port Harcourt', listingFor: 'sale', propertyType: 'duplex', price: 95000000, paymentPeriod: null, bedrooms: 3, sizeSqm: 185, status: 'published', boosted: true, boostExpiresAt: now + (4 * 24 + 12) * hour, brandNew: false, virtualTour: true, views: 1240, leads: 18, updated: now - 2 * day, added: now - 40 * day, sky: 'sky-1' },
+			{ id: 'p2', title: '2-Bed Apartment Lekki Phase 1', location: 'Lekki Phase 1, Lagos', listingFor: 'rent', propertyType: 'apartment', price: 850000, paymentPeriod: 'yearly', bedrooms: 2, sizeSqm: 90, status: 'published', boosted: false, boostExpiresAt: null, brandNew: true, virtualTour: false, views: 880, leads: 12, updated: now - 4 * day, added: now - 30 * day, sky: 'sky-3' },
+			{ id: 'p3', title: '4-Bed Terrace Maitama', location: 'Maitama, Abuja', listingFor: 'sale', propertyType: 'house', price: 220000000, paymentPeriod: null, bedrooms: 4, sizeSqm: 260, status: 'published', boosted: true, boostExpiresAt: now + 14 * hour, brandNew: false, virtualTour: true, views: 2100, leads: 32, updated: now - 1 * day, added: now - 60 * day, sky: 'sky-2' },
+			{ id: 'p4', title: '1-Bed Studio Victoria Island', location: 'Victoria Island, Lagos', listingFor: 'rent', propertyType: 'apartment', price: 500000, paymentPeriod: 'monthly', bedrooms: 1, sizeSqm: 48, status: 'published', boosted: false, boostExpiresAt: null, brandNew: false, virtualTour: true, views: 460, leads: 7, updated: now - 8 * day, added: now - 90 * day, sky: 'sky-5' },
+			{ id: 'p5', title: '5-Bed Mansion Banana Island', location: 'Banana Island, Lagos', listingFor: 'sale', propertyType: 'house', price: 750000000, paymentPeriod: null, bedrooms: 5, sizeSqm: 640, status: 'archived', boosted: false, boostExpiresAt: null, brandNew: false, virtualTour: false, views: 3400, leads: 55, updated: now - 45 * day, added: now - 160 * day, sky: 'sky-4' },
+			{ id: 'p6', title: '3-Bed Semi-Detached Wuse 2', location: 'Wuse 2, Abuja', listingFor: 'sale', propertyType: 'house', price: 80000000, paymentPeriod: null, bedrooms: 3, sizeSqm: 140, status: 'archived', boosted: false, boostExpiresAt: null, brandNew: false, virtualTour: false, views: 190, leads: 2, updated: now - 70 * day, added: now - 200 * day, sky: 'sky-6' },
+			{ id: 'p7', title: '2-Bed Serviced Flat Ikoyi', location: 'Ikoyi, Lagos', listingFor: 'rent', propertyType: 'apartment', price: 1200000, paymentPeriod: 'quarterly', bedrooms: 2, sizeSqm: 110, status: 'published', boosted: true, boostExpiresAt: now + (1 * 24 + 3) * hour, brandNew: true, virtualTour: true, views: 720, leads: 9, updated: now - 3 * hour, added: now - 15 * day, sky: 'sky-1' },
+			{ id: 'p8', title: '3-Bed Bungalow Enugu GRA', location: 'GRA, Enugu', listingFor: 'sale', propertyType: 'house', price: 55000000, paymentPeriod: null, bedrooms: 3, sizeSqm: 150, status: 'published', boosted: false, boostExpiresAt: null, brandNew: false, virtualTour: false, views: 340, leads: 5, updated: now - 12 * day, added: now - 100 * day, sky: 'sky-3' },
+			{ id: 'p9', title: 'Studio Apartment Yaba', location: 'Yaba, Lagos', listingFor: 'rent', propertyType: 'apartment', price: 280000, paymentPeriod: 'monthly', bedrooms: 1, sizeSqm: 38, status: 'draft', boosted: false, boostExpiresAt: null, brandNew: true, virtualTour: false, views: 0, leads: 0, updated: now - 6 * hour, added: now - 6 * hour, sky: 'sky-2' },
+			{ id: 'p10', title: '4-Bed Duplex Jabi Lake District', location: 'Jabi, Abuja', listingFor: 'sale', propertyType: 'duplex', price: 130000000, paymentPeriod: null, bedrooms: 4, sizeSqm: 220, status: 'published', boosted: false, boostExpiresAt: null, brandNew: false, virtualTour: false, views: 590, leads: 11, updated: now - 9 * day, added: now - 70 * day, sky: 'sky-5' },
+			{ id: 'p11', title: 'Half Plot of Land, Chevron Drive', location: 'Chevron Drive, Lekki', listingFor: 'sale', propertyType: 'land', price: 45000000, paymentPeriod: null, bedrooms: 0, sizeSqm: 500, status: 'published', boosted: false, boostExpiresAt: null, brandNew: false, virtualTour: false, views: 210, leads: 3, updated: now - 20 * day, added: now - 120 * day, sky: 'sky-6' },
+			{ id: 'p12', title: 'Open-Plan Office Suite, Wuse Zone 5', location: 'Wuse Zone 5, Abuja', listingFor: 'rent', propertyType: 'office', price: 3500000, paymentPeriod: 'yearly', bedrooms: 0, sizeSqm: 210, status: 'published', boosted: false, boostExpiresAt: null, brandNew: true, virtualTour: true, views: 150, leads: 4, updated: now - 5 * day, added: now - 25 * day, sky: 'sky-4' },
+			{ id: 'p13', title: 'Retail Shop Unit, Ikeja City Mall Rd', location: 'Ikeja, Lagos', listingFor: 'rent', propertyType: 'shop', price: 1800000, paymentPeriod: 'quarterly', bedrooms: 0, sizeSqm: 65, status: 'draft', boosted: false, boostExpiresAt: null, brandNew: false, virtualTour: false, views: 0, leads: 0, updated: now - 2 * hour, added: now - 2 * hour, sky: 'sky-1' },
+			{ id: 'p14', title: 'Commercial Plaza, Trans Amadi Industrial Layout', location: 'Trans Amadi, Port Harcourt', listingFor: 'sale', propertyType: 'commercial', price: 410000000, paymentPeriod: null, bedrooms: 0, sizeSqm: 980, status: 'published', boosted: false, boostExpiresAt: null, brandNew: false, virtualTour: false, views: 980, leads: 14, updated: now - 15 * day, added: now - 140 * day, sky: 'sky-2' }
+		];
+	}
+
+	function defaultFilters() {
+		return {
+			search: '',
+			status: 'all',
+			type: 'all',
+			priceMin: null,
+			priceMax: null,
+			sizeMin: null,
+			sizeMax: null,
+			bedrooms: 'any',
+			brandNew: false,
+			virtualTour: false,
+			paymentPeriod: 'any',
+			sort: 'updated-desc'
+		};
+	}
+
+	/* ────────────────────────────────────────────
+	   FORMAT HELPERS
+	──────────────────────────────────────────── */
+	function fmtN(n) {
+		return n >= 1000 ? `${(n / 1000).toFixed(1).replace(/\.0$/, '')}k` : String(n);
+	}
+	function fmtPrice(n) {
+		if (n >= 1e9) return `₦${(n / 1e9).toFixed(1).replace(/\.0$/, '')}B`;
+		if (n >= 1e6) return `₦${(n / 1e6).toFixed(1).replace(/\.0$/, '')}M`;
+		if (n >= 1e3) return `₦${(n / 1e3).toFixed(0)}k`;
+		return `₦${n}`;
+	}
+	const PERIOD_SUFFIX = { monthly: '/mo', quarterly: '/qtr', 'bi-annually': '/6mo', yearly: '/yr' };
+	function priceLabel(p) {
+		return fmtPrice(p.priceAmount) + (p.listingFor === ListingFor.RENT ? (PERIOD_SUFFIX[p.paymentPeriod] ?? '') : '');
+	}
+	function isResidential(listingTypeId: string) {
+		const t = listingTypes.find(({ id, propertyCategory }) => id === listingTypeId && propertyCategory === PropertyCategory.RESIDENTIAL);
+		if (!t) return false;
+		return t.isResidential;
+	}
+	function boostTimeLeft(expiresAt, nowMs: number) {
+		const diff = expiresAt - nowMs;
+		if (diff <= 0) return null;
+		const totalHours = Math.floor(diff / 3600000);
+		const days = Math.floor(totalHours / 24);
+		const hours = totalHours % 24;
+		const urgent = totalHours < 24;
+		const text = days > 0 ? `${days}d ${hours}h left` : `Expires in ${hours}h`;
+		return { text, urgent };
+	}
+
+	/* ────────────────────────────────────────────
+	   TINY LOCAL ACTION — closes a popover on outside click
+	──────────────────────────────────────────── */
+	function clickOutside(node, onOutsideClick) {
+		function handleClick(event) {
+			if (node && !node.contains(event.target)) onOutsideClick?.(event);
+		}
+		document.addEventListener('click', handleClick, true);
+		return {
+			update(newHandler) {
+				onOutsideClick = newHandler;
+			},
+			destroy() {
+				document.removeEventListener('click', handleClick, true);
+			}
+		};
+	}
+
+	/* ────────────────────────────────────────────
+	   STATE
+	──────────────────────────────────────────── */
+	let props = $state(createInitialProps());
+	let filters = $state(defaultFilters());
+	let currentPage = $state(1);
+	let perPage = $state(9);
+	let now = $state(Date.now()); // ticks so boost countdowns stay live
+
+	/* ────────────────────────────────────────────
+	   FILTERING / SORTING / PAGINATION (derived)
+	──────────────────────────────────────────── */
+	let filtered = $derived.by(() =>
+		props.filter((p) => {
+			if (filters.status !== 'all' && p.status !== filters.status) return false;
+			if (filters.type !== 'all' && p.propertyType !== filters.type) return false;
+			if (filters.search && !p.title.toLowerCase().includes(filters.search) && !p.location.toLowerCase().includes(filters.search)) return false;
+			if (filters.priceMin != null && p.price < filters.priceMin) return false;
+			if (filters.priceMax != null && p.price > filters.priceMax) return false;
+			if (filters.sizeMin != null && p.sizeSqm < filters.sizeMin) return false;
+			if (filters.sizeMax != null && p.sizeSqm > filters.sizeMax) return false;
+			if (filters.bedrooms !== 'any' && isResidential(p.propertyType) && p.bedrooms < parseInt(filters.bedrooms)) return false;
+			if (filters.brandNew && !p.brandNew) return false;
+			if (filters.virtualTour && !p.virtualTour) return false;
+			if (filters.paymentPeriod !== 'any' && p.paymentPeriod !== filters.paymentPeriod) return false;
+			return true;
+		})
+	);
+
+	const SORTERS = {
+		'updated-desc': (a, b) => b.updated - a.updated,
+		'added-desc': (a, b) => b.added - a.added,
+		'price-asc': (a, b) => a.price - b.price,
+		'price-desc': (a, b) => b.price - a.price,
+		'views-desc': (a, b) => b.views - a.views,
+		'leads-desc': (a, b) => b.leads - a.leads,
+		'size-desc': (a, b) => b.sizeSqm - a.sizeSqm,
+		'size-asc': (a, b) => a.sizeSqm - b.sizeSqm,
+		'boost-asc': (a, b) => {
+			const av = a.boosted && a.boostExpiresAt ? a.boostExpiresAt : Infinity;
+			const bv = b.boosted && b.boostExpiresAt ? b.boostExpiresAt : Infinity;
+			return av - bv;
+		}
+	};
+
+	// True regardless of current filters/search — comes from KPI data, not the filtered `listings` array
+	let agencyHasAnyListings = $derived((kpis.totalListings ?? 0) > 0);
+
+	let hasActiveFilters = $derived(Object.keys(cleanObject(filter, true)).length > 0);
+	let noListingsAtAll = $derived(agencyHasAnyListings && !hasActiveFilters);
+	let noResultsFromFilters = $derived(listings.length === 0 && hasActiveFilters);
+	let totalPages = $derived(Math.max(1, Math.ceil(paginationControl.totalCount / selectedPageSize)));
+	let safePage = $derived(Math.min(Math.max(paginationControl.currentPage, 1), paginationControl.totalCount));
+
+	let resultsLabel = $derived(
+		listings.length === 0
+			? 'No listings found'
+			: `Showing ${(safePage - 1) * selectedPageSize + 1}–${Math.min(safePage * selectedPageSize, paginationControl.totalCount)} of ${paginationControl.totalCount} listing${paginationControl.totalCount !== 1 ? 's' : ''}`
+	);
+
+	let activeCount = $derived.by(() => {
+		let n = 0;
+		if (filters.status !== 'all') n++;
+		if (filters.type !== 'all') n++;
+		if (filters.priceMin != null || filters.priceMax != null) n++;
+		if (filters.sizeMin != null || filters.sizeMax != null) n++;
+		if (filters.bedrooms !== 'any') n++;
+		if (filters.brandNew) n++;
+		if (filters.virtualTour) n++;
+		if (filters.paymentPeriod !== 'any') n++;
+		return n;
+	});
+	let moreCount = $derived.by(() => {
+		let n = 0;
+		if (filters.sizeMin != null || filters.sizeMax != null) n++;
+		if (filters.bedrooms !== 'any') n++;
+		if (filters.brandNew) n++;
+		if (filters.virtualTour) n++;
+		if (filters.paymentPeriod !== 'any') n++;
+		return n;
+	});
+
+	let chips = $derived.by(() => {
+		const list = [];
+		if (filters.status !== 'all') list.push({ label: `Status: ${filters.status[0].toUpperCase()}${filters.status.slice(1)}`, patch: { status: 'all' } });
+		if (filters.type !== 'all') list.push({ label: TYPE_LABEL[filters.type], patch: { type: 'all' } });
+		if (filters.priceMin != null || filters.priceMax != null) {
+			list.push({ label: `Price: ${filters.priceMin != null ? fmtPrice(filters.priceMin) : '0'} – ${filters.priceMax != null ? fmtPrice(filters.priceMax) : '∞'}`, patch: { priceMin: null, priceMax: null } });
+		}
+		if (filters.sizeMin != null || filters.sizeMax != null) {
+			list.push({ label: `Size: ${filters.sizeMin ?? 0} – ${filters.sizeMax ?? '∞'} sqm`, patch: { sizeMin: null, sizeMax: null } });
+		}
+		if (filters.bedrooms !== 'any') list.push({ label: `${filters.bedrooms}+ beds`, patch: { bedrooms: 'any' } });
+		if (filters.brandNew) list.push({ label: 'Brand New', patch: { brandNew: false } });
+		if (filters.virtualTour) list.push({ label: 'Virtual Tour', patch: { virtualTour: false } });
+		if (filters.paymentPeriod !== 'any') list.push({ label: `${filters.paymentPeriod[0].toUpperCase()}${filters.paymentPeriod.slice(1)}`, patch: { paymentPeriod: 'any' } });
+		return list;
+	});
+
+	let kpiActive = $derived(props.filter((p) => p.status === 'published').length);
+	let kpiViews = $derived(props.reduce((sum, p) => sum + p.views, 0));
+	let kpiLeads = $derived(props.reduce((sum, p) => sum + p.leads, 0));
+	let boostedLiveCount = $derived(props.filter((p) => p.boosted && p.boostExpiresAt && p.boostExpiresAt > now).length);
+
+	let selectedListingType = $state<any>(null);
+	let showBedroomsField = $derived(!(filter.listingTypeId !== '' && selectedListingType.propertyCategory !== 'RESIDENTIAL'));
+	
+
+	/* ────────────────────────────────────────────
+	   FILTER HANDLERS
+	──────────────────────────────────────────── */
+	const updateFilters = (patch) => {
+		filters = { ...filters, ...patch };
+		currentPage = 1;
+	}
+	const setStatus = (status) => {
+		updateFilters({ status });
+	}
+	const setType = (type) => {
+		updateFilters({ type });
+	}
+	const onSearchInput = (e) => {
+		updateFilters({ search: e.currentTarget.value.toLowerCase().trim() });
+	}
+	const onSortChange = (e: any) => {
+		updateFilters({ sort: e.currentTarget.value });
+	}
+	const onPerPageChange = (e) => {
+		perPage = Number(e.currentTarget.value);
+		currentPage = 1;
+	}
+	const clearAllFilters = async () => {
+		resetFilters();
+		showToast('Filters cleared', 'success');
+
+		// reload page_data
+		await goto(1, perPage, cleanObject(filter, true));
+	}
+	const removeChip = (chip) => {
+		updateFilters(chip.patch);
+	}
+
+	/* Price popover (desktop quick filter) */
+	let pricePopoverOpen = $state(false);
+	let priceDraft = $state({ min: null, max: null });
+	const togglePricePopover = () => {
+		if (!pricePopoverOpen) priceDraft = { min: filters.priceMin, max: filters.priceMax };
+		pricePopoverOpen = !pricePopoverOpen;
+	}
+	const applyPricePopover = () => {
+		pricePopoverOpen = false;
+	}
+	const clearPricePopover = () => {
+		setFilterField('priceRange', { start: undefined, end: undefined });
+		pricePopoverOpen = false;
+	}
+
+	/* Filter drawer (mobile "More filters") — status/type apply instantly,
+	   price/size/bedrooms/payment/toggles are staged and applied together. */
+	let drawerOpen = $state(false);
+	let drawerDraft = $state({ priceMin: null, priceMax: null, sizeMin: null, sizeMax: null, bedrooms: 'any', paymentPeriod: 'any', brandNew: false, virtualTour: false });
+
+	const openDrawer = () => {
+		drawerDraft = {
+			priceMin: filters.priceMin,
+			priceMax: filters.priceMax,
+			sizeMin: filters.sizeMin,
+			sizeMax: filters.sizeMax,
+			bedrooms: filters.bedrooms,
+			paymentPeriod: filters.paymentPeriod,
+			brandNew: filters.brandNew,
+			virtualTour: filters.virtualTour
+		};
+		drawerOpen = true;
+	}
+	const showDrawerResults = () => {
+		goto(1, 10, cleanObject(filter, true));
+		drawerOpen = false;
+	}
+	const clearDrawerFilters = () => {
+		resetFilters();
+		goto(1);
+	}
+
+	const resetFilters = () => {
+		filter = {
+			searchTerm: "",
+			listingTypeId: "",
+			stateId: "",
+			countryId: "",
+			listingStatus: "",
+			paymentPeriod: "",
+			hasVirtualTour: false,
+			isBrandNew: false,
+			bedrooms: undefined,
+			priceRange: { start: undefined, end: undefined },
+			floorSizeRange: { start: undefined, end: undefined },
+		}
+	}
+
+	/* Mobile sort sheet */
+	let sortSheetOpen = $state(false);
+	function chooseSort(value) {
+		updateFilters({ sort: value });
+		sortSheetOpen = false;
+	}
+
+	/* ────────────────────────────────────────────
+	   LISTING ACTIONS
+	──────────────────────────────────────────── */
+	let archiveModalOpen = $state(false);
+	let archivingId = $state<string | null>(null);
+	let archivingProp = $state<any | null>(null);
+	// let archivingProp = $derived(props.find((p) => p.id === archivingId) ?? null);
+
+	let boostModalOpen = $state(false);
+	let boostingId = $state<string | null>(null);
+	let boostingProp = $derived(props.find((p) => p.id === boostingId) ?? null);
+
+	const publishListing = async (id: string) => {
+		try {
+			const result = await new ApiRequests().publishListing(id);
+			if (result.data.success) {
+				const message = result.data.message ?? 'Listing published';
+				showToast(message, "success");
+				// Reload page_data
+				goto(1, selectedPageSize, cleanObject(filter, true));
+				return;
+			}
+		} catch(ex) {
+			if (ex instanceof AxiosError) {
+				const message = getErrorMessage(ex);
+				showToast(message, 'error');
+			}
+			console.error(ex);
+			return;
+    	}
+	}
+	const openArchiveModal = (id: string) => {
+		// find listing
+		archivingProp = listings.find((l) => l.id === id);
+
+		archivingId = id;
+		archiveModalOpen = true;
+	}
+	const confirmArchive = async () => {
+		if (!archivingId) return;
+
+		try {
+			const result = await new ApiRequests().archiveListing(archivingId);
+			if (result.data.success) {
+				archiveModalOpen = false;
+
+				const message = result.data.message ?? 'Listing taken down.';
+				showToast(message, "success");
+				// Reload page_data
+				goto(1, selectedPageSize, cleanObject(filter, true));
+				return;
+			}
+		} catch(ex) {
+			if (ex instanceof AxiosError) {
+				const message = getErrorMessage(ex);
+				showToast(message, 'error');
+			}
+			console.error(ex);
+			return;
+    	}
+	}
+	const restoreListing = async (id: string) => {
+		try {
+			const result = await new ApiRequests().restoreListing(id);
+			console.log({result})
+			if (result.data.success) {
+				const message = result.data.message ?? 'Listing restored.';
+				showToast(message, "success");
+				// Reload page_data
+				goto(1, selectedPageSize, cleanObject(filter, true));
+				return;
+			}
+
+		} catch (ex) {
+			if (ex instanceof AxiosError) {
+				const message = getErrorMessage(ex);
+				showToast(message, 'error');
+			}
+			console.error(ex);
+			return;
+		}
+	}
+	const openBoostModal = (id: string) => {
+		boostingId = id;
+		boostModalOpen = true;
+	}
+	const confirmBoost = (planId: string) => {
+		const plan = PLANS.find((pl) => pl.id === planId);
+		if (!plan) return;
+		props = props.map((p) => (p.id === boostingId ? { ...p, boosted: true, boostExpiresAt: Date.now() + plan.hours * 3600 * 1000, updated: Date.now() } : p));
+		boostModalOpen = false;
+		showToast(`Listing boosted for ${plan.label}.`);
+	}
+
+	/* ────────────────────────────────────────────
+	   TOAST
+	──────────────────────────────────────────── */
+    let toastMsg     = $state('');
+    let toastType = $state<ToastType>('info');
+    let toastTimer: ReturnType<typeof setTimeout> | null = null;
+	// ── Toast ──────────────────────────────────────────────────────────────────
+    const showToast = (msg: string, type: ToastType = "info") => {
+      toastMsg = msg;
+      toastType = type;
+      if (toastTimer) clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => toastMsg = '', 3000);
+    }
+
+	// Keep boost countdowns fresh, same as the original 60s interval.
+	$effect(() => {
+		const id = setInterval(() => (now = Date.now()), 60000);
+		return () => clearInterval(id);
+	});
+
+	function handleKeydown(e) {
+		if (e.key !== 'Escape') return;
+		boostModalOpen = false;
+		archiveModalOpen = false;
+		drawerOpen = false;
+		sortSheetOpen = false;
+		pricePopoverOpen = false;
+	}
 </script>
 
-{#if isBoostModalOpen}
-<!-- ═══════════════════════════════════════════
-     NEW BOOST MODAL
-     [SVELTE_COMPONENT: NewBoostModal]
-═══════════════════════════════════════════ -->
-<div id="newBoostModal" class="fixed inset-0 z-[300] flex items-end sm:items-center justify-center p-0 sm:p-4">
-    <div class="absolute inset-0 modal-bg" onclick={() => (isBoostModalOpen = false)}></div>
-    <div class="relative bg-white dark:bg-[#0D1422] border border-chalk-3 dark:border-white/[.07] rounded-t-3xl sm:rounded-2xl w-full sm:max-w-[480px] overflow-hidden shadow-[0_24px_80px_rgba(10,36,99,.22)] dark:shadow-[0_24px_80px_rgba(0,0,0,.7)] scale-in tt">
-      <div class="sm:hidden w-10 h-1 bg-chalk-3 dark:bg-white/15 rounded-full mx-auto mt-3.5"></div>
-      <div class="px-6 py-4 border-b border-chalk-3 dark:border-white/[.07] flex items-center justify-between">
-        <div><p class="text-[10px] font-medium tracking-[.14em] uppercase text-gold mb-0.5">Boost</p><h2 class="font-display font-light text-navy-dark dark:text-blue-100" style="font-size:20px">Boost property</h2></div>
-        <button aria-label="Close" onclick={() => (isBoostModalOpen = false)} 
-            class="w-8 h-8 rounded-xl border border-chalk-3 dark:border-white/[.1] flex items-center justify-center text-chalk-muted dark:text-[#6A7FA0] hover:text-navy-dark dark:hover:text-white tt bg-transparent cursor-pointer">
-            <svg width="11" height="11" viewBox="0 0 14 14" fill="none">
-                <path d="M2 2l10 10M12 2L2 12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-            </svg>
-        </button>
-      </div>
-      <div class="px-6 py-5 space-y-4">
-          <div id="boostPropPreview" class="flex items-center gap-3 bg-chalk-2 dark:bg-[#1A2438] rounded-xl p-3.5 mb-5 tt">
-            <div class="w-10 h-10 rounded-lg sky-1 flex-shrink-0"></div>
-            <div class="min-w-0">
-              <div class="text-[13px] font-medium text-navy-dark dark:text-blue-100 truncate">3-Bed Duplex GRA Phase 2</div>
-              <div class="text-[11px] text-chalk-muted dark:text-[#6A7FA0] mt-0.5">GRA Phase 2, Port Harcourt · ₦95M</div>
-            </div></div>
-        <div>
-          <label for="nbPlan" class="text-[11px] font-medium tracking-[.1em] uppercase text-chalk-muted dark:text-[#6A7FA0] block mb-2">Boost plan</label>
-          <div id="nbPlan" class="grid grid-cols-3 gap-2">
-            <button class="plan-card border border-chalk-3 dark:border-white/[.1] rounded-xl p-3 text-left cursor-pointer bg-white dark:bg-[#131C2E] hover:border-blue-bright/40 tt">
-              <div class="text-[11px] font-semibold text-navy-dark dark:text-blue-100 mb-1">Starter</div>
-              <div class="text-[18px] font-display font-semibold text-navy-dark dark:text-blue-100">₦5k</div>
-              <div class="text-[10px] text-chalk-muted dark:text-[#6A7FA0] mt-0.5">7 days</div>
-            </button>
-            <button class="active plan-card border border-chalk-3 dark:border-white/[.1] rounded-xl p-3 text-left cursor-pointer bg-white dark:bg-[#131C2E] hover:border-gold/50 tt">
-              <div class="text-[11px] font-semibold text-navy-dark dark:text-blue-100 mb-1">Pro</div>
-              <div class="text-[18px] font-display font-semibold text-navy-dark dark:text-blue-100">₦15k</div>
-              <div class="text-[10px] text-chalk-muted dark:text-[#6A7FA0] mt-0.5">14 days</div>
-            </button>
-            <button class="plan-card border border-chalk-3 dark:border-white/[.1] rounded-xl p-3 text-left cursor-pointer bg-white dark:bg-[#131C2E] hover:border-ember/40 tt">
-              <div class="text-[11px] font-semibold text-navy-dark dark:text-blue-100 mb-1">Elite</div>
-              <div class="text-[18px] font-display font-semibold text-navy-dark dark:text-blue-100">₦30k</div>
-              <div class="text-[10px] text-chalk-muted dark:text-[#6A7FA0] mt-0.5">30 days</div>
-            </button>
-          </div>
-        </div>
-        <div>
-          <label for="nbStartDate" class="text-[11px] font-medium tracking-[.1em] uppercase text-chalk-muted dark:text-[#6A7FA0] block mb-2">Start date</label>
-          <input type="date" id="nbStartDate" class="w-full bg-white dark:bg-[#131C2E] border border-chalk-3 dark:border-white/[.1] rounded-xl text-[13px] text-navy-dark dark:text-blue-100 px-3 py-3 outline-none focus:border-blue-bright/50 tt cursor-pointer" style="color-scheme:dark">
-        </div>
-        <div class="flex gap-2.5 pt-1">
-          <button onclick={() => (isBoostModalOpen = false)} class="flex-1 text-[13px] font-medium text-chalk-muted dark:text-[#6A7FA0] bg-chalk-2 dark:bg-[#131C2E] border border-chalk-3 dark:border-white/[.08] py-3 rounded-full cursor-pointer tt hover:border-chalk-4 dark:hover:border-white/20">Cancel</button>
-          <button class="flex-1 text-[13px] font-medium text-navy-deep bg-gold hover:opacity-90 py-3 rounded-full border-none cursor-pointer tt">Activate boost</button>
-        </div>
-      </div>
-    </div>
-  </div>
-{/if}
-
-{#if isArchivedModalOpen}
-<!-- ══════════════════════════════════════════
-     ARCHIVE CONFIRM MODAL
-══════════════════════════════════════════ -->
-<div id="archiveModal" class="fixed inset-0 z-[100] flex items-center justify-center p-4">
-  <div class="modal-bg absolute inset-0" onclick={() => (isArchivedModalOpen = false)}></div>
-  <div class="relative w-full max-w-[400px] bg-white dark:bg-[#0D1422] rounded-2xl overflow-hidden shadow-2xl scale-in border border-chalk-3 dark:border-white/[.07] tt p-6">
-    <div class="w-12 h-12 rounded-2xl bg-ember-light dark:bg-ember/10 flex items-center justify-center mx-auto mb-4">
-      <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="#C06035" stroke-width="1.4" stroke-linecap="round"><path d="M3 6h14M8 6V4h4v2M5 6l1 11h8l1-11"/></svg>
-    </div>
-    <h3 class="font-display font-light text-center text-navy-dark dark:text-blue-100 mb-1" style="font-size:20px" id="archiveTitle">Archive property?</h3>
-    <p class="text-[13px] font-light text-center text-chalk-muted dark:text-[#6A7FA0] mb-6" id="archiveSub">This will hide the listing from public search results. You can restore it at any time.</p>
-    <div class="flex gap-3">
-      <button onclick={() => (isArchivedModalOpen = false)} class="flex-1 py-2.5 text-[13px] font-medium text-chalk-muted dark:text-[#6A7FA0] bg-chalk-2 dark:bg-[#1A2438] rounded-full border-none cursor-pointer hover:bg-chalk-3 tt">Cancel</button>
-      <button onclick={() => {}} id="archiveConfirmBtn" class="flex-1 py-2.5 text-[13px] font-medium text-white bg-ember hover:bg-ember-deep rounded-full border-none cursor-pointer tt">Archive</button>
-    </div>
-  </div>
-</div>
-{/if}
-
-{#if isTakenModalOpen}
-<!-- ══════════════════════════════════════════
-     ARCHIVE CONFIRM MODAL
-══════════════════════════════════════════ -->
-<div id="pTakenModal" class="fixed inset-0 z-[100] flex items-center justify-center p-4">
-  <div class="modal-bg absolute inset-0" onclick={() => (isTakenModalOpen = false)}></div>
-  <div class="relative w-full max-w-[400px] bg-white dark:bg-[#0D1422] rounded-2xl overflow-hidden shadow-2xl scale-in border border-chalk-3 dark:border-white/[.07] tt p-6">
-    <div class="w-12 h-12 rounded-2xl bg-ember-light dark:bg-ember/10 flex items-center justify-center mx-auto mb-4">
-      <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="#C06035" stroke-width="1.4" stroke-linecap="round"><path d="M3 6h14M8 6V4h4v2M5 6l1 11h8l1-11"/></svg>
-    </div>
-    <h3 class="font-display font-light text-center text-navy-dark dark:text-blue-100 mb-1" style="font-size:20px" id="archiveTitle">Mark as taken?</h3>
-    <p class="text-[13px] font-light text-center text-chalk-muted dark:text-[#6A7FA0] mb-6" id="archiveSub">
-     <b>Studio Apartment Yaba</b> will be marked as taken and removed from search results.
-    </p>
-    <div class="flex gap-3">
-      <button onclick={() => (isTakenModalOpen = false)} class="flex-1 py-2.5 text-[13px] font-medium text-chalk-muted dark:text-[#6A7FA0] bg-chalk-2 dark:bg-[#1A2438] rounded-full border-none cursor-pointer hover:bg-chalk-3 tt">Cancel</button>
-      <button onclick={() => {}} id="pTakenConfirmBtn" class="flex-1 py-2.5 text-[13px] font-medium text-white bg-navy-dark hover:bg-navy-mid rounded-full border-none cursor-pointer tt">Mark taken</button>
-    </div>
-  </div>
-</div>
-{/if}
+<svelte:window onkeydown={handleKeydown} />
 
 <!-- ══ LAYOUT SHELL ══ -->
 <div class="flex pt-[68px] min-h-screen">
-  <AgencySidebar />
+    <AgencySidebar />
 
-  <!-- ══════════════════════════════════════════
-      MAIN CONTENT
-  ══════════════════════════════════════════ -->
-  <main class="flex-1 min-w-0 overflow-x-hidden">
+		<!-- ══ MAIN CONTENT ══ -->
+		<main class="flex-1 min-w-0 overflow-x-hidden">
+			<!-- PAGE HEADER -->
+			<div class="bg-navy-dark dark:bg-[#080F1C] px-6 lg:px-10 py-8 border-b border-white/[0.06] tt">
+				<div class="max-w-[1100px] mx-auto">
+					<div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
+						<div>
+							<p class="text-[10px] font-medium tracking-[.18em] uppercase text-blue-bright mb-2">Agency dashboard</p>
+							<h1 class="font-display font-light text-white leading-[1.05]" style="font-size:clamp(26px,3.5vw,40px)">
+								Agency <em class="italic text-gold">listings.</em>
+							</h1>
+							<p class="text-[13px] font-light text-white/50 mt-2 flex items-center gap-2 flex-wrap">
+								<span class="w-[6px] h-[6px] rounded-full bg-sage pulse-dot"></span>
+								Manage every listing in seconds
+							</p>
+						</div>
+						<div class="flex items-center gap-2.5 flex-wrap">
+							<a href={generateAddListingUrl()} class="flex items-center gap-2 text-[13px] font-medium text-white bg-ember hover:bg-ember-deep px-4 py-[9px] rounded-full tt no-underline cursor-pointer">
+								<svg width="13" height="13" viewBox="0 0 14 14" fill="none"><path d="M7 1v12M1 7h12" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" /></svg>
+								Add listing
+							</a>
+						</div>
+					</div>
 
-    <!-- PAGE HEADER -->
-    <div class="bg-navy-dark dark:bg-[#080F1C] px-6 lg:px-10 py-8 border-b border-white/[0.06] tt">
-      <div class="max-w-[1100px] mx-auto">
-        <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
-          <div>
-            <p class="text-[10px] font-medium tracking-[.18em] uppercase text-blue-bright mb-2">Agent dashboard</p>
-            <h1 class="font-display font-light text-white leading-[1.05]" style="font-size:clamp(26px,3.5vw,40px)">
-              My <em class="italic text-gold">properties.</em>
-            </h1>
-            <p class="text-[13px] font-light text-white/50 mt-2 flex items-center gap-2 flex-wrap">
-              <span class="w-[6px] h-[6px] rounded-full bg-sage pulse-dot"></span>
-              <span id="todayDate">Friday, 15 May 2026</span>
-              &nbsp;·&nbsp;
-              <span id="hdrActive" class="text-white font-medium">7</span> active
-              &nbsp;·&nbsp;
-              <span id="hdrTotal" class="text-white font-medium">10</span> total listings
-            </p>
-          </div>
-          <div class="flex items-center gap-2.5 flex-wrap">
-            <button onclick={() => {}} class="flex items-center gap-2 text-[13px] font-medium text-white bg-white/[.08] border border-white/15 hover:bg-white/15 px-4 py-[9px] rounded-full tt cursor-pointer" style="border:1px solid rgba(255,255,255,.15)">
-              <svg width="13" height="13" viewBox="0 0 14 14" fill="none"><path d="M7 9V1M4 6l3 3 3-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M1 11v1a1 1 0 001 1h10a1 1 0 001-1v-1" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
-              Export
-            </button>
-            <a href="/agency/listings/add" class="flex items-center gap-2 text-[13px] font-medium text-white bg-ember hover:bg-ember-deep px-4 py-[9px] rounded-full border-none cursor-pointer tt">
-              <svg width="13" height="13" viewBox="0 0 14 14" fill="none"><path d="M7 1v12M1 7h12" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
-              Add property
-            </a>
-          </div>
-        </div>
-  
-        <!-- KPI stat strip -->
-        <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mt-7 stat-grid-2">
-          <div class="stat-card bg-white/[.06] dark:bg-white/[.04] border border-white/[.09] rounded-2xl p-4 tt cursor-default">
-            <div class="text-[11px] text-white/50 mb-2 flex items-center gap-1.5">
-              <span class="w-2 h-2 rounded-full bg-sage pulse-dot"></span>Active listings
-            </div>
-            <div class="font-display font-semibold text-white leading-none" style="font-size:28px" id="kpiActive">7</div>
-            <div class="text-[11px] text-white/40 mt-1" id="kpiActiveSub">of – total</div>
-          </div>
-          <div class="stat-card bg-white/[.06] dark:bg-white/[.04] border border-white/[.09] rounded-2xl p-4 tt cursor-default">
-            <div class="text-[11px] text-white/50 mb-2 flex items-center gap-1.5">
-              <svg width="12" height="12" viewBox="0 0 14 14" fill="none"><path d="M1 7s3-5 6-5 6 5 6 5-3 5-6 5-6-5-6-5z" stroke="rgba(74,144,226,.8)" stroke-width="1.2"/><circle cx="7" cy="7" r="2" stroke="rgba(74,144,226,.8)" stroke-width="1.2"/></svg>
-              Total views
-            </div>
-            <div class="font-display font-semibold text-white leading-none" style="font-size:28px" id="kpiViews">9.9k</div>
-            <div class="text-[11px] text-white/40 mt-1">across all listings</div>
-          </div>
-          <div class="stat-card bg-white/[.06] dark:bg-white/[.04] border border-white/[.09] rounded-2xl p-4 tt cursor-default">
-            <div class="text-[11px] text-white/50 mb-2 flex items-center gap-1.5">
-              <svg width="12" height="12" viewBox="0 0 14 14" fill="none"><path d="M2 11l3-4 2 2 3-5 3 7" stroke="rgba(212,174,58,.8)" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
-              Enquiries
-            </div>
-            <div class="font-display font-semibold text-white leading-none" style="font-size:28px" id="kpiEnquiries">151</div>
-            <div class="text-[11px] text-white/40 mt-1">total received</div>
-          </div>
-          <div class="stat-card bg-white/[.06] dark:bg-white/[.04] border border-white/[.09] rounded-2xl p-4 tt cursor-default">
-            <div class="text-[11px] text-white/50 mb-2 flex items-center gap-1.5">
-              <span class="w-2 h-2 rounded-full bg-gold pulse-dot"></span>Boosted
-            </div>
-            <div class="font-display font-semibold text-white leading-none" style="font-size:28px" id="kpiBoosted">3</div>
-            <div class="text-[11px] text-white/40 mt-1">currently live</div>
-          </div>
-        </div>
-      </div>
-    </div>
+					<!-- KPI cards -->
+					<div class="grid grid-cols-3 gap-4 mt-7 stat-grid-2">
+						<div class="stat-card bg-white/[.06] dark:bg-white/[.04] border border-white/[.09] rounded-2xl p-4 tt cursor-default">
+							<div class="text-[11px] text-white/50 mb-2 flex items-center gap-1.5">
+								<span class="w-2 h-2 rounded-full bg-sage pulse-dot"></span>Active listings
+							</div>
+							<div class="font-display font-semibold text-white leading-none" style="font-size:28px">
+								{kpis.activeListings ?? 0}
+							</div>
+						</div>
+						<div class="stat-card bg-white/[.06] dark:bg-white/[.04] border border-white/[.09] rounded-2xl p-4 tt cursor-default">
+							<div class="text-[11px] text-white/50 mb-2 flex items-center gap-1.5">
+								<svg width="12" height="12" viewBox="0 0 14 14" fill="none">
+									<path d="M1 7s3-5 6-5 6 5 6 5-3 5-6 5-6-5-6-5z" stroke="rgba(74,144,226,.8)" stroke-width="1.2" />
+									<circle cx="7" cy="7" r="2" stroke="rgba(74,144,226,.8)" stroke-width="1.2" />
+								</svg>
+								Total views
+							</div>
+							<div class="font-display font-semibold text-white leading-none" style="font-size:28px">
+								{kpis.totalViews ?fmtN(kpis.totalViews) : 0}
+							</div>
+						</div>
+						<div class="stat-card bg-white/[.06] dark:bg-white/[.04] border border-white/[.09] rounded-2xl p-4 tt cursor-default">
+							<div class="text-[11px] text-white/50 mb-2 flex items-center gap-1.5">
+								<svg width="12" height="12" viewBox="0 0 14 14" fill="none">
+									<path d="M2 11l3-4 2 2 3-5 3 7" stroke="rgba(212,174,58,.8)" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" />
+								</svg>
+								Leads
+							</div>
+							<div class="font-display font-semibold text-white leading-none" style="font-size:28px">
+								{kpis.leads ? fmtN(kpis.leads) : 0}
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
 
-    <!-- BODY -->
-    <div class="px-6 lg:px-10 py-7 max-w-[1100px] mx-auto space-y-5">
-      <!-- CONTROLS BAR -->
-      <div class="space-y-3 fu d1">
-          <!-- Row 1: search + view toggle -->
-          <div class="flex items-center gap-3 flex-wrap controls-stack">
-            <!-- Search -->
-            <div class="flex-1 min-w-[200px] relative">
-              <svg class="absolute left-3.5 top-1/2 -translate-y-1/2 text-chalk-muted dark:text-[#6A7FA0] pointer-events-none" width="14" height="14" viewBox="0 0 16 16" fill="none"><circle cx="7" cy="7" r="5" stroke="currentColor" stroke-width="1.4"/><path d="M11 11l3 3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
-              <input id="searchInput" type="text" placeholder="Search by title or location…" oninput={() => {}} class="w-full bg-white dark:bg-[#0D1422] border border-chalk-3 dark:border-white/[.07] rounded-xl pl-9 pr-4 py-[10px] text-[13px] text-navy-dark dark:text-blue-100 placeholder-chalk-muted dark:placeholder-[#6A7FA0] outline-none focus:border-blue-bright/50 tt">
-            </div>
-    
-            <!-- Sort -->
-            <div class="sel-wrap flex-shrink-0">
-              <select id="sortSel" onchange={() => {}} class="bg-white dark:bg-[#0D1422] border border-chalk-3 dark:border-white/[.07] rounded-xl text-[13px] text-navy-dark dark:text-blue-100 px-3 py-[10px] pr-7 outline-none cursor-pointer tt">
-                <option value="recent">Most recent</option>
-                <option value="price-desc">Price: High → Low</option>
-                <option value="price-asc">Price: Low → High</option>
-                <option value="views-desc">Most viewed</option>
-                <option value="alpha">A → Z</option>
-              </select>
-            </div>
-    
-            <!-- View toggle -->
-            <div class="flex gap-0.5 bg-chalk-2 dark:bg-[#1A2438] rounded-xl p-1 flex-shrink-0">
-              <button id="btnList" onclick={() => setView('list')} class:active={selectedView == 'list'} class="vtoggle-btn w-8 h-7 rounded-lg flex items-center justify-center transition-all border-none cursor-pointer" title="Table view">
-                <svg width="13" height="13" viewBox="0 0 16 16" fill="none"><line x1="4" y1="4" x2="15" y2="4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/><line x1="4" y1="8" x2="15" y2="8" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/><line x1="4" y1="12" x2="15" y2="12" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/><circle cx="1.5" cy="4" r="1" fill="currentColor"/><circle cx="1.5" cy="8" r="1" fill="currentColor"/><circle cx="1.5" cy="12" r="1" fill="currentColor"/></svg>
-              </button>
-              <button id="btnCard" onclick={() => setView('grid')} class:active={selectedView == 'grid'} class="vtoggle-btn w-8 h-7 rounded-lg flex items-center justify-center transition-all border-none cursor-pointer" title="Card view">
-                <svg width="13" height="13" viewBox="0 0 16 16" fill="none"><rect x="1" y="1" width="6" height="6" rx="1.5" stroke="currentColor" stroke-width="1.3"/><rect x="9" y="1" width="6" height="6" rx="1.5" stroke="currentColor" stroke-width="1.3"/><rect x="1" y="9" width="6" height="6" rx="1.5" stroke="currentColor" stroke-width="1.3"/><rect x="9" y="9" width="6" height="6" rx="1.5" stroke="currentColor" stroke-width="1.3"/></svg>
-              </button>
-            </div>
-          </div>
-    
-          <!-- Row 2: filter chips -->
-          <div class="flex items-center gap-2 flex-wrap">
-            <!-- Status chips -->
-            <div class="flex gap-1.5 bg-chalk-2 dark:bg-[#1A2438] rounded-xl p-1">
-            {#each ['all', 'active', 'boosted', 'taken'] as _, index}
-            <button onclick={() => setStatus(_ as any)}  class:active={_ === selectedStatus}    class="ptab  text-[11px] font-medium px-3.5 py-1.5 rounded-lg bg-transparent border-none cursor-pointer tt capitalize">{_}</button>
-            {/each}
-           </div>
-    
-            <!-- Type filter -->
-            <div class="sel-wrap">
-              <select id="typeSel" onchange={() => {}} class="bg-white dark:bg-[#0D1422] border border-chalk-3 dark:border-white/[.07] rounded-xl text-[12px] text-navy-dark dark:text-blue-100 px-3 py-[8px] pr-7 outline-none cursor-pointer tt">
-                <option value="all">All types</option>
-                <option value="buy">For sale</option>
-                <option value="rent">To rent</option>
-                <option value="virtual">Virtual only</option>
-              </select>
-            </div>
-    
-            <!-- Price range -->
-            <div class="sel-wrap">
-              <select id="priceSel" onchange={() => {}} class="bg-white dark:bg-[#0D1422] border border-chalk-3 dark:border-white/[.07] rounded-xl text-[12px] text-navy-dark dark:text-blue-100 px-3 py-[8px] pr-7 outline-none cursor-pointer tt">
-                <option value="all">Any price</option>
-                <option value="0-1m">Under ₦1M</option>
-                <option value="1m-5m">₦1M – ₦5M</option>
-                <option value="5m-50m">₦5M – ₦50M</option>
-                <option value="50m+">₦50M+</option>
-              </select>
-            </div>
-          </div>
-    
-          <!-- Results label -->
-          <div class="flex items-center justify-between flex-wrap gap-2">
-            <p class="text-[13px] font-light text-chalk-muted dark:text-[#6A7FA0]" id="resultsLabel">
-              Showing 1–10 of 10 listings
-            </p>
-          </div>
-        </div>
+			<!-- BODY -->
+			<div class="px-6 lg:px-10 py-7 max-w-[1100px] mx-auto space-y-5">
+				<!-- CONTROLS BAR -->
+				<div class="space-y-3 fu d1">
+					<!-- Row 1: search (mobile: + filters/sort buttons) -->
+					<div class="flex items-center gap-3 flex-wrap md:flex-nowrap">
+						<div class="flex-1 min-w-[200px] relative">
+							<svg class="absolute left-3.5 top-1/2 -translate-y-1/2 text-chalk-muted dark:text-[#6A7FA0] pointer-events-none" width="14" height="14" viewBox="0 0 16 16" fill="none"><circle cx="7" cy="7" r="5" stroke="currentColor" stroke-width="1.4" /><path d="M11 11l3 3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" /></svg>
+							<input type="text" 
+								bind:value={filter.searchTerm}
+								placeholder="Search by listing name…" 
+								oninput={(e) => setFilterField('searchTerm', e.currentTarget.value)} 
+								class="w-full bg-white dark:bg-[#0D1422] border border-chalk-3 dark:border-white/[.07] rounded-xl pl-9 pr-4 py-[10px] text-[13px] text-navy-dark dark:text-blue-100 placeholder-chalk-muted dark:placeholder-[#6A7FA0] outline-none focus:border-blue-bright/50 tt" 
+							/>
+						</div>
 
-      {#if selectedView === 'list'}
-        <!-- TABLE VIEW -->
-        <div id="listView" class="fu d2">
-          <div class="bg-white dark:bg-[#0D1422] border border-chalk-3 dark:border-white/[0.07] rounded-2xl overflow-hidden tt">
-            {#if list.length > 0}
-            <div class="table-scroll">
-              <table class="w-full min-w-[820px]">
-                <thead>
-                  <tr class="border-b border-chalk-3 dark:border-white/[0.07]">
-                    <th class="text-left px-5 py-3.5 text-[10px] font-medium tracking-[.12em] uppercase text-chalk-muted dark:text-[#6A7FA0]">Property</th>
-                    <th class="text-left px-4 py-3.5 text-[10px] font-medium tracking-[.12em] uppercase text-chalk-muted dark:text-[#6A7FA0] hide-md">Type</th>
-                    <th class="text-left px-4 py-3.5 text-[10px] font-medium tracking-[.12em] uppercase text-chalk-muted dark:text-[#6A7FA0]">Price</th>
-                    <th class="text-center px-4 py-3.5 text-[10px] font-medium tracking-[.12em] uppercase text-chalk-muted dark:text-[#6A7FA0]">Status</th>
-                    <th class="text-right px-4 py-3.5 text-[10px] font-medium tracking-[.12em] uppercase text-chalk-muted dark:text-[#6A7FA0] hide-md">Views</th>
-                    <th class="text-right px-4 py-3.5 text-[10px] font-medium tracking-[.12em] uppercase text-chalk-muted dark:text-[#6A7FA0] hide-md">Enquiries</th>
-                    <th class="text-left px-4 py-3.5 text-[10px] font-medium tracking-[.12em] uppercase text-chalk-muted dark:text-[#6A7FA0] hide-md">Last updated</th>
-                    <th class="text-right px-5 py-3.5 text-[10px] font-medium tracking-[.12em] uppercase text-chalk-muted dark:text-[#6A7FA0]">Actions</th>
-                  </tr>
-                </thead>
-                <tbody id="propTableBody">
-                  <tr class="prow border-b border-chalk-3 dark:border-white/[.05] last:border-0">
-                    <!-- Property -->
-                    <td class="px-5 py-4">
-                      <div class="flex items-center gap-3">
-                        <div class="w-12 h-12 rounded-xl overflow-hidden flex-shrink-0 sky-2 relative">
-                          
-                        </div>
-                        <div class="min-w-0">
-                          <div class="text-[13px] font-medium text-navy-dark dark:text-blue-100 truncate max-w-[200px]">Studio Apartment Yaba</div>
-                          <div class="text-[11px] text-chalk-muted dark:text-[#6A7FA0] mt-0.5 truncate max-w-[200px]">Yaba, Lagos</div>
-                        </div>
-                      </div>
-                    </td>
-                    <!-- Type -->
-                    <td class="px-4 py-4 hide-md">
-                      <span class="type-rent text-[10px] font-semibold uppercase tracking-[.06em] px-2.5 py-[3px] rounded-full">Rent</span>
-                    </td>
-                    <!-- Price -->
-                    <td class="px-4 py-4">
-                      <div class="font-display font-semibold text-navy-dark dark:text-blue-100" style="font-size:14px">₦280k/mo</div>
-                      <div class="text-[10px] text-chalk-muted dark:text-[#6A7FA0] mt-0.5">1bd · 1ba · 38m²</div>
-                    </td>
-                    <!-- Status -->
-                    <td class="px-4 py-4 text-center">
-                      <span class="sp-draft text-[10px] font-semibold uppercase tracking-[.06em] px-2.5 py-[3px] rounded-full">Draft</span>
-                    </td>
-                    <!-- Views -->
-                    <td class="px-4 py-4 text-right hide-md">
-                      <div class="text-[13px] font-medium text-navy-dark dark:text-blue-100">0</div>
-                      <div class="text-[10px] text-chalk-muted dark:text-[#6A7FA0] mt-0.5">views</div>
-                    </td>
-                    <!-- Enquiries -->
-                    <td class="px-4 py-4 text-right hide-md">
-                      <div class="text-[13px] font-medium text-navy-dark dark:text-blue-100">0</div>
-                      <div class="text-[10px] text-chalk-muted dark:text-[#6A7FA0] mt-0.5">enquiries</div>
-                    </td>
-                    <!-- Updated -->
-                    <td class="px-4 py-4 hide-md">
-                      <div class="text-[12px] text-chalk-muted dark:text-[#6A7FA0]">4 May 2025</div>
-                    </td>
-                    <!-- Actions -->
-                    <td class="px-5 py-4 text-right">
-                      <div class="flex items-center justify-end gap-1.5 flex-wrap">
-                        <!-- View -->
-                        <a href="#" title="View listing" class="w-7 h-7 rounded-lg bg-chalk-2 dark:bg-white/[.05] border border-chalk-3 dark:border-white/[.07] flex items-center justify-center hover:border-blue-bright/40 tt cursor-pointer no-underline">
-                          <svg width="12" height="12" viewBox="0 0 14 14" fill="none" class="text-chalk-muted dark:text-[#6A7FA0]"><path d="M1 7s3-5 6-5 6 5 6 5-3 5-6 5-6-5-6-5z" stroke="currentColor" stroke-width="1.2"></path><circle cx="7" cy="7" r="2" stroke="currentColor" stroke-width="1.2"></circle></svg>
-                        </a>
-                        <!-- Boost -->
-                        <button title="Boost property" onclick={toggleBoostModal} class="w-7 h-7 rounded-lg bg-gold/10 border border-gold/30 flex items-center justify-center hover:bg-gold/20 tt cursor-pointer">
-                          <svg width="12" height="12" viewBox="0 0 14 14" fill="none"><path d="M7 1l1.5 3.5 3.5.5-2.5 2.4.6 3.5L7 9.5l-3.1 1.4.6-3.5L2 5l3.5-.5z" stroke="#D4AE3A" stroke-width="1.2" stroke-linejoin="round"></path></svg>
-                        </button>
-                        <!-- Edit -->
-                        <a href="/agency/listings/edit/090" title="Edit property" class="w-7 h-7 rounded-lg bg-chalk-2 dark:bg-white/[.05] border border-chalk-3 dark:border-white/[.07] flex items-center justify-center hover:border-blue-bright/40 tt cursor-pointer">
-                          <svg width="12" height="12" viewBox="0 0 14 14" fill="none" class="text-chalk-muted dark:text-[#6A7FA0]"><path d="M9.5 2.5l2 2L4 12H2v-2L9.5 2.5z" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"></path></svg>
-                        </a>
-                        <!-- Archive / Taken -->
-                        <div class="relative inline-block" id="actMenu_p9">
-                          <button title="More actions" onclick={toggleShowMoreActions} class="w-7 h-7 rounded-lg bg-chalk-2 dark:bg-white/[.05] border border-chalk-3 dark:border-white/[.07] flex items-center justify-center hover:border-ember/40 tt cursor-pointer">
-                            <svg width="12" height="12" viewBox="0 0 14 14" fill="none" class="text-chalk-muted dark:text-[#6A7FA0]"><circle cx="7" cy="3" r="1" fill="currentColor"></circle><circle cx="7" cy="7" r="1" fill="currentColor"></circle><circle cx="7" cy="11" r="1" fill="currentColor"></circle></svg>
-                          </button>
-                          {#if showMoreActions}
-                          <div id="actMenuPanel_p9" class="absolute right-0 top-full mt-1.5 w-[160px] bg-white dark:bg-[#131C2E] border border-chalk-3 dark:border-white/[.08] rounded-xl shadow-lg z-50 overflow-hidden tt action-menu">
-                            
-                            <button onclick={toggleTakenModal} class="w-full px-4 py-2.5 text-left text-[12px] font-medium text-navy-dark dark:text-blue-100 hover:bg-chalk-2 dark:hover:bg-white/[.04] tt cursor-pointer border-none bg-transparent flex items-center gap-2">
-                              <svg width="11" height="11" viewBox="0 0 14 14" fill="none"><path d="M2 7h10M7 2l5 5-5 5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"></path></svg>
-                              Mark as taken
-                            </button>
-                            <button onclick={toggleArchivedModal} class="w-full px-4 py-2.5 text-left text-[12px] font-medium text-ember hover:bg-ember-light/30 dark:hover:bg-ember/[.05] tt cursor-pointer border-none bg-transparent flex items-center gap-2">
-                              <svg width="11" height="11" viewBox="0 0 14 14" fill="none"><path d="M3 6h8M5 6V4h4v2M4 6l1 7h4l1-7" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"></path></svg>
-                              Archive
-                            </button>
-                          </div>
-                          {/if}
-                        </div>
-                      </div>
-                    </td>
-                  </tr>
-                  <tr class="prow border-b border-chalk-3 dark:border-white/[.05] last:border-0">
-                    <!-- Property -->
-                    <td class="px-5 py-4">
-                      <div class="flex items-center gap-3">
-                        <div class="w-12 h-12 rounded-xl overflow-hidden flex-shrink-0 sky-1 relative">
-                          <span class="absolute top-1 right-1 w-3 h-3 rounded-full bg-gold border border-white/30 flex-shrink-0"></span>
-                        </div>
-                        <div class="min-w-0">
-                          <div class="text-[13px] font-medium text-navy-dark dark:text-blue-100 truncate max-w-[200px]">2-Bed Serviced Flat Ikoyi</div>
-                          <div class="text-[11px] text-chalk-muted dark:text-[#6A7FA0] mt-0.5 truncate max-w-[200px]">Ikoyi, Lagos</div>
-                        </div>
-                      </div>
-                    </td>
-                    <!-- Type -->
-                    <td class="px-4 py-4 hide-md">
-                      <span class="type-rent text-[10px] font-semibold uppercase tracking-[.06em] px-2.5 py-[3px] rounded-full">Rent</span>
-                    </td>
-                    <!-- Price -->
-                    <td class="px-4 py-4">
-                      <div class="font-display font-semibold text-navy-dark dark:text-blue-100" style="font-size:14px">₦1.2M/mo</div>
-                      <div class="text-[10px] text-chalk-muted dark:text-[#6A7FA0] mt-0.5">2bd · 2ba · 110m²</div>
-                    </td>
-                    <!-- Status -->
-                    <td class="px-4 py-4 text-center">
-                      <span class="sp-active text-[10px] font-semibold uppercase tracking-[.06em] px-2.5 py-[3px] rounded-full">Active</span>
-                    </td>
-                    <!-- Views -->
-                    <td class="px-4 py-4 text-right hide-md">
-                      <div class="text-[13px] font-medium text-navy-dark dark:text-blue-100">720</div>
-                      <div class="text-[10px] text-chalk-muted dark:text-[#6A7FA0] mt-0.5">views</div>
-                    </td>
-                    <!-- Enquiries -->
-                    <td class="px-4 py-4 text-right hide-md">
-                      <div class="text-[13px] font-medium text-navy-dark dark:text-blue-100">9</div>
-                      <div class="text-[10px] text-chalk-muted dark:text-[#6A7FA0] mt-0.5">enquiries</div>
-                    </td>
-                    <!-- Updated -->
-                    <td class="px-4 py-4 hide-md">
-                      <div class="text-[12px] text-chalk-muted dark:text-[#6A7FA0]">3 May 2025</div>
-                    </td>
-                    <!-- Actions -->
-                    <td class="px-5 py-4 text-right">
-                      <div class="flex items-center justify-end gap-1.5 flex-wrap">
-                        <!-- View -->
-                        <a href="/agency/listings/edit/90" title="View listing" class="w-7 h-7 rounded-lg bg-chalk-2 dark:bg-white/[.05] border border-chalk-3 dark:border-white/[.07] flex items-center justify-center hover:border-blue-bright/40 tt cursor-pointer no-underline">
-                          <svg width="12" height="12" viewBox="0 0 14 14" fill="none" class="text-chalk-muted dark:text-[#6A7FA0]"><path d="M1 7s3-5 6-5 6 5 6 5-3 5-6 5-6-5-6-5z" stroke="currentColor" stroke-width="1.2"></path><circle cx="7" cy="7" r="2" stroke="currentColor" stroke-width="1.2"></circle></svg>
-                        </a>
-                        <!-- Boost -->
-                        <button title="Boost property" onclick={toggleBoostModal} class="w-7 h-7 rounded-lg bg-gold/10 border border-gold/30 flex items-center justify-center hover:bg-gold/20 tt cursor-pointer">
-                          <svg width="12" height="12" viewBox="0 0 14 14" fill="none"><path d="M7 1l1.5 3.5 3.5.5-2.5 2.4.6 3.5L7 9.5l-3.1 1.4.6-3.5L2 5l3.5-.5z" stroke="#D4AE3A" stroke-width="1.2" stroke-linejoin="round"></path></svg>
-                        </button>
-                        <!-- Edit -->
-                        <a href="/agency/listings/edit/123" title="Edit property" class="w-7 h-7 rounded-lg bg-chalk-2 dark:bg-white/[.05] border border-chalk-3 dark:border-white/[.07] flex items-center justify-center hover:border-blue-bright/40 tt cursor-pointer">
-                          <svg width="12" height="12" viewBox="0 0 14 14" fill="none" class="text-chalk-muted dark:text-[#6A7FA0]"><path d="M9.5 2.5l2 2L4 12H2v-2L9.5 2.5z" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"></path></svg>
-                        </a>
-                        <!-- Archive / Taken -->
-                        <div class="relative inline-block" id="actMenu_p7">
-                          <button title="More actions" onclick={toggleShowMoreActions} class="w-7 h-7 rounded-lg bg-chalk-2 dark:bg-white/[.05] border border-chalk-3 dark:border-white/[.07] flex items-center justify-center hover:border-ember/40 tt cursor-pointer">
-                            <svg width="12" height="12" viewBox="0 0 14 14" fill="none" class="text-chalk-muted dark:text-[#6A7FA0]"><circle cx="7" cy="3" r="1" fill="currentColor"></circle><circle cx="7" cy="7" r="1" fill="currentColor"></circle><circle cx="7" cy="11" r="1" fill="currentColor"></circle></svg>
-                          </button>
-                          {#if showMoreActions}
-                          <div id="actMenuPanel_p7" class="absolute right-0 top-full mt-1.5 w-[160px] bg-white dark:bg-[#131C2E] border border-chalk-3 dark:border-white/[.08] rounded-xl shadow-lg z-50 overflow-hidden tt action-menu">
-                            
-                            <button onclick={toggleTakenModal} class="w-full px-4 py-2.5 text-left text-[12px] font-medium text-navy-dark dark:text-blue-100 hover:bg-chalk-2 dark:hover:bg-white/[.04] tt cursor-pointer border-none bg-transparent flex items-center gap-2">
-                              <svg width="11" height="11" viewBox="0 0 14 14" fill="none"><path d="M2 7h10M7 2l5 5-5 5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"></path></svg>
-                              Mark as taken
-                            </button>
-                            <button onclick={toggleArchivedModal} class="w-full px-4 py-2.5 text-left text-[12px] font-medium text-ember hover:bg-ember-light/30 dark:hover:bg-ember/[.05] tt cursor-pointer border-none bg-transparent flex items-center gap-2">
-                              <svg width="11" height="11" viewBox="0 0 14 14" fill="none"><path d="M3 6h8M5 6V4h4v2M4 6l1 7h4l1-7" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"></path></svg>
-                              Archive
-                            </button>
-                          </div>
-                          {/if}
-                        </div>
-                      </div>
-                    </td>
-                  </tr>
-                  <tr class="prow border-b border-chalk-3 dark:border-white/[.05] last:border-0">
-                    <!-- Property -->
-                    <td class="px-5 py-4">
-                      <div class="flex items-center gap-3">
-                        <div class="w-12 h-12 rounded-xl overflow-hidden flex-shrink-0 sky-1 relative">
-                          <span class="absolute top-1 right-1 w-3 h-3 rounded-full bg-gold border border-white/30 flex-shrink-0"></span>
-                        </div>
-                        <div class="min-w-0">
-                          <div class="text-[13px] font-medium text-navy-dark dark:text-blue-100 truncate max-w-[200px]">3-Bed Duplex GRA Phase 2</div>
-                          <div class="text-[11px] text-chalk-muted dark:text-[#6A7FA0] mt-0.5 truncate max-w-[200px]">GRA Phase 2, Port Harcourt</div>
-                        </div>
-                      </div>
-                    </td>
-                    <!-- Type -->
-                    <td class="px-4 py-4 hide-md">
-                      <span class="type-buy text-[10px] font-semibold uppercase tracking-[.06em] px-2.5 py-[3px] rounded-full">Sale</span>
-                    </td>
-                    <!-- Price -->
-                    <td class="px-4 py-4">
-                      <div class="font-display font-semibold text-navy-dark dark:text-blue-100" style="font-size:14px">₦95M</div>
-                      <div class="text-[10px] text-chalk-muted dark:text-[#6A7FA0] mt-0.5">3bd · 3ba · 185m²</div>
-                    </td>
-                    <!-- Status -->
-                    <td class="px-4 py-4 text-center">
-                      <span class="sp-active text-[10px] font-semibold uppercase tracking-[.06em] px-2.5 py-[3px] rounded-full">Active</span>
-                    </td>
-                    <!-- Views -->
-                    <td class="px-4 py-4 text-right hide-md">
-                      <div class="text-[13px] font-medium text-navy-dark dark:text-blue-100">1.2k</div>
-                      <div class="text-[10px] text-chalk-muted dark:text-[#6A7FA0] mt-0.5">views</div>
-                    </td>
-                    <!-- Enquiries -->
-                    <td class="px-4 py-4 text-right hide-md">
-                      <div class="text-[13px] font-medium text-navy-dark dark:text-blue-100">18</div>
-                      <div class="text-[10px] text-chalk-muted dark:text-[#6A7FA0] mt-0.5">enquiries</div>
-                    </td>
-                    <!-- Updated -->
-                    <td class="px-4 py-4 hide-md">
-                      <div class="text-[12px] text-chalk-muted dark:text-[#6A7FA0]">1 May 2025</div>
-                    </td>
-                    <!-- Actions -->
-                    <td class="px-5 py-4 text-right">
-                      <div class="flex items-center justify-end gap-1.5 flex-wrap">
-                        <!-- View -->
-                        <a href="/agency/listings/edit/90" title="View listing" class="w-7 h-7 rounded-lg bg-chalk-2 dark:bg-white/[.05] border border-chalk-3 dark:border-white/[.07] flex items-center justify-center hover:border-blue-bright/40 tt cursor-pointer no-underline">
-                          <svg width="12" height="12" viewBox="0 0 14 14" fill="none" class="text-chalk-muted dark:text-[#6A7FA0]"><path d="M1 7s3-5 6-5 6 5 6 5-3 5-6 5-6-5-6-5z" stroke="currentColor" stroke-width="1.2"></path><circle cx="7" cy="7" r="2" stroke="currentColor" stroke-width="1.2"></circle></svg>
-                        </a>
-                        <!-- Boost -->
-                        <button title="Boost property" onclick={toggleBoostModal} class="w-7 h-7 rounded-lg bg-gold/10 border border-gold/30 flex items-center justify-center hover:bg-gold/20 tt cursor-pointer">
-                          <svg width="12" height="12" viewBox="0 0 14 14" fill="none"><path d="M7 1l1.5 3.5 3.5.5-2.5 2.4.6 3.5L7 9.5l-3.1 1.4.6-3.5L2 5l3.5-.5z" stroke="#D4AE3A" stroke-width="1.2" stroke-linejoin="round"></path></svg>
-                        </button>
-                        <!-- Edit -->
-                        <a href="/agency/listings/edit/123" title="Edit property" class="w-7 h-7 rounded-lg bg-chalk-2 dark:bg-white/[.05] border border-chalk-3 dark:border-white/[.07] flex items-center justify-center hover:border-blue-bright/40 tt cursor-pointer">
-                          <svg width="12" height="12" viewBox="0 0 14 14" fill="none" class="text-chalk-muted dark:text-[#6A7FA0]"><path d="M9.5 2.5l2 2L4 12H2v-2L9.5 2.5z" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"></path></svg>
-                        </a>
-                        <!-- Archive / Taken -->
-                        <div class="relative inline-block" id="actMenu_p1">
-                          <button title="More actions" onclick={toggleShowMoreActions} class="w-7 h-7 rounded-lg bg-chalk-2 dark:bg-white/[.05] border border-chalk-3 dark:border-white/[.07] flex items-center justify-center hover:border-ember/40 tt cursor-pointer">
-                            <svg width="12" height="12" viewBox="0 0 14 14" fill="none" class="text-chalk-muted dark:text-[#6A7FA0]"><circle cx="7" cy="3" r="1" fill="currentColor"></circle><circle cx="7" cy="7" r="1" fill="currentColor"></circle><circle cx="7" cy="11" r="1" fill="currentColor"></circle></svg>
-                          </button>
-                          {#if showMoreActions}
-                          <div id="actMenuPanel_p1" class="absolute right-0 top-full mt-1.5 w-[160px] bg-white dark:bg-[#131C2E] border border-chalk-3 dark:border-white/[.08] rounded-xl shadow-lg z-50 overflow-hidden tt action-menu">
-                            
-                            <button onclick={toggleTakenModal} class="w-full px-4 py-2.5 text-left text-[12px] font-medium text-navy-dark dark:text-blue-100 hover:bg-chalk-2 dark:hover:bg-white/[.04] tt cursor-pointer border-none bg-transparent flex items-center gap-2">
-                              <svg width="11" height="11" viewBox="0 0 14 14" fill="none"><path d="M2 7h10M7 2l5 5-5 5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"></path></svg>
-                              Mark as taken
-                            </button>
-                            <button onclick={toggleArchivedModal} class="w-full px-4 py-2.5 text-left text-[12px] font-medium text-ember hover:bg-ember-light/30 dark:hover:bg-ember/[.05] tt cursor-pointer border-none bg-transparent flex items-center gap-2">
-                              <svg width="11" height="11" viewBox="0 0 14 14" fill="none"><path d="M3 6h8M5 6V4h4v2M4 6l1 7h4l1-7" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"></path></svg>
-                              Archive
-                            </button>
-                          </div>
-                          {/if}
-                        </div>
-                      </div>
-                    </td>
-                  </tr>
-                  <tr class="prow border-b border-chalk-3 dark:border-white/[.05] last:border-0">
-                    <!-- Property -->
-                    <td class="px-5 py-4">
-                      <div class="flex items-center gap-3">
-                        <div class="w-12 h-12 rounded-xl overflow-hidden flex-shrink-0 sky-2 relative">
-                          <span class="absolute top-1 right-1 w-3 h-3 rounded-full bg-gold border border-white/30 flex-shrink-0"></span>
-                        </div>
-                        <div class="min-w-0">
-                          <div class="text-[13px] font-medium text-navy-dark dark:text-blue-100 truncate max-w-[200px]">4-Bed Terrace Maitama</div>
-                          <div class="text-[11px] text-chalk-muted dark:text-[#6A7FA0] mt-0.5 truncate max-w-[200px]">Maitama, Abuja</div>
-                        </div>
-                      </div>
-                    </td>
-                    <!-- Type -->
-                    <td class="px-4 py-4 hide-md">
-                      <span class="type-buy text-[10px] font-semibold uppercase tracking-[.06em] px-2.5 py-[3px] rounded-full">Sale</span>
-                    </td>
-                    <!-- Price -->
-                    <td class="px-4 py-4">
-                      <div class="font-display font-semibold text-navy-dark dark:text-blue-100" style="font-size:14px">₦220M</div>
-                      <div class="text-[10px] text-chalk-muted dark:text-[#6A7FA0] mt-0.5">4bd · 4ba · 260m²</div>
-                    </td>
-                    <!-- Status -->
-                    <td class="px-4 py-4 text-center">
-                      <span class="sp-boosted text-[10px] font-semibold uppercase tracking-[.06em] px-2.5 py-[3px] rounded-full">Boosted</span>
-                    </td>
-                    <!-- Views -->
-                    <td class="px-4 py-4 text-right hide-md">
-                      <div class="text-[13px] font-medium text-navy-dark dark:text-blue-100">2.1k</div>
-                      <div class="text-[10px] text-chalk-muted dark:text-[#6A7FA0] mt-0.5">views</div>
-                    </td>
-                    <!-- Enquiries -->
-                    <td class="px-4 py-4 text-right hide-md">
-                      <div class="text-[13px] font-medium text-navy-dark dark:text-blue-100">32</div>
-                      <div class="text-[10px] text-chalk-muted dark:text-[#6A7FA0] mt-0.5">enquiries</div>
-                    </td>
-                    <!-- Updated -->
-                    <td class="px-4 py-4 hide-md">
-                      <div class="text-[12px] text-chalk-muted dark:text-[#6A7FA0]">30 Apr 2025</div>
-                    </td>
-                    <!-- Actions -->
-                    <td class="px-5 py-4 text-right">
-                      <div class="flex items-center justify-end gap-1.5 flex-wrap">
-                        <!-- View -->
-                        <a href="/agency/listings/edit/90" title="View listing" class="w-7 h-7 rounded-lg bg-chalk-2 dark:bg-white/[.05] border border-chalk-3 dark:border-white/[.07] flex items-center justify-center hover:border-blue-bright/40 tt cursor-pointer no-underline">
-                          <svg width="12" height="12" viewBox="0 0 14 14" fill="none" class="text-chalk-muted dark:text-[#6A7FA0]"><path d="M1 7s3-5 6-5 6 5 6 5-3 5-6 5-6-5-6-5z" stroke="currentColor" stroke-width="1.2"></path><circle cx="7" cy="7" r="2" stroke="currentColor" stroke-width="1.2"></circle></svg>
-                        </a>
-                        <!-- Boost -->
-                        <button title="Boost property" onclick={toggleBoostModal} class="w-7 h-7 rounded-lg bg-gold/10 border border-gold/30 flex items-center justify-center hover:bg-gold/20 tt cursor-pointer">
-                          <svg width="12" height="12" viewBox="0 0 14 14" fill="none"><path d="M7 1l1.5 3.5 3.5.5-2.5 2.4.6 3.5L7 9.5l-3.1 1.4.6-3.5L2 5l3.5-.5z" stroke="#D4AE3A" stroke-width="1.2" stroke-linejoin="round"></path></svg>
-                        </button>
-                        <!-- Edit -->
-                        <a href="/agency/listings/edit/12" title="Edit property" class="w-7 h-7 rounded-lg bg-chalk-2 dark:bg-white/[.05] border border-chalk-3 dark:border-white/[.07] flex items-center justify-center hover:border-blue-bright/40 tt cursor-pointer">
-                          <svg width="12" height="12" viewBox="0 0 14 14" fill="none" class="text-chalk-muted dark:text-[#6A7FA0]"><path d="M9.5 2.5l2 2L4 12H2v-2L9.5 2.5z" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"></path></svg>
-                        </a>
-                        <!-- Archive / Taken -->
-                        <div class="relative inline-block" id="actMenu_p3">
-                          <button title="More actions" onclick={toggleShowMoreActions} class="w-7 h-7 rounded-lg bg-chalk-2 dark:bg-white/[.05] border border-chalk-3 dark:border-white/[.07] flex items-center justify-center hover:border-ember/40 tt cursor-pointer">
-                            <svg width="12" height="12" viewBox="0 0 14 14" fill="none" class="text-chalk-muted dark:text-[#6A7FA0]"><circle cx="7" cy="3" r="1" fill="currentColor"></circle><circle cx="7" cy="7" r="1" fill="currentColor"></circle><circle cx="7" cy="11" r="1" fill="currentColor"></circle></svg>
-                          </button>
-                          {#if showMoreActions}
-                          <div id="actMenuPanel_p3" class="absolute right-0 top-full mt-1.5 w-[160px] bg-white dark:bg-[#131C2E] border border-chalk-3 dark:border-white/[.08] rounded-xl shadow-lg z-50 overflow-hidden tt action-menu">
-                            
-                            <button onclick={toggleTakenModal} class="w-full px-4 py-2.5 text-left text-[12px] font-medium text-navy-dark dark:text-blue-100 hover:bg-chalk-2 dark:hover:bg-white/[.04] tt cursor-pointer border-none bg-transparent flex items-center gap-2">
-                              <svg width="11" height="11" viewBox="0 0 14 14" fill="none"><path d="M2 7h10M7 2l5 5-5 5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"></path></svg>
-                              Mark as taken
-                            </button>
-                            <button onclick={toggleArchivedModal} class="w-full px-4 py-2.5 text-left text-[12px] font-medium text-ember hover:bg-ember-light/30 dark:hover:bg-ember/[.05] tt cursor-pointer border-none bg-transparent flex items-center gap-2">
-                              <svg width="11" height="11" viewBox="0 0 14 14" fill="none"><path d="M3 6h8M5 6V4h4v2M4 6l1 7h4l1-7" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"></path></svg>
-                              Archive
-                            </button>
-                          </div>
-                          {/if}
-                        </div>
-                      </div>
-                    </td>
-                  </tr>
-                  <tr class="prow border-b border-chalk-3 dark:border-white/[.05] last:border-0">
-                    <!-- Property -->
-                    <td class="px-5 py-4">
-                      <div class="flex items-center gap-3">
-                        <div class="w-12 h-12 rounded-xl overflow-hidden flex-shrink-0 sky-3 relative">
-                          
-                        </div>
-                        <div class="min-w-0">
-                          <div class="text-[13px] font-medium text-navy-dark dark:text-blue-100 truncate max-w-[200px]">2-Bed Apartment Lekki Phase 1</div>
-                          <div class="text-[11px] text-chalk-muted dark:text-[#6A7FA0] mt-0.5 truncate max-w-[200px]">Lekki Phase 1, Lagos</div>
-                        </div>
-                      </div>
-                    </td>
-                    <!-- Type -->
-                    <td class="px-4 py-4 hide-md">
-                      <span class="type-rent text-[10px] font-semibold uppercase tracking-[.06em] px-2.5 py-[3px] rounded-full">Rent</span>
-                    </td>
-                    <!-- Price -->
-                    <td class="px-4 py-4">
-                      <div class="font-display font-semibold text-navy-dark dark:text-blue-100" style="font-size:14px">₦850k/mo</div>
-                      <div class="text-[10px] text-chalk-muted dark:text-[#6A7FA0] mt-0.5">2bd · 2ba · 90m²</div>
-                    </td>
-                    <!-- Status -->
-                    <td class="px-4 py-4 text-center">
-                      <span class="sp-active text-[10px] font-semibold uppercase tracking-[.06em] px-2.5 py-[3px] rounded-full">Active</span>
-                    </td>
-                    <!-- Views -->
-                    <td class="px-4 py-4 text-right hide-md">
-                      <div class="text-[13px] font-medium text-navy-dark dark:text-blue-100">880</div>
-                      <div class="text-[10px] text-chalk-muted dark:text-[#6A7FA0] mt-0.5">views</div>
-                    </td>
-                    <!-- Enquiries -->
-                    <td class="px-4 py-4 text-right hide-md">
-                      <div class="text-[13px] font-medium text-navy-dark dark:text-blue-100">12</div>
-                      <div class="text-[10px] text-chalk-muted dark:text-[#6A7FA0] mt-0.5">enquiries</div>
-                    </td>
-                    <!-- Updated -->
-                    <td class="px-4 py-4 hide-md">
-                      <div class="text-[12px] text-chalk-muted dark:text-[#6A7FA0]">28 Apr 2025</div>
-                    </td>
-                    <!-- Actions -->
-                    <td class="px-5 py-4 text-right">
-                      <div class="flex items-center justify-end gap-1.5 flex-wrap">
-                        <!-- View -->
-                        <a href="/agency/listings/edit/90" title="View listing" class="w-7 h-7 rounded-lg bg-chalk-2 dark:bg-white/[.05] border border-chalk-3 dark:border-white/[.07] flex items-center justify-center hover:border-blue-bright/40 tt cursor-pointer no-underline">
-                          <svg width="12" height="12" viewBox="0 0 14 14" fill="none" class="text-chalk-muted dark:text-[#6A7FA0]"><path d="M1 7s3-5 6-5 6 5 6 5-3 5-6 5-6-5-6-5z" stroke="currentColor" stroke-width="1.2"></path><circle cx="7" cy="7" r="2" stroke="currentColor" stroke-width="1.2"></circle></svg>
-                        </a>
-                        <!-- Boost -->
-                        <button title="Boost property" onclick={toggleBoostModal} class="w-7 h-7 rounded-lg bg-gold/10 border border-gold/30 flex items-center justify-center hover:bg-gold/20 tt cursor-pointer">
-                          <svg width="12" height="12" viewBox="0 0 14 14" fill="none"><path d="M7 1l1.5 3.5 3.5.5-2.5 2.4.6 3.5L7 9.5l-3.1 1.4.6-3.5L2 5l3.5-.5z" stroke="#D4AE3A" stroke-width="1.2" stroke-linejoin="round"></path></svg>
-                        </button>
-                        <!-- Edit -->
-                        <a href="/agency/listings/edit/90" title="Edit property" class="w-7 h-7 rounded-lg bg-chalk-2 dark:bg-white/[.05] border border-chalk-3 dark:border-white/[.07] flex items-center justify-center hover:border-blue-bright/40 tt cursor-pointer">
-                          <svg width="12" height="12" viewBox="0 0 14 14" fill="none" class="text-chalk-muted dark:text-[#6A7FA0]"><path d="M9.5 2.5l2 2L4 12H2v-2L9.5 2.5z" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"></path></svg>
-                        </a>
-                        <!-- Archive / Taken -->
-                        <div class="relative inline-block" id="actMenu_p2">
-                          <button title="More actions" onclick={toggleShowMoreActions} class="w-7 h-7 rounded-lg bg-chalk-2 dark:bg-white/[.05] border border-chalk-3 dark:border-white/[.07] flex items-center justify-center hover:border-ember/40 tt cursor-pointer">
-                            <svg width="12" height="12" viewBox="0 0 14 14" fill="none" class="text-chalk-muted dark:text-[#6A7FA0]"><circle cx="7" cy="3" r="1" fill="currentColor"></circle><circle cx="7" cy="7" r="1" fill="currentColor"></circle><circle cx="7" cy="11" r="1" fill="currentColor"></circle></svg>
-                          </button>
-                          {#if showMoreActions}
-                          <div id="actMenuPanel_p2" class="absolute right-0 top-full mt-1.5 w-[160px] bg-white dark:bg-[#131C2E] border border-chalk-3 dark:border-white/[.08] rounded-xl shadow-lg z-50 overflow-hidden tt action-menu">
-                            
-                            <button onclick={toggleTakenModal} class="w-full px-4 py-2.5 text-left text-[12px] font-medium text-navy-dark dark:text-blue-100 hover:bg-chalk-2 dark:hover:bg-white/[.04] tt cursor-pointer border-none bg-transparent flex items-center gap-2">
-                              <svg width="11" height="11" viewBox="0 0 14 14" fill="none"><path d="M2 7h10M7 2l5 5-5 5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"></path></svg>
-                              Mark as taken
-                            </button>
-                            <button onclick={toggleArchivedModal} class="w-full px-4 py-2.5 text-left text-[12px] font-medium text-ember hover:bg-ember-light/30 dark:hover:bg-ember/[.05] tt cursor-pointer border-none bg-transparent flex items-center gap-2">
-                              <svg width="11" height="11" viewBox="0 0 14 14" fill="none"><path d="M3 6h8M5 6V4h4v2M4 6l1 7h4l1-7" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"></path></svg>
-                              Archive
-                            </button>
-                          </div>
-                          {/if}
-                        </div>
-                      </div>
-                    </td>
-                  </tr>
-                  <tr class="prow border-b border-chalk-3 dark:border-white/[.05] last:border-0">
-                    <!-- Property -->
-                    <td class="px-5 py-4">
-                      <div class="flex items-center gap-3">
-                        <div class="w-12 h-12 rounded-xl overflow-hidden flex-shrink-0 sky-5 relative">
-                          
-                        </div>
-                        <div class="min-w-0">
-                          <div class="text-[13px] font-medium text-navy-dark dark:text-blue-100 truncate max-w-[200px]">4-Bed Duplex Jabi Lake District</div>
-                          <div class="text-[11px] text-chalk-muted dark:text-[#6A7FA0] mt-0.5 truncate max-w-[200px]">Jabi, Abuja</div>
-                        </div>
-                      </div>
-                    </td>
-                    <!-- Type -->
-                    <td class="px-4 py-4 hide-md">
-                      <span class="type-buy text-[10px] font-semibold uppercase tracking-[.06em] px-2.5 py-[3px] rounded-full">Sale</span>
-                    </td>
-                    <!-- Price -->
-                    <td class="px-4 py-4">
-                      <div class="font-display font-semibold text-navy-dark dark:text-blue-100" style="font-size:14px">₦130M</div>
-                      <div class="text-[10px] text-chalk-muted dark:text-[#6A7FA0] mt-0.5">4bd · 4ba · 220m²</div>
-                    </td>
-                    <!-- Status -->
-                    <td class="px-4 py-4 text-center">
-                      <span class="sp-active text-[10px] font-semibold uppercase tracking-[.06em] px-2.5 py-[3px] rounded-full">Active</span>
-                    </td>
-                    <!-- Views -->
-                    <td class="px-4 py-4 text-right hide-md">
-                      <div class="text-[13px] font-medium text-navy-dark dark:text-blue-100">590</div>
-                      <div class="text-[10px] text-chalk-muted dark:text-[#6A7FA0] mt-0.5">views</div>
-                    </td>
-                    <!-- Enquiries -->
-                    <td class="px-4 py-4 text-right hide-md">
-                      <div class="text-[13px] font-medium text-navy-dark dark:text-blue-100">11</div>
-                      <div class="text-[10px] text-chalk-muted dark:text-[#6A7FA0] mt-0.5">enquiries</div>
-                    </td>
-                    <!-- Updated -->
-                    <td class="px-4 py-4 hide-md">
-                      <div class="text-[12px] text-chalk-muted dark:text-[#6A7FA0]">25 Apr 2025</div>
-                    </td>
-                    <!-- Actions -->
-                    <td class="px-5 py-4 text-right">
-                      <div class="flex items-center justify-end gap-1.5 flex-wrap">
-                        <!-- View -->
-                        <a href="/agency/listings/edit/90" title="View listing" class="w-7 h-7 rounded-lg bg-chalk-2 dark:bg-white/[.05] border border-chalk-3 dark:border-white/[.07] flex items-center justify-center hover:border-blue-bright/40 tt cursor-pointer no-underline">
-                          <svg width="12" height="12" viewBox="0 0 14 14" fill="none" class="text-chalk-muted dark:text-[#6A7FA0]"><path d="M1 7s3-5 6-5 6 5 6 5-3 5-6 5-6-5-6-5z" stroke="currentColor" stroke-width="1.2"></path><circle cx="7" cy="7" r="2" stroke="currentColor" stroke-width="1.2"></circle></svg>
-                        </a>
-                        <!-- Boost -->
-                        <button title="Boost property" onclick={toggleBoostModal} class="w-7 h-7 rounded-lg bg-gold/10 border border-gold/30 flex items-center justify-center hover:bg-gold/20 tt cursor-pointer">
-                          <svg width="12" height="12" viewBox="0 0 14 14" fill="none"><path d="M7 1l1.5 3.5 3.5.5-2.5 2.4.6 3.5L7 9.5l-3.1 1.4.6-3.5L2 5l3.5-.5z" stroke="#D4AE3A" stroke-width="1.2" stroke-linejoin="round"></path></svg>
-                        </button>
-                        <!-- Edit -->
-                        <a href="/agency/listings/edit/09" title="Edit property" class="w-7 h-7 rounded-lg bg-chalk-2 dark:bg-white/[.05] border border-chalk-3 dark:border-white/[.07] flex items-center justify-center hover:border-blue-bright/40 tt cursor-pointer">
-                          <svg width="12" height="12" viewBox="0 0 14 14" fill="none" class="text-chalk-muted dark:text-[#6A7FA0]"><path d="M9.5 2.5l2 2L4 12H2v-2L9.5 2.5z" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"></path></svg>
-                        </a>
-                        <!-- Archive / Taken -->
-                        <div class="relative inline-block" id="actMenu_p10">
-                          <button title="More actions" onclick={toggleShowMoreActions} class="w-7 h-7 rounded-lg bg-chalk-2 dark:bg-white/[.05] border border-chalk-3 dark:border-white/[.07] flex items-center justify-center hover:border-ember/40 tt cursor-pointer">
-                            <svg width="12" height="12" viewBox="0 0 14 14" fill="none" class="text-chalk-muted dark:text-[#6A7FA0]"><circle cx="7" cy="3" r="1" fill="currentColor"></circle><circle cx="7" cy="7" r="1" fill="currentColor"></circle><circle cx="7" cy="11" r="1" fill="currentColor"></circle></svg>
-                          </button>
-                          {#if showMoreActions}
-                          <div id="actMenuPanel_p10" class="absolute right-0 top-full mt-1.5 w-[160px] bg-white dark:bg-[#131C2E] border border-chalk-3 dark:border-white/[.08] rounded-xl shadow-lg z-50 overflow-hidden tt action-menu">
-                            
-                            <button onclick={toggleTakenModal} class="w-full px-4 py-2.5 text-left text-[12px] font-medium text-navy-dark dark:text-blue-100 hover:bg-chalk-2 dark:hover:bg-white/[.04] tt cursor-pointer border-none bg-transparent flex items-center gap-2">
-                              <svg width="11" height="11" viewBox="0 0 14 14" fill="none"><path d="M2 7h10M7 2l5 5-5 5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"></path></svg>
-                              Mark as taken
-                            </button>
-                            <button onclick={toggleArchivedModal} class="w-full px-4 py-2.5 text-left text-[12px] font-medium text-ember hover:bg-ember-light/30 dark:hover:bg-ember/[.05] tt cursor-pointer border-none bg-transparent flex items-center gap-2">
-                              <svg width="11" height="11" viewBox="0 0 14 14" fill="none"><path d="M3 6h8M5 6V4h4v2M4 6l1 7h4l1-7" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"></path></svg>
-                              Archive
-                            </button>
-                          </div>
-                          {/if}
-                        </div>
-                      </div>
-                    </td>
-                  </tr>
-                  <tr class="prow border-b border-chalk-3 dark:border-white/[.05] last:border-0">
-                    <!-- Property -->
-                    <td class="px-5 py-4">
-                      <div class="flex items-center gap-3">
-                        <div class="w-12 h-12 rounded-xl overflow-hidden flex-shrink-0 sky-5 relative">
-                          
-                        </div>
-                        <div class="min-w-0">
-                          <div class="text-[13px] font-medium text-navy-dark dark:text-blue-100 truncate max-w-[200px]">1-Bed Studio Victoria Island</div>
-                          <div class="text-[11px] text-chalk-muted dark:text-[#6A7FA0] mt-0.5 truncate max-w-[200px]">Victoria Island, Lagos</div>
-                        </div>
-                      </div>
-                    </td>
-                    <!-- Type -->
-                    <td class="px-4 py-4 hide-md">
-                      <span class="type-virtual text-[10px] font-semibold uppercase tracking-[.06em] px-2.5 py-[3px] rounded-full">Virtual</span>
-                    </td>
-                    <!-- Price -->
-                    <td class="px-4 py-4">
-                      <div class="font-display font-semibold text-navy-dark dark:text-blue-100" style="font-size:14px">₦500k/mo</div>
-                      <div class="text-[10px] text-chalk-muted dark:text-[#6A7FA0] mt-0.5">1bd · 1ba · 48m²</div>
-                    </td>
-                    <!-- Status -->
-                    <td class="px-4 py-4 text-center">
-                      <span class="sp-active text-[10px] font-semibold uppercase tracking-[.06em] px-2.5 py-[3px] rounded-full">Active</span>
-                    </td>
-                    <!-- Views -->
-                    <td class="px-4 py-4 text-right hide-md">
-                      <div class="text-[13px] font-medium text-navy-dark dark:text-blue-100">460</div>
-                      <div class="text-[10px] text-chalk-muted dark:text-[#6A7FA0] mt-0.5">views</div>
-                    </td>
-                    <!-- Enquiries -->
-                    <td class="px-4 py-4 text-right hide-md">
-                      <div class="text-[13px] font-medium text-navy-dark dark:text-blue-100">7</div>
-                      <div class="text-[10px] text-chalk-muted dark:text-[#6A7FA0] mt-0.5">enquiries</div>
-                    </td>
-                    <!-- Updated -->
-                    <td class="px-4 py-4 hide-md">
-                      <div class="text-[12px] text-chalk-muted dark:text-[#6A7FA0]">22 Apr 2025</div>
-                    </td>
-                    <!-- Actions -->
-                    <td class="px-5 py-4 text-right">
-                      <div class="flex items-center justify-end gap-1.5 flex-wrap">
-                        <!-- View -->
-                        <a href="/agency/listings/edit/90" title="View listing" class="w-7 h-7 rounded-lg bg-chalk-2 dark:bg-white/[.05] border border-chalk-3 dark:border-white/[.07] flex items-center justify-center hover:border-blue-bright/40 tt cursor-pointer no-underline">
-                          <svg width="12" height="12" viewBox="0 0 14 14" fill="none" class="text-chalk-muted dark:text-[#6A7FA0]"><path d="M1 7s3-5 6-5 6 5 6 5-3 5-6 5-6-5-6-5z" stroke="currentColor" stroke-width="1.2"></path><circle cx="7" cy="7" r="2" stroke="currentColor" stroke-width="1.2"></circle></svg>
-                        </a>
-                        <!-- Boost -->
-                        <button title="Boost property" onclick={toggleBoostModal} class="w-7 h-7 rounded-lg bg-gold/10 border border-gold/30 flex items-center justify-center hover:bg-gold/20 tt cursor-pointer">
-                          <svg width="12" height="12" viewBox="0 0 14 14" fill="none"><path d="M7 1l1.5 3.5 3.5.5-2.5 2.4.6 3.5L7 9.5l-3.1 1.4.6-3.5L2 5l3.5-.5z" stroke="#D4AE3A" stroke-width="1.2" stroke-linejoin="round"></path></svg>
-                        </button>
-                        <!-- Edit -->
-                        <a href="/agency/listings/edit/90" title="Edit property" class="w-7 h-7 rounded-lg bg-chalk-2 dark:bg-white/[.05] border border-chalk-3 dark:border-white/[.07] flex items-center justify-center hover:border-blue-bright/40 tt cursor-pointer">
-                          <svg width="12" height="12" viewBox="0 0 14 14" fill="none" class="text-chalk-muted dark:text-[#6A7FA0]"><path d="M9.5 2.5l2 2L4 12H2v-2L9.5 2.5z" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"></path></svg>
-                        </a>
-                        <!-- Archive / Taken -->
-                        <div class="relative inline-block" id="actMenu_p4">
-                          <button title="More actions" onclick={toggleShowMoreActions} class="w-7 h-7 rounded-lg bg-chalk-2 dark:bg-white/[.05] border border-chalk-3 dark:border-white/[.07] flex items-center justify-center hover:border-ember/40 tt cursor-pointer">
-                            <svg width="12" height="12" viewBox="0 0 14 14" fill="none" class="text-chalk-muted dark:text-[#6A7FA0]"><circle cx="7" cy="3" r="1" fill="currentColor"></circle><circle cx="7" cy="7" r="1" fill="currentColor"></circle><circle cx="7" cy="11" r="1" fill="currentColor"></circle></svg>
-                          </button>
-                          {#if showMoreActions}
-                          <div id="actMenuPanel_p4" class="absolute right-0 top-full mt-1.5 w-[160px] bg-white dark:bg-[#131C2E] border border-chalk-3 dark:border-white/[.08] rounded-xl shadow-lg z-50 overflow-hidden tt action-menu">
-                            
-                            <button onclick={toggleTakenModal} class="w-full px-4 py-2.5 text-left text-[12px] font-medium text-navy-dark dark:text-blue-100 hover:bg-chalk-2 dark:hover:bg-white/[.04] tt cursor-pointer border-none bg-transparent flex items-center gap-2">
-                              <svg width="11" height="11" viewBox="0 0 14 14" fill="none"><path d="M2 7h10M7 2l5 5-5 5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"></path></svg>
-                              Mark as taken
-                            </button>
-                            <button onclick={toggleArchivedModal} class="w-full px-4 py-2.5 text-left text-[12px] font-medium text-ember hover:bg-ember-light/30 dark:hover:bg-ember/[.05] tt cursor-pointer border-none bg-transparent flex items-center gap-2">
-                              <svg width="11" height="11" viewBox="0 0 14 14" fill="none"><path d="M3 6h8M5 6V4h4v2M4 6l1 7h4l1-7" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"></path></svg>
-                              Archive
-                            </button>
-                          </div>
-                          {/if}
-                        </div>
-                      </div>
-                    </td>
-                  </tr>
-                  <tr class="prow border-b border-chalk-3 dark:border-white/[.05] last:border-0">
-                    <!-- Property -->
-                    <td class="px-5 py-4">
-                      <div class="flex items-center gap-3">
-                        <div class="w-12 h-12 rounded-xl overflow-hidden flex-shrink-0 sky-3 relative">
-                          
-                        </div>
-                        <div class="min-w-0">
-                          <div class="text-[13px] font-medium text-navy-dark dark:text-blue-100 truncate max-w-[200px]">3-Bed Bungalow Enugu GRA</div>
-                          <div class="text-[11px] text-chalk-muted dark:text-[#6A7FA0] mt-0.5 truncate max-w-[200px]">GRA, Enugu</div>
-                        </div>
-                      </div>
-                    </td>
-                    <!-- Type -->
-                    <td class="px-4 py-4 hide-md">
-                      <span class="type-buy text-[10px] font-semibold uppercase tracking-[.06em] px-2.5 py-[3px] rounded-full">Sale</span>
-                    </td>
-                    <!-- Price -->
-                    <td class="px-4 py-4">
-                      <div class="font-display font-semibold text-navy-dark dark:text-blue-100" style="font-size:14px">₦55M</div>
-                      <div class="text-[10px] text-chalk-muted dark:text-[#6A7FA0] mt-0.5">3bd · 2ba · 150m²</div>
-                    </td>
-                    <!-- Status -->
-                    <td class="px-4 py-4 text-center">
-                      <span class="sp-active text-[10px] font-semibold uppercase tracking-[.06em] px-2.5 py-[3px] rounded-full">Active</span>
-                    </td>
-                    <!-- Views -->
-                    <td class="px-4 py-4 text-right hide-md">
-                      <div class="text-[13px] font-medium text-navy-dark dark:text-blue-100">340</div>
-                      <div class="text-[10px] text-chalk-muted dark:text-[#6A7FA0] mt-0.5">views</div>
-                    </td>
-                    <!-- Enquiries -->
-                    <td class="px-4 py-4 text-right hide-md">
-                      <div class="text-[13px] font-medium text-navy-dark dark:text-blue-100">5</div>
-                      <div class="text-[10px] text-chalk-muted dark:text-[#6A7FA0] mt-0.5">enquiries</div>
-                    </td>
-                    <!-- Updated -->
-                    <td class="px-4 py-4 hide-md">
-                      <div class="text-[12px] text-chalk-muted dark:text-[#6A7FA0]">18 Apr 2025</div>
-                    </td>
-                    <!-- Actions -->
-                    <td class="px-5 py-4 text-right">
-                      <div class="flex items-center justify-end gap-1.5 flex-wrap">
-                        <!-- View -->
-                        <a href="/agency/listings/edit/90" title="View listing" class="w-7 h-7 rounded-lg bg-chalk-2 dark:bg-white/[.05] border border-chalk-3 dark:border-white/[.07] flex items-center justify-center hover:border-blue-bright/40 tt cursor-pointer no-underline">
-                          <svg width="12" height="12" viewBox="0 0 14 14" fill="none" class="text-chalk-muted dark:text-[#6A7FA0]"><path d="M1 7s3-5 6-5 6 5 6 5-3 5-6 5-6-5-6-5z" stroke="currentColor" stroke-width="1.2"></path><circle cx="7" cy="7" r="2" stroke="currentColor" stroke-width="1.2"></circle></svg>
-                        </a>
-                        <!-- Boost -->
-                        <button title="Boost property" onclick={toggleBoostModal} class="w-7 h-7 rounded-lg bg-gold/10 border border-gold/30 flex items-center justify-center hover:bg-gold/20 tt cursor-pointer">
-                          <svg width="12" height="12" viewBox="0 0 14 14" fill="none"><path d="M7 1l1.5 3.5 3.5.5-2.5 2.4.6 3.5L7 9.5l-3.1 1.4.6-3.5L2 5l3.5-.5z" stroke="#D4AE3A" stroke-width="1.2" stroke-linejoin="round"></path></svg>
-                        </button>
-                        <!-- Edit -->
-                        <a href="/agency/listings/edit/22" title="Edit property" class="w-7 h-7 rounded-lg bg-chalk-2 dark:bg-white/[.05] border border-chalk-3 dark:border-white/[.07] flex items-center justify-center hover:border-blue-bright/40 tt cursor-pointer">
-                          <svg width="12" height="12" viewBox="0 0 14 14" fill="none" class="text-chalk-muted dark:text-[#6A7FA0]"><path d="M9.5 2.5l2 2L4 12H2v-2L9.5 2.5z" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"></path></svg>
-                        </a>
-                        <!-- Archive / Taken -->
-                        <div class="relative inline-block" id="actMenu_p8">
-                          <button title="More actions" onclick={toggleShowMoreActions} class="w-7 h-7 rounded-lg bg-chalk-2 dark:bg-white/[.05] border border-chalk-3 dark:border-white/[.07] flex items-center justify-center hover:border-ember/40 tt cursor-pointer">
-                            <svg width="12" height="12" viewBox="0 0 14 14" fill="none" class="text-chalk-muted dark:text-[#6A7FA0]"><circle cx="7" cy="3" r="1" fill="currentColor"></circle><circle cx="7" cy="7" r="1" fill="currentColor"></circle><circle cx="7" cy="11" r="1" fill="currentColor"></circle></svg>
-                          </button>
-                          {#if showMoreActions}
-                          <div id="actMenuPanel_p8" class="absolute right-0 top-full mt-1.5 w-[160px] bg-white dark:bg-[#131C2E] border border-chalk-3 dark:border-white/[.08] rounded-xl shadow-lg z-50 overflow-hidden tt action-menu">
-                            
-                            <button onclick={toggleTakenModal} class="w-full px-4 py-2.5 text-left text-[12px] font-medium text-navy-dark dark:text-blue-100 hover:bg-chalk-2 dark:hover:bg-white/[.04] tt cursor-pointer border-none bg-transparent flex items-center gap-2">
-                              <svg width="11" height="11" viewBox="0 0 14 14" fill="none"><path d="M2 7h10M7 2l5 5-5 5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"></path></svg>
-                              Mark as taken
-                            </button>
-                            <button onclick={toggleArchivedModal} class="w-full px-4 py-2.5 text-left text-[12px] font-medium text-ember hover:bg-ember-light/30 dark:hover:bg-ember/[.05] tt cursor-pointer border-none bg-transparent flex items-center gap-2">
-                              <svg width="11" height="11" viewBox="0 0 14 14" fill="none"><path d="M3 6h8M5 6V4h4v2M4 6l1 7h4l1-7" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"></path></svg>
-                              Archive
-                            </button>
-                          </div>
-                          {/if}
-                        </div>
-                      </div>
-                    </td>
-                  </tr>
-                  <tr class="prow border-b border-chalk-3 dark:border-white/[.05] last:border-0">
-                    <!-- Property -->
-                    <td class="px-5 py-4">
-                      <div class="flex items-center gap-3">
-                        <div class="w-12 h-12 rounded-xl overflow-hidden flex-shrink-0 sky-4 relative">
-                          
-                        </div>
-                        <div class="min-w-0">
-                          <div class="text-[13px] font-medium text-navy-dark dark:text-blue-100 truncate max-w-[200px]">5-Bed Mansion Banana Island</div>
-                          <div class="text-[11px] text-chalk-muted dark:text-[#6A7FA0] mt-0.5 truncate max-w-[200px]">Banana Island, Lagos</div>
-                        </div>
-                      </div>
-                    </td>
-                    <!-- Type -->
-                    <td class="px-4 py-4 hide-md">
-                      <span class="type-buy text-[10px] font-semibold uppercase tracking-[.06em] px-2.5 py-[3px] rounded-full">Sale</span>
-                    </td>
-                    <!-- Price -->
-                    <td class="px-4 py-4">
-                      <div class="font-display font-semibold text-navy-dark dark:text-blue-100" style="font-size:14px">₦750M</div>
-                      <div class="text-[10px] text-chalk-muted dark:text-[#6A7FA0] mt-0.5">5bd · 6ba · 640m²</div>
-                    </td>
-                    <!-- Status -->
-                    <td class="px-4 py-4 text-center">
-                      <span class="sp-taken text-[10px] font-semibold uppercase tracking-[.06em] px-2.5 py-[3px] rounded-full">Taken</span>
-                    </td>
-                    <!-- Views -->
-                    <td class="px-4 py-4 text-right hide-md">
-                      <div class="text-[13px] font-medium text-navy-dark dark:text-blue-100">3.4k</div>
-                      <div class="text-[10px] text-chalk-muted dark:text-[#6A7FA0] mt-0.5">views</div>
-                    </td>
-                    <!-- Enquiries -->
-                    <td class="px-4 py-4 text-right hide-md">
-                      <div class="text-[13px] font-medium text-navy-dark dark:text-blue-100">55</div>
-                      <div class="text-[10px] text-chalk-muted dark:text-[#6A7FA0] mt-0.5">enquiries</div>
-                    </td>
-                    <!-- Updated -->
-                    <td class="px-4 py-4 hide-md">
-                      <div class="text-[12px] text-chalk-muted dark:text-[#6A7FA0]">14 Mar 2025</div>
-                    </td>
-                    <!-- Actions -->
-                    <td class="px-5 py-4 text-right">
-                      <div class="flex items-center justify-end gap-1.5 flex-wrap">
-                        <!-- View -->
-                        <a href="/agency/listings/edit/90" title="View listing" class="w-7 h-7 rounded-lg bg-chalk-2 dark:bg-white/[.05] border border-chalk-3 dark:border-white/[.07] flex items-center justify-center hover:border-blue-bright/40 tt cursor-pointer no-underline">
-                          <svg width="12" height="12" viewBox="0 0 14 14" fill="none" class="text-chalk-muted dark:text-[#6A7FA0]"><path d="M1 7s3-5 6-5 6 5 6 5-3 5-6 5-6-5-6-5z" stroke="currentColor" stroke-width="1.2"></path><circle cx="7" cy="7" r="2" stroke="currentColor" stroke-width="1.2"></circle></svg>
-                        </a>
-                        <!-- Boost -->
-                        <button title="Boost property" onclick={toggleBoostModal} class="w-7 h-7 rounded-lg bg-gold/10 border border-gold/30 flex items-center justify-center hover:bg-gold/20 tt cursor-pointer">
-                          <svg width="12" height="12" viewBox="0 0 14 14" fill="none"><path d="M7 1l1.5 3.5 3.5.5-2.5 2.4.6 3.5L7 9.5l-3.1 1.4.6-3.5L2 5l3.5-.5z" stroke="#D4AE3A" stroke-width="1.2" stroke-linejoin="round"></path></svg>
-                        </button>
-                        <!-- Edit -->
-                        <a href="/agency/listings/edit/89" title="Edit property" class="w-7 h-7 rounded-lg bg-chalk-2 dark:bg-white/[.05] border border-chalk-3 dark:border-white/[.07] flex items-center justify-center hover:border-blue-bright/40 tt cursor-pointer">
-                          <svg width="12" height="12" viewBox="0 0 14 14" fill="none" class="text-chalk-muted dark:text-[#6A7FA0]"><path d="M9.5 2.5l2 2L4 12H2v-2L9.5 2.5z" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"></path></svg>
-                        </a>
-                        <!-- Archive / Taken -->
-                        <div class="relative inline-block" id="actMenu_p5">
-                          <button title="More actions" onclick={toggleShowMoreActions} class="w-7 h-7 rounded-lg bg-chalk-2 dark:bg-white/[.05] border border-chalk-3 dark:border-white/[.07] flex items-center justify-center hover:border-ember/40 tt cursor-pointer">
-                            <svg width="12" height="12" viewBox="0 0 14 14" fill="none" class="text-chalk-muted dark:text-[#6A7FA0]"><circle cx="7" cy="3" r="1" fill="currentColor"></circle><circle cx="7" cy="7" r="1" fill="currentColor"></circle><circle cx="7" cy="11" r="1" fill="currentColor"></circle></svg>
-                          </button>
-                          {#if showMoreActions}
-                          <div id="actMenuPanel_p5" class="absolute right-0 top-full mt-1.5 w-[160px] bg-white dark:bg-[#131C2E] border border-chalk-3 dark:border-white/[.08] rounded-xl shadow-lg z-50 overflow-hidden tt action-menu">
-                            
-                            <button onclick={restoreListing} class="w-full px-4 py-2.5 text-left text-[12px] font-medium text-sage hover:bg-sage-light dark:hover:bg-sage/[.07] tt cursor-pointer border-none bg-transparent flex items-center gap-2">
-                              <svg width="11" height="11" viewBox="0 0 14 14" fill="none"><path d="M2 7a5 5 0 1010 0 5 5 0 00-10 0zM9 5L7 7l-2-2" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"></path></svg>
-                              Restore
-                            </button>
-                          </div>
-                          {/if}
-                        </div>
-                      </div>
-                    </td>
-                  </tr>
-                  <tr class="prow border-b border-chalk-3 dark:border-white/[.05] last:border-0">
-                    <!-- Property -->
-                    <td class="px-5 py-4">
-                      <div class="flex items-center gap-3">
-                        <div class="w-12 h-12 rounded-xl overflow-hidden flex-shrink-0 sky-6 relative">
-                          
-                        </div>
-                        <div class="min-w-0">
-                          <div class="text-[13px] font-medium text-navy-dark dark:text-blue-100 truncate max-w-[200px]">3-Bed Semi-Detached Wuse 2</div>
-                          <div class="text-[11px] text-chalk-muted dark:text-[#6A7FA0] mt-0.5 truncate max-w-[200px]">Wuse 2, Abuja</div>
-                        </div>
-                      </div>
-                    </td>
-                    <!-- Type -->
-                    <td class="px-4 py-4 hide-md">
-                      <span class="type-buy text-[10px] font-semibold uppercase tracking-[.06em] px-2.5 py-[3px] rounded-full">Sale</span>
-                    </td>
-                    <!-- Price -->
-                    <td class="px-4 py-4">
-                      <div class="font-display font-semibold text-navy-dark dark:text-blue-100" style="font-size:14px">₦80M</div>
-                      <div class="text-[10px] text-chalk-muted dark:text-[#6A7FA0] mt-0.5">3bd · 3ba · 140m²</div>
-                    </td>
-                    <!-- Status -->
-                    <td class="px-4 py-4 text-center">
-                      <span class="sp-archived text-[10px] font-semibold uppercase tracking-[.06em] px-2.5 py-[3px] rounded-full">Archived</span>
-                    </td>
-                    <!-- Views -->
-                    <td class="px-4 py-4 text-right hide-md">
-                      <div class="text-[13px] font-medium text-navy-dark dark:text-blue-100">190</div>
-                      <div class="text-[10px] text-chalk-muted dark:text-[#6A7FA0] mt-0.5">views</div>
-                    </td>
-                    <!-- Enquiries -->
-                    <td class="px-4 py-4 text-right hide-md">
-                      <div class="text-[13px] font-medium text-navy-dark dark:text-blue-100">2</div>
-                      <div class="text-[10px] text-chalk-muted dark:text-[#6A7FA0] mt-0.5">enquiries</div>
-                    </td>
-                    <!-- Updated -->
-                    <td class="px-4 py-4 hide-md">
-                      <div class="text-[12px] text-chalk-muted dark:text-[#6A7FA0]">10 Feb 2025</div>
-                    </td>
-                    <!-- Actions -->
-                    <td class="px-5 py-4 text-right">
-                      <div class="flex items-center justify-end gap-1.5 flex-wrap">
-                        <!-- View -->
-                        <a href="/agency/listings/90" title="View listing" class="w-7 h-7 rounded-lg bg-chalk-2 dark:bg-white/[.05] border border-chalk-3 dark:border-white/[.07] flex items-center justify-center hover:border-blue-bright/40 tt cursor-pointer no-underline">
-                          <svg width="12" height="12" viewBox="0 0 14 14" fill="none" class="text-chalk-muted dark:text-[#6A7FA0]"><path d="M1 7s3-5 6-5 6 5 6 5-3 5-6 5-6-5-6-5z" stroke="currentColor" stroke-width="1.2"></path><circle cx="7" cy="7" r="2" stroke="currentColor" stroke-width="1.2"></circle></svg>
-                        </a>
-                        <!-- Boost -->
-                        <button title="Boost property" onclick={toggleBoostModal} class="w-7 h-7 rounded-lg bg-gold/10 border border-gold/30 flex items-center justify-center hover:bg-gold/20 tt cursor-pointer">
-                          <svg width="12" height="12" viewBox="0 0 14 14" fill="none"><path d="M7 1l1.5 3.5 3.5.5-2.5 2.4.6 3.5L7 9.5l-3.1 1.4.6-3.5L2 5l3.5-.5z" stroke="#D4AE3A" stroke-width="1.2" stroke-linejoin="round"></path></svg>
-                        </button>
-                        <!-- Edit -->
-                        <a href="/agency/listings/edit/90" title="Edit property" class="w-7 h-7 rounded-lg bg-chalk-2 dark:bg-white/[.05] border border-chalk-3 dark:border-white/[.07] flex items-center justify-center hover:border-blue-bright/40 tt cursor-pointer">
-                          <svg width="12" height="12" viewBox="0 0 14 14" fill="none" class="text-chalk-muted dark:text-[#6A7FA0]"><path d="M9.5 2.5l2 2L4 12H2v-2L9.5 2.5z" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"></path></svg>
-                        </a>
-                        <!-- Archive / Taken -->
-                        <div class="relative inline-block" id="actMenu_p6">
-                          <button title="More actions" onclick={toggleShowMoreActions} class="w-7 h-7 rounded-lg bg-chalk-2 dark:bg-white/[.05] border border-chalk-3 dark:border-white/[.07] flex items-center justify-center hover:border-ember/40 tt cursor-pointer">
-                            <svg width="12" height="12" viewBox="0 0 14 14" fill="none" class="text-chalk-muted dark:text-[#6A7FA0]"><circle cx="7" cy="3" r="1" fill="currentColor"></circle><circle cx="7" cy="7" r="1" fill="currentColor"></circle><circle cx="7" cy="11" r="1" fill="currentColor"></circle></svg>
-                          </button>
-                          {#if showMoreActions}
-                          <div id="actMenuPanel_p6" class="absolute right-0 top-full mt-1.5 w-[160px] bg-white dark:bg-[#131C2E] border border-chalk-3 dark:border-white/[.08] rounded-xl shadow-lg z-50 overflow-hidden tt action-menu">
-                            
-                            <button onclick={restoreListing} class="w-full px-4 py-2.5 text-left text-[12px] font-medium text-sage hover:bg-sage-light dark:hover:bg-sage/[.07] tt cursor-pointer border-none bg-transparent flex items-center gap-2">
-                              <svg width="11" height="11" viewBox="0 0 14 14" fill="none"><path d="M2 7a5 5 0 1010 0 5 5 0 00-10 0zM9 5L7 7l-2-2" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"></path></svg>
-                              Restore
-                            </button>
-                          </div>
-                          {/if}
-                        </div>
-                      </div>
-                    </td>
-                  </tr></tbody>
-              </table>
-            </div>
-            {:else}
-            <!-- Empty state -->
-            <div id="emptyTable" class="py-16 text-center">
-              <div class="w-14 h-14 rounded-2xl bg-chalk-2 dark:bg-white/[.05] flex items-center justify-center mx-auto mb-5">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" class="text-chalk-muted dark:text-[#6A7FA0]"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/><path d="M9 22V12h6v10"/></svg>
-              </div>
-              <h3 class="font-display font-light text-navy-dark dark:text-blue-100 mb-2" style="font-size:22px">No properties <em class="italic">found.</em></h3>
-              <p class="text-[13px] font-light text-chalk-muted dark:text-[#6A7FA0] max-w-[280px] mx-auto">No listings match the current filters. Try adjusting your search.</p>
-              <a href="/agency/listings/add" class="mt-5 inline-flex items-center gap-2 text-[13px] font-medium text-white bg-ember hover:bg-ember-deep px-5 py-2.5 rounded-full border-none cursor-pointer tt">
-                <svg width="12" height="12" viewBox="0 0 14 14" fill="none"><path d="M7 1v12M1 7h12" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
-                Add your first property
-              </a>
-            </div>
-            {/if}
-          </div>
-        </div>  <!--  BODY -->
-      {:else}
-      <!-- CARD VIEW -->
-      <div id="cardView">
-      {#if list.length > 0}
-      <div id="propCardGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 card-grid">
-        <div class="prop-card bg-white dark:bg-[#0D1422] border border-chalk-3 dark:border-white/[.07] rounded-2xl overflow-hidden tt">
-          <!-- Thumb -->
-          <div class="h-[130px] relative sky-2">
-            <span class="type-rent absolute top-2.5 left-2.5 text-[9px] font-semibold uppercase tracking-[.08em] px-2 py-[3px] rounded-full">Rent</span>
-            <span class="sp-draft absolute top-2.5 right-2.5 text-[9px] font-semibold uppercase tracking-[.06em] px-2 py-[3px] rounded-full">Draft</span>
-            
-          </div>
-          <!-- Body -->
-          <div class="p-4">
-            <div class="font-display font-semibold text-navy-dark dark:text-blue-100 leading-snug mb-0.5" style="font-size:16px">₦280k/mo</div>
-            <div class="text-[12px] font-medium text-navy-dark dark:text-blue-100 truncate mb-0.5">
-              <a href="/agency/listings/12">Studio Apartment Yaba</a>
-            </div>
-            <div class="text-[11px] text-chalk-muted dark:text-[#6A7FA0] truncate mb-3">Yaba, Lagos</div>
-            <div class="flex items-center gap-3 text-[11px] text-chalk-muted dark:text-[#6A7FA0] pb-3 mb-3 border-b border-chalk-3 dark:border-white/[.06]">
-              <span>1bd</span><span class="text-chalk-4 dark:text-white/20">·</span>
-              <span>1ba</span><span class="text-chalk-4 dark:text-white/20">·</span>
-              <span>38m²</span>
-            </div>
-            <!-- Stats -->
-            <div class="flex gap-4 mb-3">
-              <div class="text-center"><div class="font-display font-semibold text-navy-dark dark:text-blue-100 leading-none" style="font-size:14px">0</div><div class="text-[9px] text-chalk-muted dark:text-[#6A7FA0] uppercase tracking-[.08em] mt-0.5">Views</div></div>
-              <div class="text-center"><div class="font-display font-semibold text-navy-dark dark:text-blue-100 leading-none" style="font-size:14px">0</div><div class="text-[9px] text-chalk-muted dark:text-[#6A7FA0] uppercase tracking-[.08em] mt-0.5">Enquiries</div></div>
-              <div class="ml-auto text-right"><div class="text-[10px] text-chalk-muted dark:text-[#6A7FA0]">Updated</div><div class="text-[11px] font-medium text-navy-dark dark:text-blue-100">4 May 2025</div></div>
-            </div>
-            <!-- Actions -->
-            <div class="flex gap-1.5">
-              <button onclick={toggleBoostModal} class="flex-1 py-2 text-[11px] font-medium text-gold bg-gold/10 hover:bg-gold/20 rounded-full border-none cursor-pointer tt">⭐ Boost</button>
-              <button class="flex-1 py-2 text-[11px] font-medium text-navy-dark dark:text-blue-100 bg-chalk-2 dark:bg-white/[.06] hover:bg-chalk-3 rounded-full border-none cursor-pointer tt">
-                <a href="/agency/listings/edit/90">Edit</a>
-              </button>
-              <button onclick={toggleArchivedModal} class="flex-1 py-2 text-[11px] font-medium text-ember bg-ember-light/40 hover:bg-ember-light rounded-full border-none cursor-pointer tt">Archive</button>
-            </div>
-          </div>
-        </div>
-        <div class="prop-card bg-white dark:bg-[#0D1422] border border-chalk-3 dark:border-white/[.07] rounded-2xl overflow-hidden tt">
-          <!-- Thumb -->
-          <div class="h-[130px] relative sky-1">
-            <span class="type-rent absolute top-2.5 left-2.5 text-[9px] font-semibold uppercase tracking-[.08em] px-2 py-[3px] rounded-full">Rent</span>
-            <span class="sp-active absolute top-2.5 right-2.5 text-[9px] font-semibold uppercase tracking-[.06em] px-2 py-[3px] rounded-full">Active</span>
-            <span class="absolute bottom-2 left-2.5 flex items-center gap-1 bg-gold/90 text-navy-deep text-[9px] font-semibold px-2 py-[3px] rounded-full"><svg width="8" height="8" viewBox="0 0 14 14" fill="none"><path d="M7 1l1.5 3.5 3.5.5-2.5 2.4.6 3.5L7 9.5l-3.1 1.4.6-3.5L2 5l3.5-.5z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"></path></svg>Boosted</span>
-          </div>
-          <!-- Body -->
-          <div class="p-4">
-            <div class="font-display font-semibold text-navy-dark dark:text-blue-100 leading-snug mb-0.5" style="font-size:16px">₦1.2M/mo</div>
-            <div class="text-[12px] font-medium text-navy-dark dark:text-blue-100 truncate mb-0.5">
-              <a href="/agency/listings/12">2-Bed Serviced Flat Ikoyi</a>
-            </div>
-            <div class="text-[11px] text-chalk-muted dark:text-[#6A7FA0] truncate mb-3">Ikoyi, Lagos</div>
-            <div class="flex items-center gap-3 text-[11px] text-chalk-muted dark:text-[#6A7FA0] pb-3 mb-3 border-b border-chalk-3 dark:border-white/[.06]">
-              <span>2bd</span><span class="text-chalk-4 dark:text-white/20">·</span>
-              <span>2ba</span><span class="text-chalk-4 dark:text-white/20">·</span>
-              <span>110m²</span>
-            </div>
-            <!-- Stats -->
-            <div class="flex gap-4 mb-3">
-              <div class="text-center"><div class="font-display font-semibold text-navy-dark dark:text-blue-100 leading-none" style="font-size:14px">720</div><div class="text-[9px] text-chalk-muted dark:text-[#6A7FA0] uppercase tracking-[.08em] mt-0.5">Views</div></div>
-              <div class="text-center"><div class="font-display font-semibold text-navy-dark dark:text-blue-100 leading-none" style="font-size:14px">9</div><div class="text-[9px] text-chalk-muted dark:text-[#6A7FA0] uppercase tracking-[.08em] mt-0.5">Enquiries</div></div>
-              <div class="ml-auto text-right"><div class="text-[10px] text-chalk-muted dark:text-[#6A7FA0]">Updated</div><div class="text-[11px] font-medium text-navy-dark dark:text-blue-100">3 May 2025</div></div>
-            </div>
-            <!-- Actions -->
-            <div class="flex gap-1.5">
-              <button onclick={toggleBoostModal} class="flex-1 py-2 text-[11px] font-medium text-gold bg-gold/10 hover:bg-gold/20 rounded-full border-none cursor-pointer tt">⭐ Boost</button>
-              <button class="flex-1 py-2 text-[11px] font-medium text-navy-dark dark:text-blue-100 bg-chalk-2 dark:bg-white/[.06] hover:bg-chalk-3 rounded-full border-none cursor-pointer tt">
-                <a href="/agency/listings/edit/90">Edit</a>
-              </button>
-              <button onclick={toggleArchivedModal} class="flex-1 py-2 text-[11px] font-medium text-ember bg-ember-light/40 hover:bg-ember-light rounded-full border-none cursor-pointer tt">Archive</button>
-            </div>
-          </div>
-        </div>
-        <div class="prop-card bg-white dark:bg-[#0D1422] border border-chalk-3 dark:border-white/[.07] rounded-2xl overflow-hidden tt">
-          <!-- Thumb -->
-          <div class="h-[130px] relative sky-1">
-            <span class="type-buy absolute top-2.5 left-2.5 text-[9px] font-semibold uppercase tracking-[.08em] px-2 py-[3px] rounded-full">Sale</span>
-            <span class="sp-active absolute top-2.5 right-2.5 text-[9px] font-semibold uppercase tracking-[.06em] px-2 py-[3px] rounded-full">Active</span>
-            <span class="absolute bottom-2 left-2.5 flex items-center gap-1 bg-gold/90 text-navy-deep text-[9px] font-semibold px-2 py-[3px] rounded-full"><svg width="8" height="8" viewBox="0 0 14 14" fill="none"><path d="M7 1l1.5 3.5 3.5.5-2.5 2.4.6 3.5L7 9.5l-3.1 1.4.6-3.5L2 5l3.5-.5z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"></path></svg>Boosted</span>
-          </div>
-          <!-- Body -->
-          <div class="p-4">
-            <div class="font-display font-semibold text-navy-dark dark:text-blue-100 leading-snug mb-0.5" style="font-size:16px">₦95M</div>
-            <div class="text-[12px] font-medium text-navy-dark dark:text-blue-100 truncate mb-0.5">
-              <a href="/agency/listings/12">3-Bed Duplex GRA Phase 2</a>
-            </div>
-            <div class="text-[11px] text-chalk-muted dark:text-[#6A7FA0] truncate mb-3">GRA Phase 2, Port Harcourt</div>
-            <div class="flex items-center gap-3 text-[11px] text-chalk-muted dark:text-[#6A7FA0] pb-3 mb-3 border-b border-chalk-3 dark:border-white/[.06]">
-              <span>3bd</span><span class="text-chalk-4 dark:text-white/20">·</span>
-              <span>3ba</span><span class="text-chalk-4 dark:text-white/20">·</span>
-              <span>185m²</span>
-            </div>
-            <!-- Stats -->
-            <div class="flex gap-4 mb-3">
-              <div class="text-center"><div class="font-display font-semibold text-navy-dark dark:text-blue-100 leading-none" style="font-size:14px">1.2k</div><div class="text-[9px] text-chalk-muted dark:text-[#6A7FA0] uppercase tracking-[.08em] mt-0.5">Views</div></div>
-              <div class="text-center"><div class="font-display font-semibold text-navy-dark dark:text-blue-100 leading-none" style="font-size:14px">18</div><div class="text-[9px] text-chalk-muted dark:text-[#6A7FA0] uppercase tracking-[.08em] mt-0.5">Enquiries</div></div>
-              <div class="ml-auto text-right"><div class="text-[10px] text-chalk-muted dark:text-[#6A7FA0]">Updated</div><div class="text-[11px] font-medium text-navy-dark dark:text-blue-100">1 May 2025</div></div>
-            </div>
-            <!-- Actions -->
-            <div class="flex gap-1.5">
-              <button onclick={toggleBoostModal} class="flex-1 py-2 text-[11px] font-medium text-gold bg-gold/10 hover:bg-gold/20 rounded-full border-none cursor-pointer tt">⭐ Boost</button>
-              <button class="flex-1 py-2 text-[11px] font-medium text-navy-dark dark:text-blue-100 bg-chalk-2 dark:bg-white/[.06] hover:bg-chalk-3 rounded-full border-none cursor-pointer tt">
-                <a href="/agency/listings/edit/90">Edit</a>
-              </button>
-              <button onclick={toggleArchivedModal} class="flex-1 py-2 text-[11px] font-medium text-ember bg-ember-light/40 hover:bg-ember-light rounded-full border-none cursor-pointer tt">Archive</button>
-            </div>
-          </div>
-        </div>
-        <div class="prop-card bg-white dark:bg-[#0D1422] border border-chalk-3 dark:border-white/[.07] rounded-2xl overflow-hidden tt">
-          <!-- Thumb -->
-          <div class="h-[130px] relative sky-2">
-            <span class="type-buy absolute top-2.5 left-2.5 text-[9px] font-semibold uppercase tracking-[.08em] px-2 py-[3px] rounded-full">Sale</span>
-            <span class="sp-boosted absolute top-2.5 right-2.5 text-[9px] font-semibold uppercase tracking-[.06em] px-2 py-[3px] rounded-full">Boosted</span>
-            <span class="absolute bottom-2 left-2.5 flex items-center gap-1 bg-gold/90 text-navy-deep text-[9px] font-semibold px-2 py-[3px] rounded-full"><svg width="8" height="8" viewBox="0 0 14 14" fill="none"><path d="M7 1l1.5 3.5 3.5.5-2.5 2.4.6 3.5L7 9.5l-3.1 1.4.6-3.5L2 5l3.5-.5z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"></path></svg>Boosted</span>
-          </div>
-          <!-- Body -->
-          <div class="p-4">
-            <div class="font-display font-semibold text-navy-dark dark:text-blue-100 leading-snug mb-0.5" style="font-size:16px">₦220M</div>
-            <div class="text-[12px] font-medium text-navy-dark dark:text-blue-100 truncate mb-0.5">
-              <a href="/agency/listings/12">4-Bed Terrace Maitama</a>
-            </div>
-            <div class="text-[11px] text-chalk-muted dark:text-[#6A7FA0] truncate mb-3">Maitama, Abuja</div>
-            <div class="flex items-center gap-3 text-[11px] text-chalk-muted dark:text-[#6A7FA0] pb-3 mb-3 border-b border-chalk-3 dark:border-white/[.06]">
-              <span>4bd</span><span class="text-chalk-4 dark:text-white/20">·</span>
-              <span>4ba</span><span class="text-chalk-4 dark:text-white/20">·</span>
-              <span>260m²</span>
-            </div>
-            <!-- Stats -->
-            <div class="flex gap-4 mb-3">
-              <div class="text-center"><div class="font-display font-semibold text-navy-dark dark:text-blue-100 leading-none" style="font-size:14px">2.1k</div><div class="text-[9px] text-chalk-muted dark:text-[#6A7FA0] uppercase tracking-[.08em] mt-0.5">Views</div></div>
-              <div class="text-center"><div class="font-display font-semibold text-navy-dark dark:text-blue-100 leading-none" style="font-size:14px">32</div><div class="text-[9px] text-chalk-muted dark:text-[#6A7FA0] uppercase tracking-[.08em] mt-0.5">Enquiries</div></div>
-              <div class="ml-auto text-right"><div class="text-[10px] text-chalk-muted dark:text-[#6A7FA0]">Updated</div><div class="text-[11px] font-medium text-navy-dark dark:text-blue-100">30 Apr 2025</div></div>
-            </div>
-            <!-- Actions -->
-            <div class="flex gap-1.5">
-              <button onclick={toggleBoostModal} class="flex-1 py-2 text-[11px] font-medium text-gold bg-gold/10 hover:bg-gold/20 rounded-full border-none cursor-pointer tt">⭐ Boost</button>
-              <button class="flex-1 py-2 text-[11px] font-medium text-navy-dark dark:text-blue-100 bg-chalk-2 dark:bg-white/[.06] hover:bg-chalk-3 rounded-full border-none cursor-pointer tt">
-                <a href="/agency/listings/edit/90">Edit</a>
-              </button>
-              <button onclick={toggleArchivedModal} class="flex-1 py-2 text-[11px] font-medium text-ember bg-ember-light/40 hover:bg-ember-light rounded-full border-none cursor-pointer tt">Archive</button>
-            </div>
-          </div>
-        </div>
-        <div class="prop-card bg-white dark:bg-[#0D1422] border border-chalk-3 dark:border-white/[.07] rounded-2xl overflow-hidden tt">
-          <!-- Thumb -->
-          <div class="h-[130px] relative sky-3">
-            <span class="type-rent absolute top-2.5 left-2.5 text-[9px] font-semibold uppercase tracking-[.08em] px-2 py-[3px] rounded-full">Rent</span>
-            <span class="sp-active absolute top-2.5 right-2.5 text-[9px] font-semibold uppercase tracking-[.06em] px-2 py-[3px] rounded-full">Active</span>
-            
-          </div>
-          <!-- Body -->
-          <div class="p-4">
-            <div class="font-display font-semibold text-navy-dark dark:text-blue-100 leading-snug mb-0.5" style="font-size:16px">₦850k/mo</div>
-            <div class="text-[12px] font-medium text-navy-dark dark:text-blue-100 truncate mb-0.5">
-              <a href="/agency/listings/12"> 2-Bed Apartment Lekki Phase 1</a>
-            </div>
-            <div class="text-[11px] text-chalk-muted dark:text-[#6A7FA0] truncate mb-3">Lekki Phase 1, Lagos</div>
-            <div class="flex items-center gap-3 text-[11px] text-chalk-muted dark:text-[#6A7FA0] pb-3 mb-3 border-b border-chalk-3 dark:border-white/[.06]">
-              <span>2bd</span><span class="text-chalk-4 dark:text-white/20">·</span>
-              <span>2ba</span><span class="text-chalk-4 dark:text-white/20">·</span>
-              <span>90m²</span>
-            </div>
-            <!-- Stats -->
-            <div class="flex gap-4 mb-3">
-              <div class="text-center"><div class="font-display font-semibold text-navy-dark dark:text-blue-100 leading-none" style="font-size:14px">880</div><div class="text-[9px] text-chalk-muted dark:text-[#6A7FA0] uppercase tracking-[.08em] mt-0.5">Views</div></div>
-              <div class="text-center"><div class="font-display font-semibold text-navy-dark dark:text-blue-100 leading-none" style="font-size:14px">12</div><div class="text-[9px] text-chalk-muted dark:text-[#6A7FA0] uppercase tracking-[.08em] mt-0.5">Enquiries</div></div>
-              <div class="ml-auto text-right"><div class="text-[10px] text-chalk-muted dark:text-[#6A7FA0]">Updated</div><div class="text-[11px] font-medium text-navy-dark dark:text-blue-100">28 Apr 2025</div></div>
-            </div>
-            <!-- Actions -->
-            <div class="flex gap-1.5">
-              <button onclick={toggleBoostModal} class="flex-1 py-2 text-[11px] font-medium text-gold bg-gold/10 hover:bg-gold/20 rounded-full border-none cursor-pointer tt">⭐ Boost</button>
-              <button class="flex-1 py-2 text-[11px] font-medium text-navy-dark dark:text-blue-100 bg-chalk-2 dark:bg-white/[.06] hover:bg-chalk-3 rounded-full border-none cursor-pointer tt">
-                <a href="/agency/listings/edit/90">Edit</a>
-              </button>
-              <button onclick={toggleArchivedModal} class="flex-1 py-2 text-[11px] font-medium text-ember bg-ember-light/40 hover:bg-ember-light rounded-full border-none cursor-pointer tt">Archive</button>
-            </div>
-          </div>
-        </div>
-        <div class="prop-card bg-white dark:bg-[#0D1422] border border-chalk-3 dark:border-white/[.07] rounded-2xl overflow-hidden tt">
-          <!-- Thumb -->
-          <div class="h-[130px] relative sky-5">
-            <span class="type-buy absolute top-2.5 left-2.5 text-[9px] font-semibold uppercase tracking-[.08em] px-2 py-[3px] rounded-full">Sale</span>
-            <span class="sp-active absolute top-2.5 right-2.5 text-[9px] font-semibold uppercase tracking-[.06em] px-2 py-[3px] rounded-full">Active</span>
-            
-          </div>
-          <!-- Body -->
-          <div class="p-4">
-            <div class="font-display font-semibold text-navy-dark dark:text-blue-100 leading-snug mb-0.5" style="font-size:16px">₦130M</div>
-            <div class="text-[12px] font-medium text-navy-dark dark:text-blue-100 truncate mb-0.5">
-              <a href="/agency/listings/12"> 4-Bed Duplex Jabi Lake District</a>
-            </div>
-            <div class="text-[11px] text-chalk-muted dark:text-[#6A7FA0] truncate mb-3">Jabi, Abuja</div>
-            <div class="flex items-center gap-3 text-[11px] text-chalk-muted dark:text-[#6A7FA0] pb-3 mb-3 border-b border-chalk-3 dark:border-white/[.06]">
-              <span>4bd</span><span class="text-chalk-4 dark:text-white/20">·</span>
-              <span>4ba</span><span class="text-chalk-4 dark:text-white/20">·</span>
-              <span>220m²</span>
-            </div>
-            <!-- Stats -->
-            <div class="flex gap-4 mb-3">
-              <div class="text-center"><div class="font-display font-semibold text-navy-dark dark:text-blue-100 leading-none" style="font-size:14px">590</div><div class="text-[9px] text-chalk-muted dark:text-[#6A7FA0] uppercase tracking-[.08em] mt-0.5">Views</div></div>
-              <div class="text-center"><div class="font-display font-semibold text-navy-dark dark:text-blue-100 leading-none" style="font-size:14px">11</div><div class="text-[9px] text-chalk-muted dark:text-[#6A7FA0] uppercase tracking-[.08em] mt-0.5">Enquiries</div></div>
-              <div class="ml-auto text-right"><div class="text-[10px] text-chalk-muted dark:text-[#6A7FA0]">Updated</div><div class="text-[11px] font-medium text-navy-dark dark:text-blue-100">25 Apr 2025</div></div>
-            </div>
-            <!-- Actions -->
-            <div class="flex gap-1.5">
-              <button onclick={toggleBoostModal} class="flex-1 py-2 text-[11px] font-medium text-gold bg-gold/10 hover:bg-gold/20 rounded-full border-none cursor-pointer tt">⭐ Boost</button>
-              <button class="flex-1 py-2 text-[11px] font-medium text-navy-dark dark:text-blue-100 bg-chalk-2 dark:bg-white/[.06] hover:bg-chalk-3 rounded-full border-none cursor-pointer tt">
-                <a href="/agency/listings/edit/90">Edit</a>
-              </button>
-              <button onclick={toggleArchivedModal} class="flex-1 py-2 text-[11px] font-medium text-ember bg-ember-light/40 hover:bg-ember-light rounded-full border-none cursor-pointer tt">Archive</button>
-            </div>
-          </div>
-        </div>
-        <div class="prop-card bg-white dark:bg-[#0D1422] border border-chalk-3 dark:border-white/[.07] rounded-2xl overflow-hidden tt">
-          <!-- Thumb -->
-          <div class="h-[130px] relative sky-5">
-            <span class="type-virtual absolute top-2.5 left-2.5 text-[9px] font-semibold uppercase tracking-[.08em] px-2 py-[3px] rounded-full">Virtual</span>
-            <span class="sp-active absolute top-2.5 right-2.5 text-[9px] font-semibold uppercase tracking-[.06em] px-2 py-[3px] rounded-full">Active</span>
-            
-          </div>
-          <!-- Body -->
-          <div class="p-4">
-            <div class="font-display font-semibold text-navy-dark dark:text-blue-100 leading-snug mb-0.5" style="font-size:16px">₦500k/mo</div>
-            <div class="text-[12px] font-medium text-navy-dark dark:text-blue-100 truncate mb-0.5">
-              <a href="/agency/listings/12">
-              1-Bed Studio Victoria Island</a>
-            </div>
-            <div class="text-[11px] text-chalk-muted dark:text-[#6A7FA0] truncate mb-3">Victoria Island, Lagos</div>
-            <div class="flex items-center gap-3 text-[11px] text-chalk-muted dark:text-[#6A7FA0] pb-3 mb-3 border-b border-chalk-3 dark:border-white/[.06]">
-              <span>1bd</span><span class="text-chalk-4 dark:text-white/20">·</span>
-              <span>1ba</span><span class="text-chalk-4 dark:text-white/20">·</span>
-              <span>48m²</span>
-            </div>
-            <!-- Stats -->
-            <div class="flex gap-4 mb-3">
-              <div class="text-center"><div class="font-display font-semibold text-navy-dark dark:text-blue-100 leading-none" style="font-size:14px">460</div><div class="text-[9px] text-chalk-muted dark:text-[#6A7FA0] uppercase tracking-[.08em] mt-0.5">Views</div></div>
-              <div class="text-center"><div class="font-display font-semibold text-navy-dark dark:text-blue-100 leading-none" style="font-size:14px">7</div><div class="text-[9px] text-chalk-muted dark:text-[#6A7FA0] uppercase tracking-[.08em] mt-0.5">Enquiries</div></div>
-              <div class="ml-auto text-right"><div class="text-[10px] text-chalk-muted dark:text-[#6A7FA0]">Updated</div><div class="text-[11px] font-medium text-navy-dark dark:text-blue-100">22 Apr 2025</div></div>
-            </div>
-            <!-- Actions -->
-            <div class="flex gap-1.5">
-              <button onclick={toggleBoostModal} class="flex-1 py-2 text-[11px] font-medium text-gold bg-gold/10 hover:bg-gold/20 rounded-full border-none cursor-pointer tt">⭐ Boost</button>
-              <button class="flex-1 py-2 text-[11px] font-medium text-navy-dark dark:text-blue-100 bg-chalk-2 dark:bg-white/[.06] hover:bg-chalk-3 rounded-full border-none cursor-pointer tt">
-                <a href="/agency/listings/edit/90">Edit</a>
-              </button>
-              <button onclick={toggleArchivedModal} class="flex-1 py-2 text-[11px] font-medium text-ember bg-ember-light/40 hover:bg-ember-light rounded-full border-none cursor-pointer tt">Archive</button>
-            </div>
-          </div>
-        </div>
-        <div class="prop-card bg-white dark:bg-[#0D1422] border border-chalk-3 dark:border-white/[.07] rounded-2xl overflow-hidden tt">
-          <!-- Thumb -->
-          <div class="h-[130px] relative sky-3">
-            <span class="type-buy absolute top-2.5 left-2.5 text-[9px] font-semibold uppercase tracking-[.08em] px-2 py-[3px] rounded-full">Sale</span>
-            <span class="sp-active absolute top-2.5 right-2.5 text-[9px] font-semibold uppercase tracking-[.06em] px-2 py-[3px] rounded-full">Active</span>
-            
-          </div>
-          <!-- Body -->
-          <div class="p-4">
-            <div class="font-display font-semibold text-navy-dark dark:text-blue-100 leading-snug mb-0.5" style="font-size:16px">₦55M</div>
-            <div class="text-[12px] font-medium text-navy-dark dark:text-blue-100 truncate mb-0.5">
-              <a href="/agency/listings/12">
-                3-Bed Bungalow Enugu GRA
-              </a>
-            </div>
-            <div class="text-[11px] text-chalk-muted dark:text-[#6A7FA0] truncate mb-3">GRA, Enugu</div>
-            <div class="flex items-center gap-3 text-[11px] text-chalk-muted dark:text-[#6A7FA0] pb-3 mb-3 border-b border-chalk-3 dark:border-white/[.06]">
-              <span>3bd</span><span class="text-chalk-4 dark:text-white/20">·</span>
-              <span>2ba</span><span class="text-chalk-4 dark:text-white/20">·</span>
-              <span>150m²</span>
-            </div>
-            <!-- Stats -->
-            <div class="flex gap-4 mb-3">
-              <div class="text-center"><div class="font-display font-semibold text-navy-dark dark:text-blue-100 leading-none" style="font-size:14px">340</div><div class="text-[9px] text-chalk-muted dark:text-[#6A7FA0] uppercase tracking-[.08em] mt-0.5">Views</div></div>
-              <div class="text-center"><div class="font-display font-semibold text-navy-dark dark:text-blue-100 leading-none" style="font-size:14px">5</div><div class="text-[9px] text-chalk-muted dark:text-[#6A7FA0] uppercase tracking-[.08em] mt-0.5">Enquiries</div></div>
-              <div class="ml-auto text-right"><div class="text-[10px] text-chalk-muted dark:text-[#6A7FA0]">Updated</div><div class="text-[11px] font-medium text-navy-dark dark:text-blue-100">18 Apr 2025</div></div>
-            </div>
-            <!-- Actions -->
-            <div class="flex gap-1.5">
-              <button onclick={toggleBoostModal} class="flex-1 py-2 text-[11px] font-medium text-gold bg-gold/10 hover:bg-gold/20 rounded-full border-none cursor-pointer tt">⭐ Boost</button>
-              <button class="flex-1 py-2 text-[11px] font-medium text-navy-dark dark:text-blue-100 bg-chalk-2 dark:bg-white/[.06] hover:bg-chalk-3 rounded-full border-none cursor-pointer tt">
-                <a href="/agency/listings/edit/90">Edit</a>
-              </button>
-              <button onclick={toggleArchivedModal} class="flex-1 py-2 text-[11px] font-medium text-ember bg-ember-light/40 hover:bg-ember-light rounded-full border-none cursor-pointer tt">Archive</button>
-            </div>
-          </div>
-        </div>
-        <div class="prop-card bg-white dark:bg-[#0D1422] border border-chalk-3 dark:border-white/[.07] rounded-2xl overflow-hidden tt">
-          <!-- Thumb -->
-          <div class="h-[130px] relative sky-4">
-            <span class="type-buy absolute top-2.5 left-2.5 text-[9px] font-semibold uppercase tracking-[.08em] px-2 py-[3px] rounded-full">Sale</span>
-            <span class="sp-active absolute top-2.5 right-2.5 text-[9px] font-semibold uppercase tracking-[.06em] px-2 py-[3px] rounded-full">Active</span>
-            
-          </div>
-          <!-- Body -->
-          <div class="p-4">
-            <div class="font-display font-semibold text-navy-dark dark:text-blue-100 leading-snug mb-0.5" style="font-size:16px">₦750M</div>
-            <div class="text-[12px] font-medium text-navy-dark dark:text-blue-100 truncate mb-0.5">
-              <a href="/agency/listings/12"> 5-Bed Mansion Banana Island</a>
-            </div>
-            <div class="text-[11px] text-chalk-muted dark:text-[#6A7FA0] truncate mb-3">Banana Island, Lagos</div>
-            <div class="flex items-center gap-3 text-[11px] text-chalk-muted dark:text-[#6A7FA0] pb-3 mb-3 border-b border-chalk-3 dark:border-white/[.06]">
-              <span>5bd</span><span class="text-chalk-4 dark:text-white/20">·</span>
-              <span>6ba</span><span class="text-chalk-4 dark:text-white/20">·</span>
-              <span>640m²</span>
-            </div>
-            <!-- Stats -->
-            <div class="flex gap-4 mb-3">
-              <div class="text-center"><div class="font-display font-semibold text-navy-dark dark:text-blue-100 leading-none" style="font-size:14px">3.4k</div><div class="text-[9px] text-chalk-muted dark:text-[#6A7FA0] uppercase tracking-[.08em] mt-0.5">Views</div></div>
-              <div class="text-center"><div class="font-display font-semibold text-navy-dark dark:text-blue-100 leading-none" style="font-size:14px">55</div><div class="text-[9px] text-chalk-muted dark:text-[#6A7FA0] uppercase tracking-[.08em] mt-0.5">Enquiries</div></div>
-              <div class="ml-auto text-right"><div class="text-[10px] text-chalk-muted dark:text-[#6A7FA0]">Updated</div><div class="text-[11px] font-medium text-navy-dark dark:text-blue-100">14 Mar 2025</div></div>
-            </div>
-            <!-- Actions -->
-            <div class="flex gap-1.5">
-              <button onclick={toggleBoostModal} class="flex-1 py-2 text-[11px] font-medium text-gold bg-gold/10 hover:bg-gold/20 rounded-full border-none cursor-pointer tt">⭐ Boost</button>
-              <button class="flex-1 py-2 text-[11px] font-medium text-navy-dark dark:text-blue-100 bg-chalk-2 dark:bg-white/[.06] hover:bg-chalk-3 rounded-full border-none cursor-pointer tt">
-                <a href="/agency/listings/edit/90">Edit</a>
-              </button>
-              <button onclick={toggleArchivedModal} class="flex-1 py-2 text-[11px] font-medium text-ember bg-ember-light/40 hover:bg-ember-light rounded-full border-none cursor-pointer tt">Archive</button>
-            </div>
-          </div>
-        </div>
-        <div class="prop-card bg-white dark:bg-[#0D1422] border border-chalk-3 dark:border-white/[.07] rounded-2xl overflow-hidden tt">
-          <!-- Thumb -->
-          <div class="h-[130px] relative sky-6">
-            <span class="type-buy absolute top-2.5 left-2.5 text-[9px] font-semibold uppercase tracking-[.08em] px-2 py-[3px] rounded-full">Sale</span>
-            <span class="sp-taken absolute top-2.5 right-2.5 text-[9px] font-semibold uppercase tracking-[.06em] px-2 py-[3px] rounded-full">Taken</span>
-            
-          </div>
-          <!-- Body -->
-          <div class="p-4">
-            <div class="font-display font-semibold text-navy-dark dark:text-blue-100 leading-snug mb-0.5" style="font-size:16px">₦80M</div>
-            <div class="text-[12px] font-medium text-navy-dark dark:text-blue-100 truncate mb-0.5">
-              <a href="/agency/listings/12">
-                3-Bed Semi-Detached Wuse 2
-              </a>
-            </div>
-            <div class="text-[11px] text-chalk-muted dark:text-[#6A7FA0] truncate mb-3">Wuse 2, Abuja</div>
-            <div class="flex items-center gap-3 text-[11px] text-chalk-muted dark:text-[#6A7FA0] pb-3 mb-3 border-b border-chalk-3 dark:border-white/[.06]">
-              <span>3bd</span><span class="text-chalk-4 dark:text-white/20">·</span>
-              <span>3ba</span><span class="text-chalk-4 dark:text-white/20">·</span>
-              <span>140m²</span>
-            </div>
-            <!-- Stats -->
-            <div class="flex gap-4 mb-3">
-              <div class="text-center"><div class="font-display font-semibold text-navy-dark dark:text-blue-100 leading-none" style="font-size:14px">190</div><div class="text-[9px] text-chalk-muted dark:text-[#6A7FA0] uppercase tracking-[.08em] mt-0.5">Views</div></div>
-              <div class="text-center"><div class="font-display font-semibold text-navy-dark dark:text-blue-100 leading-none" style="font-size:14px">2</div><div class="text-[9px] text-chalk-muted dark:text-[#6A7FA0] uppercase tracking-[.08em] mt-0.5">Enquiries</div></div>
-              <div class="ml-auto text-right"><div class="text-[10px] text-chalk-muted dark:text-[#6A7FA0]">Updated</div><div class="text-[11px] font-medium text-navy-dark dark:text-blue-100">10 Feb 2025</div></div>
-            </div>
-            <!-- Actions -->
-            <div class="flex gap-1.5">
-              <button onclick={toggleBoostModal} class="flex-1 py-2 text-[11px] font-medium text-gold bg-gold/10 hover:bg-gold/20 rounded-full border-none cursor-pointer tt">⭐ Boost</button>
-              <button class="flex-1 py-2 text-[11px] font-medium text-navy-dark dark:text-blue-100 bg-chalk-2 dark:bg-white/[.06] hover:bg-chalk-3 rounded-full border-none cursor-pointer tt">
-              <a href="/agency/listings/edit/90">Edit</a>
-              </button>
-              <button onclick={restoreListing} class="flex-1 py-2 text-[11px] font-medium text-sage bg-sage-light hover:opacity-80 rounded-full border-none cursor-pointer tt">Restore</button>
-            </div>
-          </div>
-        </div></div>
-        {:else}
-        <div id="emptyCard" class="py-16 text-center empty-border rounded-2xl">
-          <div class="w-14 h-14 rounded-2xl bg-chalk-2 dark:bg-white/[.05] flex items-center justify-center mx-auto mb-5">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" class="text-chalk-muted dark:text-[#6A7FA0]"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/></svg>
-          </div>
-          <h3 class="font-display font-light text-navy-dark dark:text-blue-100 mb-2" style="font-size:22px">No properties <em class="italic">found.</em></h3>
-          <p class="text-[13px] font-light text-chalk-muted dark:text-[#6A7FA0]">Adjust filters or add a listing.</p>
-          <a href="/agency/listings/add" class="mt-5 inline-flex items-center gap-2 text-[13px] font-medium text-white bg-ember hover:bg-ember-deep px-5 py-2.5 rounded-full border-none cursor-pointer tt">
-            <svg width="12" height="12" viewBox="0 0 14 14" fill="none"><path d="M7 1v12M1 7h12" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
-            Add property
-          </a>
-        </div>
-        {/if}
-      </div>
-      {/if}
+						<!-- Desktop: sort select -->
+						<div class="sel-wrap flex-shrink-0 hidden md:inline-block">
+							<select value={filters.sort} onchange={onSortChange} class="bg-white dark:bg-[#0D1422] border border-chalk-3 dark:border-white/[.07] rounded-xl text-[13px] text-navy-dark dark:text-blue-100 px-3 py-[10px] pr-7 outline-none cursor-pointer tt">
+								{#each Object.entries(SORT_LABELS) as [value, label] (value)}
+									<option {value}>{label}</option>
+								{/each}
+							</select>
+						</div>
 
-      {#if list.length > 0}
-      <!-- ── PAGINATION ── -->
-      <!-- [SVELTE_COMPONENT: PaginationBar] -->
-      <div id="pgBar" class="mt-15 bg-white dark:bg-[#131C2E] border border-chalk-3 dark:border-white/[.08] rounded-2xl p-5 tt fu">
-        <div class="flex flex-col sm:flex-row items-center justify-between gap-4">
-          <!-- Per-page -->
-          <div class="flex items-center gap-2 text-[13px] text-chalk-muted dark:text-[#6A7FA0]">
-            <span class="hidden sm:inline">Show</span>
-            <select class="bg-chalk dark:bg-[#1A2438] border border-chalk-3 dark:border-white/10 rounded-lg px-3 py-1.5 text-[12px] text-navy-dark dark:text-blue-100 cursor-pointer outline-none tt">
-              <option>5 per page</option>
-              <option selected>10 per page</option>
-              <option>20 per page</option>
-            </select>
-            <span class="hidden sm:inline text-[12px]">· Showing 1–6 of 6 viewings</span>
-          </div>
+						<!-- Mobile: Filters + Sort buttons -->
+						<div class="flex md:hidden gap-2 w-full sm:w-auto">
+							<button onclick={openDrawer} class="flex-1 relative flex items-center justify-center gap-2 text-[13px] font-medium text-navy-dark dark:text-blue-100 bg-white dark:bg-[#0D1422] border border-chalk-3 dark:border-white/[.07] rounded-xl px-4 py-[10px] cursor-pointer tt">
+								<svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+									<path d="M2 4h12M4.5 8h7M7 12h2" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" />
+								</svg>
+								Filters
+								{#if activeCount > 0}
+									<span class="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-ember text-white text-[9px] font-semibold flex items-center justify-center">
+										{activeCount}
+									</span>
+								{/if}
+							</button>
+							<button onclick={() => (sortSheetOpen = true)} class="flex-1 flex items-center justify-center gap-2 text-[13px] font-medium text-navy-dark dark:text-blue-100 bg-white dark:bg-[#0D1422] border border-chalk-3 dark:border-white/[.07] rounded-xl px-4 py-[10px] cursor-pointer tt">
+								<svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M4 4h8M6 8h4M7.5 12h1" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" /></svg>
+								Sort
+							</button>
+						</div>
+					</div>
 
-          <!-- Page numbers -->
-          <div class="flex items-center gap-1.5">
-            <button class="flex items-center gap-1.5 px-3.5 h-9 rounded-xl border border-chalk-3 dark:border-white/10 text-[12px] text-chalk-muted dark:text-[#6A7FA0] hover:border-navy-dark dark:hover:border-white/30 hover:text-navy-dark dark:hover:text-white tt bg-transparent cursor-pointer">
-              <svg width="12" height="12" viewBox="0 0 14 14" fill="none"><path d="M9 2L4 7l5 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>Prev
-            </button>
-            <button class="pgbtn active w-9 h-9 rounded-xl text-[13px] border border-navy-dark cursor-pointer">1</button>
-            <button class="pgbtn w-9 h-9 rounded-xl border border-chalk-3 dark:border-white/10 text-navy-dark dark:text-blue-100 text-[13px] hover:border-navy-dark dark:hover:border-white/40 tt bg-transparent cursor-pointer">2</button>
-            <button class="pgbtn w-9 h-9 rounded-xl border border-chalk-3 dark:border-white/10 text-navy-dark dark:text-blue-100 text-[13px] hover:border-navy-dark dark:hover:border-white/40 tt bg-transparent cursor-pointer">3</button>
-            <button class="flex items-center gap-1.5 px-3.5 h-9 rounded-xl border border-chalk-3 dark:border-white/10 text-[12px] text-chalk-muted dark:text-[#6A7FA0] hover:border-navy-dark dark:hover:border-white/30 hover:text-navy-dark dark:hover:text-white tt bg-transparent cursor-pointer">
-              Next<svg width="12" height="12" viewBox="0 0 14 14" fill="none"><path d="M5 2l5 5-5 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-            </button>
-          </div>
+					<!-- Row 2 (desktop only): status pills + type + price popover + more filters -->
+					<div class="hidden md:flex items-center gap-2 flex-wrap">
+						<div class="flex gap-1.5 bg-chalk-2 dark:bg-[#1A2438] rounded-xl p-1">
+						{#each Object.values(ListingStatus) as tab}
+						{@const value = tab}
+							<button
+								onclick={() => setFilterField('listingStatus', value)}
+								class="ptab {(filter.listingStatus === value) ? 'active' : ''} text-[11px] font-medium px-3.5 py-1.5 rounded-lg bg-transparent border-none cursor-pointer tt {filters.status === value ? '' : 'text-chalk-muted dark:text-[#6A7FA0]'}"
+							>
+								{capitalize(String(tab).replace('_', ' '))}
+							</button>
+						{/each}
+						</div>
 
-          <!-- Jump to -->
-          <div class="hidden sm:flex items-center gap-2 text-[12px] text-chalk-muted dark:text-[#6A7FA0]">
-            Go to
-            <input type="number" min="1" max="3" value="1" class="w-14 bg-chalk dark:bg-[#1A2438] border border-chalk-3 dark:border-white/10 rounded-lg px-2 py-1.5 text-[12px] text-navy-dark dark:text-blue-100 outline-none text-center tt focus:border-blue-link">
-            of 3
-          </div>
-        </div>
-      </div>
-      {/if}
+						<div class="sel-wrap">
+							<select value={filter.listingTypeId} 
+								onchange={(e) => {
+									const selectedId = e.currentTarget.value;
+									setFilterField('listingTypeId', selectedId);
+									// set selected listing type
+									const type = listingTypes.find(t => t.id === selectedId);
+									if (type) { selectedListingType = type; }
+								}} 
+								class="bg-white dark:bg-[#0D1422] border border-chalk-3 dark:border-white/[.07] rounded-xl text-[12px] text-navy-dark dark:text-blue-100 px-3 py-[8px] pr-7 outline-none cursor-pointer tt"
+							>
+								<option value="">All types</option>
+								{#each listingTypes as _}
+								<option value={_.id}>
+									{_.displayName}
+								</option>
+								{/each}
+							</select>
+						</div>
 
-    </div>
+						<!-- Price popover trigger -->
+						<div class="relative" use:clickOutside={() => (pricePopoverOpen = false)}>
+							<button onclick={togglePricePopover} class="flex items-center gap-1.5 bg-white dark:bg-[#0D1422] border border-chalk-3 dark:border-white/[.07] rounded-xl text-[12px] text-navy-dark dark:text-blue-100 px-3 py-[8px] cursor-pointer tt">
+								Price
+								{#if filters.priceMin != null || filters.priceMax != null}
+									<span class="w-1.5 h-1.5 rounded-full bg-ember"></span>
+								{/if}
+								<svg width="9" height="9" viewBox="0 0 10 10" fill="none">
+									<path d="M2 3.5l3 3 3-3" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" />
+								</svg>
+							</button>
+							{#if pricePopoverOpen}
+								<div class="popover absolute left-0 top-full mt-1.5 w-[240px] bg-white dark:bg-[#131C2E] border border-chalk-3 dark:border-white/[.08] rounded-xl shadow-lg z-50 p-4 tt">
+									<p class="text-[10px] font-medium tracking-[.1em] uppercase text-chalk-muted dark:text-[#6A7FA0] mb-2.5">Price range (₦)</p>
+									<div class="flex items-center gap-2 mb-3">
+										<input type="number" 
+											placeholder="Min" 
+											class="inp !py-2 !text-[12px]" 
+											value={filter.priceRange.start ?? ''} 
+											oninput={(e) => {
+												const value = e.currentTarget.value === '' ? undefined : Number(e.currentTarget.value);
+												setFilterField('priceRange', { ...filter.priceRange, start: value })
+											}}
+										/>
+										<span class="text-chalk-muted dark:text-[#6A7FA0] text-[12px]">–</span>
+										<input type="number" 
+											placeholder="Max" 
+											class="inp !py-2 !text-[12px]"
+											value={filter.priceRange.end ?? ''} 
+											oninput={(e) => {
+												const value = e.currentTarget.value === '' ? undefined : Number(e.currentTarget.value);
+												setFilterField('priceRange', { ...filter.priceRange, end: value })
+											}}
+										/>
+									</div>
+									<div class="flex gap-2">
+										<button onclick={clearPricePopover} class="flex-1 py-1.5 text-[12px] font-medium text-chalk-muted dark:text-[#6A7FA0] bg-chalk-2 dark:bg-[#1A2438] rounded-lg border-none cursor-pointer tt">Clear</button>
+										<button onclick={applyPricePopover} class="flex-1 py-1.5 text-[12px] font-medium text-white bg-navy-dark hover:bg-navy-mid rounded-lg border-none cursor-pointer tt">Apply</button>
+									</div>
+								</div>
+							{/if}
+						</div>
 
-  </main>
-</div>
+						<!-- More filters -->
+						<button onclick={openDrawer} class="relative flex items-center gap-1.5 bg-white dark:bg-[#0D1422] border border-chalk-3 dark:border-white/[.07] rounded-xl text-[12px] text-navy-dark dark:text-blue-100 px-3 py-[8px] cursor-pointer tt">
+							<svg width="12" height="12" viewBox="0 0 16 16" fill="none"><path d="M2 4h12M4.5 8h7M7 12h2" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" /></svg>
+							More filters
+							{#if moreCount > 0}
+								<span class="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-ember text-white text-[9px] font-semibold flex items-center justify-center">{moreCount}</span>
+							{/if}
+						</button>
+					</div>
+
+					<!-- Active filter chips -->
+					{#if chips.length > 0}
+						<div class="flex flex-wrap items-center gap-1.5">
+							{#each chips as chip (chip.label)}
+								<span class="fchip inline-flex items-center gap-1.5 bg-navy-dark/[.06] dark:bg-white/[.07] text-navy-dark dark:text-blue-100 text-[11px] font-medium px-3 py-1.5 rounded-full">
+									{chip.label}
+									<button onclick={() => removeChip(chip)} aria-label="Remove filter" class="border-none bg-transparent cursor-pointer p-0 flex items-center text-chalk-muted dark:text-[#6A7FA0] hover:text-ember">
+										<svg width="9" height="9" viewBox="0 0 10 10" fill="none">
+											<path d="M2 2l6 6M8 2l-6 6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" />
+										</svg>
+									</button>
+								</span>
+							{/each}
+							<button onclick={clearAllFilters} class="text-[11px] font-medium text-ember hover:text-ember-deep bg-transparent border-none cursor-pointer px-1 tt">Clear all</button>
+						</div>
+					{/if}
+
+					<!-- Results label -->
+					<p class="text-[13px] font-light text-chalk-muted dark:text-[#6A7FA0]">
+						{resultsLabel}
+					</p>
+				</div>
+
+				<!-- CARD GRID -->
+				<div class="fu d2">
+					{#if noResultsFromFilters}
+					<div class="py-16 text-center empty-border rounded-2xl">
+						<div class="w-14 h-14 rounded-2xl bg-chalk-2 dark:bg-white/[.05] flex items-center justify-center mx-auto mb-5">
+							<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" class="text-chalk-muted dark:text-[#6A7FA0]"><circle cx="10" cy="10" r="7" /><path d="M21 21l-5-5" /></svg>
+						</div>
+						<h3 class="font-display font-light text-navy-dark dark:text-blue-100 mb-2" style="font-size:22px">No listings match your <em class="italic">current filters.</em></h3>
+						<p class="text-[13px] font-light text-chalk-muted dark:text-[#6A7FA0]">Try broadening your search or clearing a few filters.</p>
+						<button onclick={clearAllFilters} class="mt-5 inline-flex items-center gap-2 text-[13px] font-medium text-white bg-navy-dark hover:bg-navy-mid px-5 py-2.5 rounded-full border-none cursor-pointer tt">
+							Clear Filters
+						</button>
+					</div>
+					{:else if noListingsAtAll}
+						<div class="py-16 text-center empty-border rounded-2xl">
+							<div class="w-14 h-14 rounded-2xl bg-chalk-2 dark:bg-white/[.05] flex items-center justify-center mx-auto mb-5">
+								<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" class="text-chalk-muted dark:text-[#6A7FA0]"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" /><path d="M9 22V12h6v10" /></svg>
+							</div>
+							<h3 class="font-display font-light text-navy-dark dark:text-blue-100 mb-2" style="font-size:22px">You haven't added any <em class="italic">listings yet.</em></h3>
+							<p class="text-[13px] font-light text-chalk-muted dark:text-[#6A7FA0] max-w-[280px] mx-auto">Once you add a property, it will appear here for you to manage.</p>
+							<a href={generateAddListingUrl()} class="mt-5 inline-flex items-center gap-2 text-[13px] font-medium text-white bg-ember hover:bg-ember-deep px-5 py-2.5 rounded-full border-none cursor-pointer tt no-underline">
+								<svg width="12" height="12" viewBox="0 0 14 14" fill="none">
+									<path d="M7 1v12M1 7h12" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" />
+								</svg>
+								Add Your First Listing
+							</a>
+						</div>
+					{:else}
+						<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 card-grid">
+						{#each listings as listing (listing.id)}
+						{@const typeCss = listing.listingFor === ListingFor.SALE ? 'type-sale' : 'type-rent'}
+						{@const forLabel = listing.listingFor === ListingFor.SALE ? 'For Sale' : 'For Rent'}
+
+						{@const currentBoost = (listing.listingBoosts ?? []).find((b) => !b.isExpired)}
+						{@const boost = listing.isBoosted && currentBoost.boostEnd ? boostTimeLeft(currentBoost.boostEnd, now) : null}
+						{@const statusCfg = STATUS_CFG[listing.listingStatus] ?? STATUS_CFG.draft}
+
+						<div class="prop-card bg-white dark:bg-[#0D1422] border border-chalk-3 dark:border-white/[.07] rounded-2xl overflow-hidden tt">
+							<div class="h-[128px] relative">
+								<img class="w-full h-full object-cover" src={findCoverImage(listing)} />
+								<span class="{typeCss} absolute top-2.5 left-2.5 text-[9px] font-semibold uppercase tracking-[.08em] px-2 py-[3px] rounded-full">
+									{listing.listingType.displayName}
+								</span>
+								<span class="{statusCfg.css} absolute top-2.5 right-2.5 text-[9px] font-semibold uppercase tracking-[.06em] px-2 py-[3px] rounded-full">{statusCfg.label}</span>
+								{#if boost}
+									<span class="boost-badge {boost.urgent ? 'urgent boost-glow' : ''} absolute bottom-2.5 left-2.5 flex items-center gap-1 text-[9.5px] font-semibold px-2.5 py-[4px] rounded-full">
+										<svg width="9" height="9" viewBox="0 0 14 14" fill="none"><path d="M7 1l1.5 3.5 3.5.5-2.5 2.4.6 3.5L7 9.5l-3.1 1.4.6-3.5L2 5l3.5-.5z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round" /></svg>
+										Boosted · {boost.text}
+									</span>
+								{/if}
+							</div>
+
+							<div class="p-4">
+								<div class="flex items-center justify-between gap-2 mb-0.5">
+									<div class="font-display font-semibold text-navy-dark dark:text-blue-100 leading-snug" style="font-size:16px">{priceLabel(listing)}</div>
+									<span class="text-[9.5px] font-medium text-chalk-muted dark:text-[#6A7FA0] uppercase tracking-[.05em] flex-shrink-0">{forLabel}</span>
+								</div>
+								<div class="text-[12px] font-medium text-navy-dark dark:text-blue-100 truncate mb-0.5 capitalize">
+									{listing.title}
+								</div>
+								<div class="text-[11px] text-chalk-muted dark:text-[#6A7FA0] truncate mb-3">{listing.address}</div>
+
+								<div class="flex items-center gap-2 text-[11px] text-chalk-muted dark:text-[#6A7FA0] pb-3 mb-3 border-b border-chalk-3 dark:border-white/[.06]">
+									{#if isResidential(listing.listingTypeId) && listing.bedrooms > 0}
+										<span>{listing.bedrooms} bed{listing.bedrooms > 1 ? 's' : ''}</span>
+										<span class="text-chalk-4 dark:text-white/20">·</span>
+									{/if}
+									<span>{listing.sizeSqm} sqm</span>
+								</div>
+
+								<div class="flex items-center gap-1.5 flex-wrap">
+									<a href="/agency/listings/{listing.slug}" 
+										title="View listing" 
+										class="w-7 h-7 rounded-lg bg-chalk-2 dark:bg-white/[.05] border border-chalk-3 dark:border-white/[.07] flex items-center justify-center hover:border-blue-bright/40 tt cursor-pointer no-underline">
+										<svg width="12" height="12" viewBox="0 0 14 14" fill="none" class="text-chalk-muted dark:text-[#6A7FA0]">
+											<path d="M1 7s3-5 6-5 6 5 6 5-3 5-6 5-6-5-6-5z" stroke="currentColor" stroke-width="1.2" />
+											<circle cx="7" cy="7" r="2" stroke="currentColor" stroke-width="1.2" />
+										</svg>
+									</a>
+									<a href="/agency/listings/edit/{listing.slug}" 
+										title="Edit listing" class="w-7 h-7 rounded-lg bg-chalk-2 dark:bg-white/[.05] border border-chalk-3 dark:border-white/[.07] flex items-center justify-center hover:border-blue-bright/40 tt cursor-pointer no-underline">
+										<svg width="12" height="12" viewBox="0 0 14 14" fill="none" class="text-chalk-muted dark:text-[#6A7FA0]">
+											<path d="M9.5 2.5l2 2L4 12H2v-2L9.5 2.5z" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round" />
+										</svg>
+									</a>
+
+									{#if listing.listingStatus === ListingStatus.DRAFT}
+										<button type="button"
+											title="Publish listing" 
+											onclick={() => publishListing(listing.id)} 
+											class="flex items-center gap-1.5 h-7 px-3 rounded-lg bg-sage text-white text-[11px] font-medium border-none hover:brightness-95 tt cursor-pointer">
+											<svg width="10" height="10" viewBox="0 0 14 14" fill="none">
+												<path d="M2 7h10M7 2l5 5-5 5" stroke="white" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" />
+											</svg>
+											Publish
+										</button>
+									{:else if listing.listingStatus === ListingStatus.PUBLISHED}
+										{#if !listing.isBoosted}
+											<button type="button"
+												title="Boost listing" 
+												onclick={() => openBoostModal(listing.id)} 
+												class="w-7 h-7 rounded-lg bg-gold/10 border border-gold/30 flex items-center justify-center hover:bg-gold/20 tt cursor-pointer">
+												<svg width="12" height="12" viewBox="0 0 14 14" fill="none"><path d="M7 1l1.5 3.5 3.5.5-2.5 2.4.6 3.5L7 9.5l-3.1 1.4.6-3.5L2 5l3.5-.5z" stroke="#D4AE3A" stroke-width="1.2" stroke-linejoin="round" /></svg>
+											</button>
+										{/if}
+										<button title="Take down" 
+											type="button"
+											onclick={() => openArchiveModal(listing.id)} 
+											class="w-7 h-7 rounded-lg bg-chalk-2 dark:bg-white/[.05] border border-chalk-3 dark:border-white/[.07] flex items-center justify-center hover:border-ember/40 tt cursor-pointer">
+											<svg width="12" height="12" viewBox="0 0 14 14" fill="none" class="text-chalk-muted dark:text-[#6A7FA0]"><path d="M3 6h8M5 6V4h4v2M4 6l1 7h4l1-7" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" /></svg>
+										</button>
+									{:else if listing.listingStatus === ListingStatus.ARCHIVED}
+										<button type="button"
+											title="Restore listing" 
+											onclick={() => restoreListing(listing.id)} class="flex items-center gap-1.5 h-7 px-3 rounded-lg bg-chalk-2 dark:bg-white/[.05] border border-chalk-3 dark:border-white/[.07] text-[11px] font-medium text-navy-dark dark:text-blue-100 hover:border-sage/50 tt cursor-pointer">
+											<svg width="10" height="10" viewBox="0 0 14 14" fill="none" class="text-sage"><path d="M2 7a5 5 0 1010 0 5 5 0 00-10 0zM9 5L7 7l-2-2" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" /></svg>
+											Restore
+										</button>
+									{/if}
+								</div>
+							</div>
+						</div>
+						{/each}
+						</div>
+					{/if}
+				</div>
+
+				<!-- PAGINATION -->
+				{#if paginationControl && listings.length > 0}
+				<Pagination
+					currentPage={paginationControl.currentPage}
+					pageSize={paginationControl.pageSize}
+					totalCount={paginationControl.totalCount}
+					totalPages={paginationControl.totalPages}
+					hasNext={paginationControl.hasNext}
+					hasPrevious={paginationControl.hasPrevious}
+					onPageChange={handlePageChange}
+					onPerPageChange={handlePerPageChange}
+			  	/>
+				{/if}
+			</div>
+		</main>
+	</div>
+
+	<!-- ══ FILTER DRAWER (mobile "More filters") ══ -->
+	{#if drawerOpen}
+		<div class="fixed inset-0 z-[100]">
+			<div class="modal-bg absolute inset-0" onclick={() => (drawerOpen = false)} role="presentation"></div>
+			<div class="slide-in-r absolute right-0 top-0 bottom-0 w-full max-w-[380px] bg-white dark:bg-[#0D1422] shadow-2xl flex flex-col tt">
+				<div class="px-6 py-5 border-b border-chalk-3 dark:border-white/[.07] flex items-center justify-between flex-shrink-0">
+					<span class="text-[15px] font-medium text-navy-dark dark:text-blue-100">Filters</span>
+					<button onclick={() => (drawerOpen = false)} aria-label="Close" class="w-7 h-7 rounded-full bg-chalk-2 dark:bg-white/10 flex items-center justify-center cursor-pointer hover:bg-chalk-3 tt border-none">
+						<svg width="12" height="12" viewBox="0 0 14 14" fill="none"><path d="M3 3l8 8M11 3l-8 8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" class="text-chalk-muted dark:text-[#6A7FA0]" /></svg>
+					</button>
+				</div>
+
+				<div class="flex-1 overflow-y-auto px-6 py-5 space-y-6">
+					<!-- Mobile-only: status + type (apply immediately) -->
+					<div class="space-y-5 md:hidden">
+						<div>
+							<p class="text-[11px] font-medium tracking-[.08em] uppercase text-chalk-muted dark:text-[#6A7FA0] mb-2">Status</p>
+							<div class="flex flex-wrap gap-1.5">
+								{#each Object.values(ListingStatus) as tab}
+								{@const value = ListingStatus[tab]}
+									<button
+										onclick={() => setFilterField('listingStatus', tab)}
+										class="ptab {filter.listingStatus === value ? 'active' : ''} text-[12px] font-medium px-3.5 py-1.5 rounded-lg bg-chalk-2 dark:bg-[#1A2438] border-none cursor-pointer tt {filters.status === tab.value ? '' : 'text-chalk-muted dark:text-[#6A7FA0]'}"
+									>
+										{capitalize(String(tab).replace('_', ' '))}
+									</button>
+								{/each}
+							</div>
+						</div>
+						<div>
+							<p class="text-[11px] font-medium tracking-[.08em] uppercase text-chalk-muted dark:text-[#6A7FA0] mb-2">
+								Listing type
+							</p>
+							<div class="sel-wrap w-full">
+								<select class="inp pr-7 cursor-pointer"
+									value={filter.listingTypeId} 
+									onchange={(e) => {
+										const selectedId = e.currentTarget.value;
+										setFilterField('listingTypeId', selectedId);
+										// set selected listing type
+										const type = listingTypes.find(t => t.id === selectedId);
+										if (type) { selectedListingType = type; }
+									}}
+								>
+									<option value="">All types</option>
+									{#each listingTypes as _}
+									<option value={_.id}>{_.displayName}</option>
+									{/each}
+								</select>
+							</div>
+						</div>
+					</div>
+
+					<!-- Price range -->
+					<div>
+						<p class="text-[11px] font-medium tracking-[.08em] uppercase text-chalk-muted dark:text-[#6A7FA0] mb-2">Price range (₦)</p>
+						<div class="flex items-center gap-2">
+							<input type="number" 
+								placeholder="Min" 
+								class="inp"
+								value={filter.priceRange.start ?? ''} 
+								oninput={(e) => {
+									const value = e.currentTarget.value === '' ? undefined : Number(e.currentTarget.value);
+									setFilterField('priceRange', { ...filter.priceRange, start: value })
+								}}
+							/>
+							<span class="text-chalk-muted dark:text-[#6A7FA0] text-[12px]">–</span>
+							<input type="number" 
+								class="inp"
+								placeholder="Max" 
+								value={filter.priceRange.end ?? ''} 
+								oninput={(e) => {
+									const value = e.currentTarget.value === '' ? undefined : Number(e.currentTarget.value);
+									setFilterField('priceRange', { ...filter.priceRange, end: value })
+								}}
+							/>
+						</div>
+					</div>
+
+					<!-- Size -->
+					<div>
+						<p class="text-[11px] font-medium tracking-[.08em] uppercase text-chalk-muted dark:text-[#6A7FA0] mb-2">Size (sqm)</p>
+						<div class="flex items-center gap-2">
+							<input type="number" 
+								class="inp"
+								placeholder="Min" 
+								value={filter.floorSizeRange.start ?? ''} 
+								oninput={(e) => {
+									const value = e.currentTarget.value === '' ? undefined : Number(e.currentTarget.value);
+									setFilterField('floorSizeRange', { ...filter.floorSizeRange, start: value })
+								}}
+							/>
+							<span class="text-chalk-muted dark:text-[#6A7FA0] text-[12px]">–</span>
+							<input type="number" 
+								class="inp"
+								placeholder="Max" 
+								value={filter.floorSizeRange.end ?? ''} 
+								oninput={(e) => {
+									const value = e.currentTarget.value === '' ? undefined : Number(e.currentTarget.value);
+									setFilterField('floorSizeRange', { ...filter.floorSizeRange, end: value })
+								}}
+							/>
+						</div>
+					</div>
+
+					<!-- Bedrooms (conditional on the currently applied type) -->
+					{#if showBedroomsField}
+						<div>
+							<p class="text-[11px] font-medium tracking-[.08em] uppercase text-chalk-muted dark:text-[#6A7FA0] mb-2">Bedrooms</p>
+							<div class="sel-wrap w-full">
+								<select class="inp pr-7 cursor-pointer"
+								 	bind:value={filter.bedrooms}
+									onchange={(e) => {
+										const value =  e.currentTarget.value === '' ? undefined : Number(e.currentTarget.value);
+										setFilterField('bedrooms', value);
+									}}
+									>
+									<option value="">Any</option>
+									<option value="1">1+</option>
+									<option value="2">2+</option>
+									<option value="3">3+</option>
+									<option value="4">4+</option>
+									<option value="5">5+</option>
+								</select>
+							</div>
+						</div>
+					{/if}
+
+					<!-- Payment period -->
+					<div>
+						<p class="text-[11px] font-medium tracking-[.08em] uppercase text-chalk-muted dark:text-[#6A7FA0] mb-2">Payment period</p>
+						<div class="sel-wrap w-full">
+							<select bind:value={filter.paymentPeriod} 
+								class="inp pr-7 cursor-pointer"
+								onchange={(e) => setFilterField('paymentPeriod', e.currentTarget.value)}>
+								<option value="">Any</option>
+								{#each Object.values(ListingPaymentDuration) as _}
+								<option value={_}>
+									{capitalize(_)?.replace('_', ' ')}
+								</option>
+								{/each}
+							</select>
+						</div>
+					</div>
+
+					<!-- Toggles -->
+					<div class="space-y-4">
+						<div class="flex items-center justify-between">
+							<span class="text-[13px] text-navy-dark dark:text-blue-100">Brand New</span>
+							<div
+								class="tswitch {filter.isBrandNew ? 'on' : ''}"
+								onclick={() => setFilterField('isBrandNew', !filter.isBrandNew)}
+								onkeydown={(e) => (e.key === 'Enter' || e.key === ' ') && (e.preventDefault(), setFilterField('isBrandNew', !filter.isBrandNew))}
+								role="switch"
+								aria-checked={filter.isBrandNew}
+								tabindex="0"
+							>
+								<span class="knob"></span>
+							</div>
+						</div>
+						<div class="flex items-center justify-between">
+							<span class="text-[13px] text-navy-dark dark:text-blue-100">Has Virtual Tour</span>
+							<div
+								class="tswitch {filter.hasVirtualTour ? 'on' : ''}"
+								onclick={() => setFilterField('hasVirtualTour', !filter.hasVirtualTour)}
+								onkeydown={(e) => (e.key === 'Enter' || e.key === ' ') && (e.preventDefault(), setFilterField('hasVirtualTour', !filter.hasVirtualTour))}
+								role="switch"
+								aria-checked={filter.hasVirtualTour}
+								tabindex="0"
+							>
+								<span class="knob"></span>
+							</div>
+						</div>
+					</div>
+				</div>
+
+				<div class="px-6 py-5 border-t border-chalk-3 dark:border-white/[.07] flex gap-3 flex-shrink-0">
+					<button onclick={clearDrawerFilters} 
+						class="flex-1 py-3 text-[13px] font-medium text-chalk-muted dark:text-[#6A7FA0] bg-chalk-2 dark:bg-[#1A2438] rounded-full border-none cursor-pointer hover:bg-chalk-3 tt">
+						Clear all
+					</button>
+					<button onclick={showDrawerResults} 
+						class="flex-1 py-3 text-[13px] font-medium text-white bg-navy-dark hover:bg-navy-mid rounded-full border-none cursor-pointer tt">
+						Show results
+					</button>
+				</div>
+			</div>
+		</div>
+	{/if}
+
+	<!-- ══ MOBILE SORT SHEET ══ -->
+	{#if sortSheetOpen}
+		<div class="fixed inset-0 z-[100] flex items-end">
+			<div class="modal-bg absolute inset-0" onclick={() => (sortSheetOpen = false)} role="presentation"></div>
+			<div class="scale-in relative w-full bg-white dark:bg-[#0D1422] rounded-t-2xl overflow-hidden tt max-h-[80vh] overflow-y-auto">
+				<div class="px-6 py-5 border-b border-chalk-3 dark:border-white/[.07] flex items-center justify-between">
+					<span class="text-[15px] font-medium text-navy-dark dark:text-blue-100">Sort by</span>
+					<button onclick={() => (sortSheetOpen = false)} aria-label="Close" class="w-7 h-7 rounded-full bg-chalk-2 dark:bg-white/10 flex items-center justify-center cursor-pointer hover:bg-chalk-3 tt border-none">
+						<svg width="12" height="12" viewBox="0 0 14 14" fill="none"><path d="M3 3l8 8M11 3l-8 8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" class="text-chalk-muted dark:text-[#6A7FA0]" /></svg>
+					</button>
+				</div>
+				<div class="py-2">
+					{#each Object.entries(SORT_LABELS) as [value, label] (value)}
+						<button
+							onclick={() => chooseSort(value)}
+							class="w-full flex items-center justify-between px-6 py-3.5 text-[13px] text-left bg-transparent border-none cursor-pointer tt hover:bg-chalk-2 dark:hover:bg-white/[.04] {filters.sort === value ? 'text-navy-dark dark:text-blue-100 font-medium' : 'text-chalk-muted dark:text-[#6A7FA0]'}"
+						>
+							{label}
+							{#if filters.sort === value}
+								<svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 7l3.5 3.5L12 3" stroke="#4A90E2" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" /></svg>
+							{/if}
+						</button>
+					{/each}
+				</div>
+			</div>
+		</div>
+	{/if}
+
+	{#if toastMsg  && toastMsg !== ''}
+	<Toast toastMsg={toastMsg} type={toastType} />
+	{/if}
+
+	<!-- ══ MODALS ══ -->
+	<BoostModal open={boostModalOpen} 
+		property={boostingProp} 
+		onClose={() => (boostModalOpen = false)} 
+		onConfirm={confirmBoost} 
+	/>
+	<ArchiveModal open={archiveModalOpen} 
+		property={archivingProp} 
+		onClose={() => (archiveModalOpen = false)} 
+		onConfirm={confirmArchive} 
+	/>
 
 <style>
-    /* ── Shared dashboard token set ── */
-    .tt{transition:background-color .3s,color .3s,border-color .3s}
-    select{-webkit-appearance:none;appearance:none}
-    .scrollbar-hide::-webkit-scrollbar{display:none}
-    .scrollbar-hide{-ms-overflow-style:none;scrollbar-width:none}
-    @keyframes pulse-dot{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(.8)}}
-    .pulse-dot{animation:pulse-dot 2.2s infinite}
-    @keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
-    .fu{animation:fadeUp .55s ease both}
-    .d1{animation-delay:.04s}.d2{animation-delay:.09s}.d3{animation-delay:.14s}
-    .d4{animation-delay:.19s}.d5{animation-delay:.24s}.d6{animation-delay:.29s}.d7{animation-delay:.34s}
-    @keyframes scaleIn{from{opacity:0;transform:scale(.97) translateY(8px)}to{opacity:1;transform:scale(1) translateY(0)}}
-    .scale-in{animation:scaleIn .26s cubic-bezier(.22,.68,0,1.2) both}
-    @keyframes growW{from{width:0}to{width:var(--w)}}
-    .grow-w{animation:growW .9s cubic-bezier(.34,1.2,.64,1) .4s both}
-    
-    /* sidebar */
-    .sb-link.active{background:rgba(74,144,226,.12);color:#4A90E2;font-weight:500}
-    .dark .sb-link.active,
-    :global([data-theme="dark"]) .sb-link.active{background:rgba(74,144,226,.15)}
-    .sb-link:not(.active):hover{background:rgba(10,36,99,.05)}
-    .dark .sb-link:not(.active):hover,
-    :global([data-theme="dark"]) .sb-link:not(.active):hover{background:rgba(255,255,255,.04)}
-    #sbOverlay{opacity:0;pointer-events:none;transition:opacity .3s}
-    #sbOverlay.open{opacity:1;pointer-events:all}
-    #dashSb{transition:transform .3s cubic-bezier(.4,0,.2,1)}
-    
-    /* stat cards */
-    .stat-card{transition:transform .22s,box-shadow .22s}
-    .stat-card:hover{transform:translateY(-2px);box-shadow:0 12px 36px rgba(10,36,99,.11)}
-    .dark .stat-card:hover,
-    :global([data-theme="dark"]) .stat-card:hover{box-shadow:0 12px 36px rgba(0,0,0,.38)}
-    
-    /* property row hover */
-    .prow{transition:background .2s}
-    .prow:hover{background:rgba(247,243,236,.7)}
-    .dark .prow:hover,
-    :global([data-theme="dark"]) .prow:hover{background:rgba(255,255,255,.025)}
-    
-    /* prop card hover */
-    .prop-card{transition:transform .22s,box-shadow .22s,border-color .22s}
-    .prop-card:hover{transform:translateY(-2px);box-shadow:0 14px 40px rgba(10,36,99,.10)}
-    .dark .prop-card:hover,
-    :global([data-theme="dark"]) .prop-card:hover{box-shadow:0 14px 40px rgba(0,0,0,.38)}
-    
-    /* status pills */
-    .sp-active{background:#EFF3EE;color:#4A7848}
-    .dark .sp-active,
-    :global([data-theme="dark"]) .sp-active{background:rgba(74,120,72,.2);color:#7DBF7A}
-    .sp-archived{background:#F5D5C5;color:#5C2416}
-    .dark .sp-archived,
-    :global([data-theme="dark"]) .sp-archived{background:rgba(192,96,53,.15);color:#EDBA9B}
-    .sp-taken{background:#E8EDF5;color:#1F3F6A}
-    .dark .sp-taken,
-    :global([data-theme="dark"]) .sp-taken{background:rgba(74,112,160,.15);color:#8DAACC}
-    .sp-boosted{background:#FBF6E9;color:#8A6A10}
-    .dark .sp-boosted,
-    :global([data-theme="dark"]) .sp-boosted{background:rgba(212,174,58,.15);color:#D4AE3A}
-    .sp-draft{background:rgba(10,36,99,.06);color:#4A70A0}
-    .dark .sp-draft,
-    :global([data-theme="dark"]) .sp-draft{background:rgba(74,112,160,.1);color:#8DAACC}
-    
-    /* type badges */
-    .type-buy{background:rgba(192,96,53,.1);color:#C06035}
-    .dark .type-buy,
-    :global([data-theme="dark"]) .type-buy{background:rgba(192,96,53,.15);color:#EDBA9B}
-    .type-rent{background:rgba(10,36,99,.07);color:#1F3F6A}
-    .dark .type-rent,
-    :global([data-theme="dark"]) .type-rent{background:rgba(74,112,160,.15);color:#8DAACC}
-    .type-virtual{background:rgba(74,120,72,.1);color:#4A7848}
-    .dark .type-virtual,
-    :global([data-theme="dark"]) .type-virtual{background:rgba(74,120,72,.18);color:#7DBF7A}
-    
-    /* pagination */
-    /* ── page number active ── */
-    .pgbtn.active{background:#0A2463;color:white;border-color:#0A2463}
-    .dark .pgbtn.active,
-    :global([data-theme="dark"]) .pgbtn.active{background:#4A90E2;border-color:#4A90E2}
-    
-    /* modal */
-    .modal-bg{background:rgba(6,14,28,.72);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
-    
-    /* select wrapper arrow */
-    .sel-wrap{position:relative;display:inline-block}
-    .sel-wrap::after{content:'▾';position:absolute;right:10px;top:50%;transform:translateY(-50%);font-size:11px;color:#8C8070;pointer-events:none}
-    .dark .sel-wrap::after,
-    :global([data-theme="dark"]) .sel-wrap::after{color:#6A7FA0}
-    
-    /* period tab */
-    .ptab.active{background:white;color:#0A2463;box-shadow:0 1px 4px rgba(10,36,99,.12)}
-    .dark .ptab.active,
-    :global([data-theme="dark"]) .ptab.active{background:#131C2E;color:#E8EDF5}
-    
-    /* view toggle */
-    .vtoggle-btn.active{background:#0A2463;color:white}
-    .dark .vtoggle-btn.active,
-    :global([data-theme="dark"]) .vtoggle-btn.active{background:#4A90E2}
-    .vtoggle-btn:not(.active){color:#8C8070}
-    .dark .vtoggle-btn:not(.active),
-    :global([data-theme="dark"]) .vtoggle-btn:not(.active){color:#6A7FA0}
-    
-    /* fchip */
-    .fchip.active,.fchip:hover{background:#0A2463;color:white;border-color:#0A2463}
-    .dark .fchip.active,
-    .dark .fchip:hover,
-    :global([data-theme="dark"]) .fchip.active,
-    :global([data-theme="dark"]) .fchip:hover{background:#4A90E2;border-color:#4A90E2}
-    
-    /* property sky gradients */
-    .sky-1{background:linear-gradient(160deg,#0E2444 0%,#1F3F6A 55%,#4A70A0 100%)}
-    .sky-2{background:linear-gradient(160deg,#0A2463 0%,#0E2444 45%,#1F3F6A 100%)}
-    .sky-3{background:linear-gradient(155deg,#1F3F6A 0%,#4A70A0 60%,#8DAACC 100%)}
-    .sky-4{background:linear-gradient(160deg,#060E1C 0%,#0A2463 50%,#1F3F6A 100%)}
-    .sky-5{background:linear-gradient(160deg,#0E2444 0%,#1a3255 40%,#4A70A0 100%)}
-    .sky-6{background:linear-gradient(155deg,#0A2463 0%,#1F3F6A 55%,#4A70A0 100%)}
-    
-    /* perf bar track */
-    .perf-track{background:#EDE7DC;border-radius:4px;overflow:hidden}
-    .dark .perf-track,
-    :global([data-theme="dark"]) .perf-track{background:rgba(255,255,255,.07)}
-    
-    /* boost plan selection in modal */
-    .plan-card{transition:outline .18s,transform .18s}
-    .plan-card:hover{transform:translateY(-1px)}
-    
-    /* input */
-    .inp{background:#fff;border:1.5px solid #EDE7DC;border-radius:10px;padding:9px 13px;font-family:'DM Sans',sans-serif;font-size:13px;color:#0A2463;outline:none;width:100%;transition:border-color .2s}
-    .inp:focus{border-color:rgba(74,144,226,.55)}
-    .dark .inp,
-    :global([data-theme="dark"]) .inp{background:#1A2438;border-color:rgba(255,255,255,.1);color:#E8EDF5}
-    .inp::placeholder{color:#8C8070}
-    .dark .inp::placeholder,
-    :global([data-theme="dark"]) .inp::placeholder{color:#4A5568}
-    
-    /* boost active glow */
-    @keyframes boostGlow{0%,100%{box-shadow:0 0 0 0 rgba(212,174,58,0)}50%{box-shadow:0 0 0 6px rgba(212,174,58,.12)}}
-    .boost-glow{animation:boostGlow 3s ease infinite}
-    
-    /* empty state */
-    .empty-border{border:2px dashed #EDE7DC}
-    .dark .empty-border,
-    :global([data-theme="dark"]) .empty-border{border-color:rgba(255,255,255,.08)}
-    
-    /* toast */
-    #toast{transition:opacity .3s,transform .3s}
-    
-    /* actions menu */
-    .action-menu{min-width:160px;box-shadow:0 8px 32px rgba(10,36,99,.16)}
-    .dark .action-menu,
-    :global([data-theme="dark"]) .action-menu{box-shadow:0 8px 32px rgba(0,0,0,.5)}
-    
-    @media(max-width:768px){
-      .hide-md{display:none!important}
-      .table-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
-      .controls-stack{flex-direction:column!important;align-items:stretch!important}
-    }
-    @media(max-width:640px){
-      .stat-grid-2{grid-template-columns:1fr 1fr!important}
-      .hide-sm{display:none!important}
-      .card-grid{grid-template-columns:1fr!important}
-    }
+	:global(.tt) {
+		transition: background-color 0.3s, color 0.3s, border-color 0.3s;
+	}
+	:global(.scrollbar-hide::-webkit-scrollbar) {
+		display: none;
+	}
+	:global(.scrollbar-hide) {
+		-ms-overflow-style: none;
+		scrollbar-width: none;
+	}
+
+	@keyframes -global-pulse-dot {
+		0%, 100% { opacity: 1; transform: scale(1); }
+		50% { opacity: 0.4; transform: scale(0.8); }
+	}
+	:global(.pulse-dot) {
+		animation: pulse-dot 2.2s infinite;
+	}
+
+	@keyframes -global-fadeUp {
+		from { opacity: 0; transform: translateY(16px); }
+		to { opacity: 1; transform: translateY(0); }
+	}
+	:global(.fu) {
+		animation: fadeUp 0.55s ease both;
+	}
+	:global(.d1) { animation-delay: 0.04s; }
+	:global(.d2) { animation-delay: 0.09s; }
+	:global(.d3) { animation-delay: 0.14s; }
+
+	@keyframes -global-scaleIn {
+		from { opacity: 0; transform: scale(0.97) translateY(8px); }
+		to { opacity: 1; transform: scale(1) translateY(0); }
+	}
+	:global(.scale-in) {
+		animation: scaleIn 0.26s cubic-bezier(0.22, 0.68, 0, 1.2) both;
+	}
+
+	@keyframes -global-slideInR {
+		from { transform: translateX(100%); }
+		to { transform: translateX(0); }
+	}
+	:global(.slide-in-r) {
+		animation: slideInR 0.32s cubic-bezier(0.22, 0.68, 0, 1.2) both;
+	}
+
+	:global(.sb-link.active) {
+		background: rgba(74, 144, 226, 0.12);
+		color: #4a90e2;
+		font-weight: 500;
+	}
+	:global(.dark .sb-link.active) {
+		background: rgba(74, 144, 226, 0.15);
+	}
+	:global(.sb-link:not(.active):hover) {
+		background: rgba(10, 36, 99, 0.05);
+	}
+	:global(.dark .sb-link:not(.active):hover) {
+		background: rgba(255, 255, 255, 0.04);
+	}
+
+	:global(.stat-card) {
+		transition: transform 0.22s, box-shadow 0.22s;
+	}
+	:global(.stat-card:hover) {
+		transform: translateY(-2px);
+		box-shadow: 0 12px 36px rgba(10, 36, 99, 0.11);
+	}
+	:global(.dark .stat-card:hover) {
+		box-shadow: 0 12px 36px rgba(0, 0, 0, 0.38);
+	}
+
+	:global(.prop-card) {
+		transition: transform 0.22s, box-shadow 0.22s, border-color 0.22s;
+	}
+	:global(.prop-card:hover) {
+		transform: translateY(-2px);
+		box-shadow: 0 14px 40px rgba(10, 36, 99, 0.1);
+	}
+	:global(.dark .prop-card:hover) {
+		box-shadow: 0 14px 40px rgba(0, 0, 0, 0.38);
+	}
+
+	:global(.sp-published) { background: #eff3ee; color: #4a7848; }
+	:global(.dark .sp-published) { background: rgba(74, 120, 72, 0.2); color: #7dbf7a; }
+	:global(.sp-archived) { background: #f5d5c5; color: #5c2416; }
+	:global(.dark .sp-archived) { background: rgba(192, 96, 53, 0.15); color: #edba9b; }
+	:global(.sp-draft) { background: rgba(10, 36, 99, 0.06); color: #4a70a0; }
+	:global(.dark .sp-draft) { background: rgba(74, 112, 160, 0.1); color: #8daacc; }
+
+	:global(.type-sale) { background: rgba(192, 96, 53, 0.1); color: #c06035; }
+	:global(.dark .type-sale) { background: rgba(192, 96, 53, 0.15); color: #edba9b; }
+	:global(.type-rent) { background: rgba(10, 36, 99, 0.07); color: #1f3f6a; }
+	:global(.dark .type-rent) { background: rgba(74, 112, 160, 0.15); color: #8daacc; }
+
+	:global(.boost-badge) { background: rgba(212, 174, 58, 0.94); color: #2e2405; }
+	:global(.boost-badge.urgent) { background: rgba(192, 96, 53, 0.94); color: #fff; }
+	@keyframes -global-boostGlow {
+		0%, 100% { box-shadow: 0 0 0 0 rgba(212, 174, 58, 0); }
+		50% { box-shadow: 0 0 0 6px rgba(212, 174, 58, 0.12); }
+	}
+	:global(.boost-glow) {
+		animation: boostGlow 3s ease infinite;
+	}
+
+	:global(.pgbtn.active) { background: #0a2463; color: white; border-color: #0a2463; }
+	:global(.dark .pgbtn.active) { background: #4a90e2; border-color: #4a90e2; }
+
+	:global(.modal-bg) {
+		background: rgba(6, 14, 28, 0.72);
+		backdrop-filter: blur(8px);
+		-webkit-backdrop-filter: blur(8px);
+	}
+
+	:global(.sel-wrap) {
+		position: relative;
+		display: inline-block;
+	}
+	:global(.sel-wrap::after) {
+		content: '▾';
+		position: absolute;
+		right: 10px;
+		top: 50%;
+		transform: translateY(-50%);
+		font-size: 11px;
+		color: #8c8070;
+		pointer-events: none;
+	}
+	:global(.dark .sel-wrap::after) {
+		color: #6a7fa0;
+	}
+	:global(.sel-wrap select) {
+		-webkit-appearance: none;
+		appearance: none;
+	}
+
+	:global(.ptab.active) {
+		background: white;
+		color: #0a2463;
+		box-shadow: 0 1px 4px rgba(10, 36, 99, 0.12);
+	}
+	:global(.dark .ptab.active) {
+		background: #131c2e;
+		color: #e8edf5;
+	}
+
+	:global(.fchip) {
+		transition: background 0.18s, color 0.18s, border-color 0.18s;
+	}
+
+	:global(.inp) {
+		background: #fff;
+		border: 1.5px solid #ede7dc;
+		border-radius: 10px;
+		padding: 9px 13px;
+		font-family: 'DM Sans', sans-serif;
+		font-size: 13px;
+		color: #0a2463;
+		outline: none;
+		width: 100%;
+		transition: border-color 0.2s;
+	}
+	:global(.inp:focus) {
+		border-color: rgba(74, 144, 226, 0.55);
+	}
+	:global(.dark .inp) {
+		background: #1a2438;
+		border-color: rgba(255, 255, 255, 0.1);
+		color: #e8edf5;
+	}
+	:global(.inp::placeholder) {
+		color: #8c8070;
+	}
+	:global(.dark .inp::placeholder) {
+		color: #4a5568;
+	}
+
+	:global(.tswitch) {
+		width: 38px;
+		height: 22px;
+		border-radius: 999px;
+		background: #ede7dc;
+		position: relative;
+		cursor: pointer;
+		transition: background 0.2s;
+		flex-shrink: 0;
+	}
+	:global(.dark .tswitch) {
+		background: rgba(255, 255, 255, 0.1);
+	}
+	:global(.tswitch.on) {
+		background: #4a7848;
+	}
+	:global(.tswitch .knob) {
+		position: absolute;
+		top: 2px;
+		left: 2px;
+		width: 18px;
+		height: 18px;
+		border-radius: 999px;
+		background: #fff;
+		transition: transform 0.2s;
+	}
+	:global(.tswitch.on .knob) {
+		transform: translateX(16px);
+	}
+
+	:global(.popover) {
+		transition: opacity 0.16s, transform 0.16s;
+	}
+
+	:global(.sky-1) { background: linear-gradient(160deg, #0e2444 0%, #1f3f6a 55%, #4a70a0 100%); }
+	:global(.sky-2) { background: linear-gradient(160deg, #0a2463 0%, #0e2444 45%, #1f3f6a 100%); }
+	:global(.sky-3) { background: linear-gradient(155deg, #1f3f6a 0%, #4a70a0 60%, #8daacc 100%); }
+	:global(.sky-4) { background: linear-gradient(160deg, #060e1c 0%, #0a2463 50%, #1f3f6a 100%); }
+	:global(.sky-5) { background: linear-gradient(160deg, #0e2444 0%, #1a3255 40%, #4a70a0 100%); }
+	:global(.sky-6) { background: linear-gradient(155deg, #0a2463 0%, #1f3f6a 55%, #4a70a0 100%); }
+
+	:global(.empty-border) {
+		border: 2px dashed #ede7dc;
+	}
+	:global(.dark .empty-border) {
+		border-color: rgba(255, 255, 255, 0.08);
+	}
+
+	@media (max-width: 1024px) {
+		:global(.stat-grid-2) {
+			grid-template-columns: 1fr 1fr 1fr !important;
+		}
+	}
+	@media (max-width: 640px) {
+		:global(.stat-grid-2) {
+			grid-template-columns: 1fr 1fr 1fr !important;
+		}
+		:global(.card-grid) {
+			grid-template-columns: 1fr !important;
+		}
+	}
 </style>

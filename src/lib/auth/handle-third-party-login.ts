@@ -3,8 +3,9 @@ import { goto } from "$app/navigation";
 import axios, { AxiosError } from "axios";
 import { redirectUser } from "./redirect-user";
 import { ApiRequests } from "$lib/api/api.request";
+import { PUBLIC_ENCRYPTION_KEY } from "$env/static/public";
 import { LSKey, type AuthProvider } from "$lib/utils/constant";
-import { getErrorMessage, setLocalStorageField } from "$lib/utils";
+import { decryptData, getErrorMessage, setLocalStorageField } from "$lib/utils";
 
 type ThirdPartySession = {
   user: {
@@ -54,7 +55,9 @@ export async function handleThirdPartyLogin(opts: {
     const result = response.data;
     if (result?.enc) {
       setLocalStorageField(LSKey.blp_data, result.enc);
-      const userInfo = result.decryptedInfo;
+      const userInfo = JSON.parse(
+        decryptData(result.enc, PUBLIC_ENCRYPTION_KEY)
+      );
       if (userInfo) {
         goto(
           redirectTo

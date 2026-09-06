@@ -2,9 +2,12 @@ import { isEmpty } from "lodash-es";
 import { goto } from "$app/navigation";
 import axios, { AxiosError } from "axios";
 import { ApiRequests } from "$lib/api/api.request";
-import { PUBLIC_SITE_BASE_URL } from "$env/static/public";
-import { getErrorMessage, setLocalStorageField } from "$lib/utils";
 import { AppRole, LSKey, type AuthProvider } from "$lib/utils/constant";
+import { decryptData, getErrorMessage, setLocalStorageField } from "$lib/utils";
+import {
+  PUBLIC_SITE_BASE_URL,
+  PUBLIC_ENCRYPTION_KEY,
+} from "$env/static/public";
 
 type ThirdPartySession = {
   user: { id: string; name: string; email: string; phoneNumber?: string };
@@ -81,7 +84,7 @@ async function loginAndRedirect(
 
   if (result?.enc) {
     setLocalStorageField(LSKey.blp_data, result.enc);
-    const userInfo = result.decryptedInfo;
+    const userInfo = JSON.parse(decryptData(result.enc, PUBLIC_ENCRYPTION_KEY));
     if (userInfo) {
       goto(
         redirectTo

@@ -64,7 +64,16 @@ export enum ERROR_CODES {
 }
 
 export enum ListingResponseStatus {
-  DRAFT = "draft",
   LIVE = "live",
+  DRAFT = "draft",
   AWAITING_CONFIRMATION = "awaiting_confirmation",
+}
+
+export enum ListingStatus {
+  DRAFT = "DRAFT",
+  ARCHIVED = "ARCHIVED",
+  REJECTED = "REJECTED",
+  PUBLISHED = "PUBLISHED",
+  SUSPENDED = "SUSPENDED",
+  PENDING_REVIEW = "PENDING_REVIEW",
 }

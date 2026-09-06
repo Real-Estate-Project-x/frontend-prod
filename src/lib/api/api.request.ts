@@ -1,6 +1,7 @@
 import type { AxiosInstance } from "axios";
 import { browser } from "$app/environment";
 import { encryptData, getUserIp } from "$lib/utils";
+import { ListingMediaType } from "$lib/utils/constant";
 import { createAxiosInstance } from "./axios-interceptor";
 import { PUBLIC_API_BASE_URL, PUBLIC_ENCRYPTION_KEY } from "$env/static/public";
 import type {
@@ -16,8 +17,8 @@ import type {
   CreateListingDTO,
   CreateIntlListingDTO,
   FindCountriesDTO,
+  AgentListingFilterDTO,
 } from "./type.dto";
-import { ListingMediaType } from "$lib/utils/constant";
 
 export class ApiRequests {
   private ip?: string;
@@ -254,6 +255,21 @@ export class ApiRequests {
     return this.axiosInstance.patch(url, {});
   }
 
+  async restoreListing(listingId: string) {
+    const url = `${this.BASE_URL}/listings/manage/restore/${listingId}`;
+    return this.axiosInstance.patch(url, {});
+  }
+
+  /**
+   * Take a listing down
+   * @param listingId
+   * @returns
+   */
+  async archiveListing(listingId: string) {
+    const url = `${this.BASE_URL}/listings/manage/archive/${listingId}`;
+    return this.axiosInstance.patch(url, {});
+  }
+
   async uploadMedia(files: File[], type: ListingMediaType) {
     let url = this.BASE_URL;
 
@@ -281,5 +297,23 @@ export class ApiRequests {
     return this.axiosInstance.post(url, payload, {
       headers: { "Content-Type": "multipart/form-data" },
     });
+  }
+
+  async findAgencyListings(
+    agencyId: string,
+    filter: Partial<AgentListingFilterDTO>
+  ) {
+    const url = `${this.BASE_URL}/listings/agency/${agencyId}`;
+    return this.axiosInstance.post(url, filter);
+  }
+
+  async findAgencyListingBySlug(agencyId: string, slug: string) {
+    const url = `${this.BASE_URL}/listings/agency/${agencyId}/${slug}`;
+    return this.axiosInstance.get(url);
+  }
+
+  async findAgencyListingsKPICards(agencyId: string) {
+    const url = `${this.BASE_URL}/listings/agency/${agencyId}/kpi-cards`;
+    return this.axiosInstance.get(url);
   }
 }

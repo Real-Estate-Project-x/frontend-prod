@@ -19,7 +19,6 @@ export const POST: RequestHandler = async ({ request, cookies, fetch }) => {
     }
 
     const result = response.data;
-    const decryptedInfo = decryptData(result.data, PUBLIC_ENCRYPTION_KEY);
 
     const cookieConfig: any = {
       path: "/",
@@ -31,15 +30,19 @@ export const POST: RequestHandler = async ({ request, cookies, fetch }) => {
 
     cookies.set("blp_data", result, cookieConfig);
 
-    const decryptedInfoJson = JSON.parse(decryptedInfo);
-    if (decryptedInfoJson) {
-      cookies.set("user_id", decryptedInfoJson.userId, cookieConfig);
-      cookies.set("access_token", decryptedInfoJson.jwtToken, cookieConfig);
+    const userInfo = JSON.parse(
+      decryptData(result.data, PUBLIC_ENCRYPTION_KEY)
+    );
+
+    // set cookies that can be used to set locals constants across the app
+    cookies.set("user_id", userInfo.userId, cookieConfig);
+    cookies.set("access_token", userInfo.jwtToken, cookieConfig);
+    // Explicitly persist agencyId
+    if (userInfo.agencyId) {
+      cookies.set("agency_id", userInfo.agencyId, cookieConfig);
     }
-    return json({
-      enc: result.data,
-      decryptedInfo: decryptedInfoJson,
-    });
+
+    return json({ enc: result.data });
   } catch (ex) {
     if (ex instanceof AxiosError) {
       throw error(

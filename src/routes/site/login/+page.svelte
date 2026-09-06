@@ -11,7 +11,7 @@
   import AppleLoginButton from '$lib/components/shared/AppleLoginButton.svelte';
   import GoogleLoginButton from '$lib/components/shared/GoogleLoginButton.svelte';
   import { PUBLIC_ENCRYPTION_KEY, PUBLIC_SITE_BASE_URL } from "$env/static/public";
-  import { extractLocalStorageInfo, getErrorMessage, setLocalStorageField } from "$lib/utils";
+  import { decryptData, extractLocalStorageInfo, getErrorMessage, setLocalStorageField } from "$lib/utils";
 
   type LoginType = { 
     email: string, 
@@ -134,15 +134,13 @@
         password: payload.password, 
         rememberMe: payload.rememberMe
       }, 
-      {
-        headers: { 'Content-Type': 'application/json' }
-      });
+      {  headers: { 'Content-Type': 'application/json' } });
 
       const result = response.data;
 
       if (result?.enc) {
         setLocalStorageField(LSKey.blp_data, result.enc);
-        const userInfo = result.decryptedInfo;
+        const userInfo = JSON.parse(decryptData(result.enc, PUBLIC_ENCRYPTION_KEY));
         if (userInfo) {
           const redirectTo = page.url.searchParams.get('redirect_to');
           goto(

@@ -26,27 +26,28 @@ export const POST: RequestHandler = async ({ request, cookies, fetch }) => {
     const result = response.data;
     const decryptedInfo = decryptData(result.data, PUBLIC_ENCRYPTION_KEY);
 
-    cookies.set("blp_data", result, {
-      path: "/",
-      httpOnly: true,
-      secure: true,
-      sameSite: "lax",
-      maxAge: THIRTY_DAYS,
-    });
-
-    const decryptedInfoJson = JSON.parse(decryptedInfo);
-    if (decryptedInfoJson) {
-      const cookieConfig: any = {
+    if (decryptedInfo) {
+      const config: any = {
         path: "/",
         httpOnly: true,
         secure: true,
         sameSite: "lax",
-        maxAge: body.rememberMe ? THIRTY_DAYS : TWENTY_FOUR_HOURS,
+        maxAge: THIRTY_DAYS,
       };
-      cookies.set("user_id", decryptedInfoJson.userId, cookieConfig);
-      cookies.set("access_token", decryptedInfoJson.jwtToken, cookieConfig);
+      cookies.set("blp_data", result, config);
+
+      const userInfo = JSON.parse(decryptedInfo);
+
+      // set cookies that can be used to set locals constants across the app
+      cookies.set("user_id", userInfo.userId, config);
+      cookies.set("access_token", userInfo.jwtToken, config);
+      // Explicitly persist agencyId
+      if (userInfo.agencyId) {
+        cookies.set("agency_id", userInfo.agencyId, config);
+      }
     }
-    return json({ decryptedInfo, enc: result.data });
+
+    return json({ enc: result.data });
   } catch (ex) {
     if (ex instanceof AxiosError) {
       throw error(
