@@ -1,11 +1,18 @@
 <script lang="ts">
+  import { afterNavigate } from "$app/navigation";
   import { sidebarStore } from "$lib/stores/sidebar.svelte";
 
   const closeSb = () => {
     sidebarStore.close();
-
     document.body.style.overflow = '';
   };
+
+  // Close the mobile sidebar automatically whenever a route change completes
+  afterNavigate(() => {
+    if (sidebarStore.open) {
+      closeSb();
+    }
+  });
 </script>
 
 <div id="sbOverlay" 

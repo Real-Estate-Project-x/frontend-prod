@@ -1,7 +1,29 @@
 <script lang="ts">
+	import type { PageData } from './$types';
+	import type { ToastType } from '$lib/types';
+	import Toast from '$lib/components/shared/Toast.svelte';
+	import AgencySidebar from '$lib/components/shared/AgencySidebar.svelte';
 	import BoostModal from '$lib/components/agency/view-listing/BoostModal.svelte';
 	import ArchiveModal from '$lib/components/agency/view-listing/ArchiveModal.svelte';
-  import AgencySidebar from '$lib/components/shared/AgencySidebar.svelte';
+
+	let { data }: { data: PageData } = $props();
+
+	const listing = $derived(data.listing);
+
+	console.log({listing})
+
+	// Toast
+    let toastMsg     = $state('');
+    let toastType = $state<ToastType>('info');
+    let toastTimer: ReturnType<typeof setTimeout> | null = null;
+
+	// ── Toast ──────────────────────────────────────────────────────────────────
+	const showToast = (msg: string, type: ToastType) => {
+      toastMsg = msg;
+      toastType = type;
+      if (toastTimer) clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => toastMsg = '', 3000);
+    }
 
 	// ─────────────────────────────────────────────────────────
 	// Types
@@ -102,6 +124,13 @@
     const confirmBoost = (planId) => {
 		console.log({ planId });
 	}
+
+	const formattedDate = (date: Date) => new Intl.DateTimeFormat('en-GB', {
+		day: '2-digit',
+		month: 'short',
+		year: 'numeric'	
+	}).format(date)
+
 
     const confirmArchive = () => {
 		console.log({ msg: 'Listing taken down.' });
@@ -412,10 +441,7 @@
 		viewingRequestsSinceBoost: 6
 	};
 
-	const PROPERTY_NAME = '4-Bed Duplex, GRA Phase 2';
-
-	const fullDescription =
-		"This elegant 4-bedroom duplex sits within the prestigious GRA Phase 2 estate, Port Harcourt. Featuring a fully fitted kitchen, en-suite bedrooms, a private garden, and covered parking for 3 vehicles. The property enjoys 24-hour power supply, CCTV security, and direct access to the estate's recreational facilities. Modern finishes throughout with high-quality Italian tiles, a home theatre setup in the lounge, and a butler's pantry.\n\nThe ground floor comprises a spacious reception hall, formal dining room, family lounge, one guest bedroom with en-suite, modern kitchen with island, laundry room, and a powder room. The first floor hosts three large bedrooms all with en-suites, a study/home office, and a private balcony with estate views.";
+	const fullDescription = listing.description;
 	const shortDescription = fullDescription.slice(0, 260) + '…';
 	const descriptionParagraphs = $derived(fullDescription.split('\n\n'));
 
@@ -442,16 +468,8 @@
 	let trendRange = $state<TrendRange>(30);
 	let videoPlaying = $state(false);
 	let toastMessage = $state<string | null>(null);
-	let toastTimer: ReturnType<typeof setTimeout> | undefined;
 
-	const amenities = [
-		'Swimming pool',
-		'Generator backup',
-		'24hr security',
-		'CCTV',
-		'Fibre broadband',
-		'Covered parking (×3)'
-	];
+	const amenities = listing.amenities.map((a) => a.displayName);
 	const extraAmenities = ['Private garden', 'Home theatre', 'Air conditioning', 'Estate gym', 'Borehole water', 'Solar inverter'];
 
 	const currentViewings = $derived(VIEWINGS[currentViewingTab]);
@@ -483,12 +501,6 @@
 		const areaPts = `${pad},${h - pad} ${viewsPts} ${w - pad},${h - pad}`;
 
 		return { areaPts, viewsPts, leadsPts, summary: data.summary };
-	}
-
-	function showToast(message: string) {
-		toastMessage = message;
-		clearTimeout(toastTimer);
-		toastTimer = setTimeout(() => (toastMessage = null), 3000);
 	}
 
 	function selectThumb(index: number) {
@@ -554,7 +566,7 @@
                         <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
                             <path d="M4 2l4 4-4 4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" />
                         </svg>
-                        <span class="text-white/70">{PROPERTY_NAME}</span>
+                        <span class="text-white/70">{listing.title}</span>
                     </div>
     
                     <div class="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
@@ -585,22 +597,24 @@
                                 </span>
                             </div>
                             <h1 class="font-display font-light leading-[1.06] text-white" style="font-size:clamp(26px,3.8vw,44px)">
-                                4-Bed Duplex, <em class="italic text-chalk-3">GRA Phase 2</em>
+                                <span class="capitalize">{listing.title}</span>, <em class="italic text-chalk-3">GRA Phase 2</em>
                             </h1>
                             <div class="mt-2 flex flex-wrap items-center gap-3">
                                 <span class="font-display font-semibold text-white" style="font-size:clamp(20px,2.5vw,28px)">
-                                    ₦3,500,000<span class="text-[16px] font-light text-white/50">/yr</span>
+                                    ₦3,500,000<span class="text-[16px] font-light text-white/50">/{listing.paymentPeriod ?? 'yr'}</span>
                                 </span>
                                 <span class="text-white/40">·</span>
-                                <span class="flex items-center gap-1.5 text-[13px] text-white/60">
+                                <span class="flex items-center gap-1.5 text-[13px] text-white/60 capitalize">
                                     <svg width="11" height="11" viewBox="0 0 14 14" fill="none">
                                         <path d="M7 1C5 1 3 2.79 3 5c0 2.76 4 8 4 8s4-5.24 4-8c0-2.21-2-4-4-4z" stroke="currentColor" stroke-width="1.3" />
                                         <circle cx="7" cy="5" r="1.5" stroke="currentColor" stroke-width="1.2" />
                                     </svg>
-                                    GRA Phase 2, Port Harcourt
+                                    {listing.address}
                                 </span>
                                 <span class="text-white/40">·</span>
-                                <span class="text-[12px] text-white/50">Added 14 Apr 2026</span>
+                                <span class="text-[12px] text-white/50">
+									Added {formattedDate(new Date(listing.dateCreated))}
+								</span>
                             </div>
                         </div>
     
@@ -1207,13 +1221,10 @@
 <BoostModal open={boostModalOpen} property={LISTING} onClose={() => (boostModalOpen = false)} onConfirm={confirmBoost} />
 <ArchiveModal open={archiveModalOpen} property={LISTING} onClose={() => (archiveModalOpen = false)} onConfirm={confirmArchive} />
 
-{#if toastMessage}
-	<div
-		class="tt fixed bottom-6 left-1/2 z-[999] -translate-x-1/2 rounded-full bg-navy-dark px-5 py-3 text-[13px] font-medium text-white shadow-[0_8px_32px_rgba(10,36,99,.3)] dark:bg-[#131C2E]"
-	>
-		{toastMessage}
-	</div>
+{#if toastMsg  && toastMsg !== ''}
+    <Toast toastMsg={toastMsg} type={toastType} />
 {/if}
+
 
 <style>
 	.tt {

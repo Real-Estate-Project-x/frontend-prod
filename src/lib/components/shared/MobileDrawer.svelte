@@ -1,9 +1,16 @@
 <script lang="ts">
-    import { authStore } from '$lib/stores/auth.svelte';
+  import { afterNavigate } from "$app/navigation";
+  import { authStore } from '$lib/stores/auth.svelte';
   
-    // Receive open state from Navbar via a shared store or prop.
-    // Simplest approach: re-export a module-level rune store.
-    import { drawerStore } from '$lib/stores/drawer.svelte';
+  // Receive open state from Navbar via a shared store or prop.
+  import { drawerStore } from '$lib/stores/drawer.svelte';
+
+  afterNavigate(() => {
+    if (drawerStore.open) {
+      drawerStore.close();
+    }
+  });
+
   </script>
   
   <!-- Backdrop -->

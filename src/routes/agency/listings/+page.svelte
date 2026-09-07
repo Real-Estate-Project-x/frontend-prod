@@ -1,17 +1,16 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
+  	import { AxiosError } from 'axios';
 	import type { PageData } from "./$types";
-	import BoostModal from '$lib/components/agency/view-listing/BoostModal.svelte';
-	import ArchiveModal from '$lib/components/agency/view-listing/ArchiveModal.svelte';
-    import AgencySidebar from '$lib/components/shared/AgencySidebar.svelte';
-    import Toast from '$lib/components/shared/Toast.svelte';
-	import { ListingFor, ListingPaymentDuration, ListingStatus, PropertyCategory, RegionScope } from '$lib/utils/constant';
-	import { capitalize, cleanObject, getErrorMessage, getUserInfo } from '$lib/utils';
+	import type { ToastType } from '$lib/types';
 	import { ApiRequests } from '$lib/api/api.request';
+	import Toast from '$lib/components/shared/Toast.svelte';
 	import Pagination from '$lib/components/shared/Pagination.svelte';
-  import type { ToastType } from '$lib/types';
-  import { AxiosError } from 'axios';
-
+	import AgencySidebar from '$lib/components/shared/AgencySidebar.svelte';
+	import BoostModal from '$lib/components/agency/view-listing/BoostModal.svelte';
+	import { capitalize, cleanObject, getErrorMessage, getUserInfo } from '$lib/utils';
+	import ArchiveModal from '$lib/components/agency/view-listing/ArchiveModal.svelte';
+	import { ListingFor, ListingPaymentDuration, ListingStatus, PropertyCategory, RegionScope } from '$lib/utils/constant';
+	
   	type ListingFilter = {
 		searchTerm: string;
 		listingTypeId: string;
@@ -54,13 +53,10 @@
 	});
 	let selectedPageSize = $state(12);
 
-	const generateAddListingUrl = () => {
-		if (country.bpRegion === RegionScope.INTERNATIONAL) return '/agency/listings/intl/add';
-		
-		// default
-		return '/agency/listings/add';
-	}
-
+	const generateAddListingUrl = () => (country.bpRegion === RegionScope.WEST_AFRICA) 
+		? '/agency/listings/add' 
+		: '/agency/listings/intl/add';
+	
 	const setFilterField =  <K extends keyof ListingFilter>(field: K, value: ListingFilter[K]) => {
 		filter[field] = value;
 
@@ -726,11 +722,15 @@
 									<span class="w-1.5 h-1.5 rounded-full bg-ember"></span>
 								{/if}
 								<svg width="9" height="9" viewBox="0 0 10 10" fill="none">
-									<path d="M2 3.5l3 3 3-3" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" />
+									<path d="M2 3.5l3 3 3-3" 
+										stroke="currentColor" 
+										stroke-width="1.3" 
+										stroke-linecap="round"
+										style={pricePopoverOpen ? 'transform: rotate(180deg)' : ''} />
 								</svg>
 							</button>
 							{#if pricePopoverOpen}
-								<div class="popover absolute left-0 top-full mt-1.5 w-[240px] bg-white dark:bg-[#131C2E] border border-chalk-3 dark:border-white/[.08] rounded-xl shadow-lg z-50 p-4 tt">
+								<div class="popover absolute left-0 bottom-full mb-1.5 w-[240px] bg-white dark:bg-[#131C2E] border border-chalk-3 dark:border-white/[.08] rounded-xl shadow-lg z-50 p-4 tt">
 									<p class="text-[10px] font-medium tracking-[.1em] uppercase text-chalk-muted dark:text-[#6A7FA0] mb-2.5">Price range (₦)</p>
 									<div class="flex items-center gap-2 mb-3">
 										<input type="number" 
