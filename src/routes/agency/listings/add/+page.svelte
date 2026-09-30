@@ -1544,7 +1544,7 @@
     </main>
 </div>
 
-{#if toastMsg  && toastMsg !== ''}
+{#if toastMsg && toastMsg !== ''}
     <Toast toastMsg={toastMsg} type={toastType} />
 {/if}
 
