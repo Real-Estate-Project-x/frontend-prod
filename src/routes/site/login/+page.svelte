@@ -425,7 +425,7 @@
 
         <!-- Email -->
         <div class="mb-4 animate-fadeUp3" id="loginEmailWrap">
-          <label class="auth-label" for="loginEmail">Email address</label>
+          <label class="auth-label" for="loginEmail">Email address <span class="text-ember">*</span></label>
           <input required bind:value={payload.email} 
             type="email" 
             id="loginEmail" 
@@ -439,7 +439,7 @@
         <!-- Password -->
         <div class="mb-2 animate-fadeUp4" id="loginPassWrap">
           <div class="flex items-center justify-between mb-[7px]">
-            <label class="auth-label" for="loginPass" style="margin-bottom:0;">Password</label>
+            <label class="auth-label" for="loginPass" style="margin-bottom:0;">Password <span class="text-ember">*</span></label>
             <a href="/site/forgot-password" class="auth-link" style="font-size:12px;">Forgot password?</a>
           </div>
           <div class="relative">
@@ -453,7 +453,7 @@
               autocomplete="current-password" 
             />
             <button class="pw-eye" type="button" onclick={togglePw} aria-label="Show password">
-              {#if showPassword}
+              {#if !showPassword}
                       <svg 
                         width="16" 
                         height="16" 

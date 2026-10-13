@@ -11,7 +11,7 @@
   let isEditAgentModalOpen  = $state(false);
   let selectedActivity = $state<ActivityTab>('all');
   let selectedStatus = $state<StatusTab>('all');
-    const list = [1];
+  const list = [1];
 
   const setActivity = (value: ActivityTab) => selectedActivity = value;
     

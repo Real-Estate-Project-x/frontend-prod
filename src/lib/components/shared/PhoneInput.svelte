@@ -8,6 +8,7 @@
     }
   
     interface Props {
+      isRequired:       boolean;
       countries?:       Country[];
       selectedCountry?: Country;
       oninput?:         (e: Event) => void;
@@ -25,6 +26,7 @@
       onchange,
       placeholder     = '803 000 0000',
       value           = '',
+      isRequired      = false,
     }: Props = $props();
   
     // Internal state
@@ -87,7 +89,12 @@
   
 {#if countries && selectedCountry}
   <div class="field-root mb-3">
-    <p class="field-label">Phone Number</p>
+    <p class="field-label">
+      Phone Number 
+      {#if isRequired}
+      <span class="text-ember">*</span>
+      {/if}
+    </p>
   
     <div bind:this={shellEl} class="shell">
   

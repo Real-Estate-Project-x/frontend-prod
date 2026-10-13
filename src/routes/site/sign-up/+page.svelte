@@ -729,7 +729,7 @@
           <!-- Name row -->
           <div class="grid grid-cols-2 gap-3 mb-3 two-col animate-fadeUp3">
             <div>
-              <label class="auth-label" for="cFirstName">First name</label>
+              <label class="auth-label" for="cFirstName">First name <span class="text-ember">*</span></label>
               <input oninput={(e) => setUserFormField("firstName", (e.target as HTMLInputElement).value)} 
                 bind:value={userFormData.firstName}
                 type="text" 
@@ -741,7 +741,7 @@
               />
             </div>
             <div>
-              <label class="auth-label" for="cLastName">Last name</label>
+              <label class="auth-label" for="cLastName">Last name <span class="text-ember">*</span></label>
               <input oninput={(e) => setUserFormField("lastName", (e.target as HTMLInputElement).value)} 
                 bind:value={userFormData.lastName}
                 type="text" 
@@ -756,7 +756,7 @@
 
           <!-- Email -->
           <div class="mb-3 animate-fadeUp3" id="cEmailWrap">
-            <label class="auth-label" for="cEmail">Email address</label>
+            <label class="auth-label" for="cEmail">Email address <span class="text-ember">*</span></label>
             <input oninput={(e) => {
               setUserFormField("email", (e.target as HTMLInputElement).value);
               handleEmailInput(e);
@@ -774,6 +774,7 @@
 
           <!-- Fix the on_input handler -->
           <PhoneInput 
+            isRequired={true}
             onchange={(country) => selectCountry(country)}
             oninput={(e) => {
               setUserFormField("phoneNumber", (e.target as HTMLInputElement).value);
@@ -785,7 +786,7 @@
 
           <!-- Password -->
           <div class="mb-2 animate-fadeUp4" id="cPassWrap">
-            <label class="auth-label" for="cPass">Password</label>
+            <label class="auth-label" for="cPass">Password <span class="text-ember">*</span></label>
             <div class="relative">
               <input type={showUserPassword ? "text" : "password"} 
                   oninput={(e) => setUserFormField("password", (e.target as HTMLInputElement).value)}
@@ -802,7 +803,7 @@
                     onclick={toggleUserPw}
                     aria-label={showUserPassword ? "Hide password" : "Show password"}
                   >
-                    {#if showUserPassword}
+                    {#if !showUserPassword}
                       <svg 
                         width="16" 
                         height="16" 
@@ -852,7 +853,7 @@
 
           <!-- Confirm password -->
           <div class="mb-4 animate-fadeUp4" id="cConfWrap">
-            <label class="auth-label" for="cConf">Confirm password</label>
+            <label class="auth-label" for="cConf">Confirm password <span class="text-ember">*</span></label>
             <div class="relative">
               <input oninput={(e) => setUserFormField("confirmPassword", (e.target as HTMLInputElement).value)}
                 bind:value={userFormData.confirmPassword}
@@ -865,7 +866,7 @@
                 autocomplete="new-password" 
               />
               <button class="pw-eye" type="button" onclick={toggleUserConfirmPw} aria-label="Show password">
-                {#if showUserConfirmPassword}
+                {#if !showUserConfirmPassword}
                       <svg 
                         width="16" 
                         height="16" 
@@ -975,7 +976,7 @@
 
             <div class="grid grid-cols-2 gap-3 mb-3 two-col animate-fadeUp2">
               <div>
-                <label class="auth-label" for="aFirstName">First name</label>
+                <label class="auth-label" for="aFirstName">First name <span class="text-ember">*</span></label>
                 <input 
                   oninput={(e) => setAgencyFormField('firstName', (e.target as HTMLInputElement).value)}
                   bind:value={agencyFormData.firstName}
@@ -988,7 +989,7 @@
                 />
               </div>
               <div>
-                <label class="auth-label" for="aLastName">Last name</label>
+                <label class="auth-label" for="aLastName">Last name <span class="text-ember">*</span></label>
                 <input 
                   oninput={(e) => setAgencyFormField('lastName', (e.target as HTMLInputElement).value)}
                   bind:value={agencyFormData.lastName}
@@ -1003,7 +1004,7 @@
             </div>
 
             <div class="mb-3 animate-fadeUp2" id="aEmailWrap">
-              <label class="auth-label" for="aEmail">Email address</label>
+              <label class="auth-label" for="aEmail">Email address <span class="text-ember">*</span></label>
               <input 
                   oninput={(e) => {
                     setAgencyFormField('email', (e.target as HTMLInputElement).value);
@@ -1022,6 +1023,7 @@
 
               <!-- Fix the on_input handler -->
               <PhoneInput 
+                isRequired={true}
                 onchange={(country) => selectCountry(country)}
                 oninput={(e) => {
                   setAgencyFormField("phoneNumber", (e.target as HTMLInputElement).value);
@@ -1032,7 +1034,7 @@
               />
 
             <div class="mb-2 animate-fadeUp4" id="aPassWrap">
-              <label class="auth-label" for="aPass">Password</label>
+              <label class="auth-label" for="aPass">Password <span class="text-ember">*</span></label>
               <div class="relative">
                 <input 
                   oninput={(e) => setAgencyFormField('password', (e.target as HTMLInputElement).value)}
@@ -1045,7 +1047,7 @@
                   autocomplete="new-password" 
                 />
                 <button class="pw-eye" type="button" onclick={toggleAgencyPw} aria-label="Show password">
-                  {#if showAgencyPassword}
+                  {#if !showAgencyPassword}
                       <svg 
                         width="16" 
                         height="16" 
@@ -1094,7 +1096,7 @@
           </div>
 
             <div class="mb-5 animate-fadeUp4" id="aConfWrap">
-              <label class="auth-label" for="aConf">Confirm password</label>
+              <label class="auth-label" for="aConf">Confirm password <span class="text-ember">*</span></label>
               <div class="relative">
                 <input 
                   oninput={(e) => setAgencyFormField('confirmPassword', (e.target as HTMLInputElement).value)}
@@ -1106,7 +1108,7 @@
                   placeholder="Repeat your password" 
                   autocomplete="new-password" />
                 <button class="pw-eye" type="button" onclick={toggleAgencyConfirmPw} aria-label="Show password">
-                  {#if showAgencyConfirmPassword}
+                  {#if !showAgencyConfirmPassword}
                       <svg 
                         width="16" 
                         height="16" 
@@ -1160,7 +1162,7 @@
 
             <!-- Agency logo upload -->
             <div class="mb-4 animate-fadeUp2">
-              <label for="logoFile" class="auth-label">Agency logo</label>
+              <label for="logoFile" class="auth-label">Agency logo <span class="text-ember">*</span></label>
               <button type="button" class="upload-zone" id="logoZone" onclick={handleClick}>
                 {#if previewUrl}
                 <div id="logoPreviewWrap">
@@ -1190,7 +1192,7 @@
             </div>
 
             <div class="mb-3 animate-fadeUp2" id="aAgencyNameWrap">
-              <label class="auth-label" for="aAgencyName">Agency name</label>
+              <label class="auth-label" for="aAgencyName">Agency name <span class="text-ember">*</span></label>
               <input 
                 oninput={(e) => setAgencyFormField('agencyName', (e.target as HTMLInputElement).value)}
                 bind:value={agencyFormData.agencyName}
@@ -1204,7 +1206,7 @@
             </div>
 
             <div class="mb-3 animate-fadeUp3">
-              <label class="auth-label" for="aAddress">Business address</label>
+              <label class="auth-label" for="aAddress">Business address <span class="text-ember">*</span></label>
               <textarea 
                 oninput={(e) =>
                   setAgencyFormField(
@@ -1222,12 +1224,13 @@
 
             <div class="mb-5 animate-fadeUp4">
               <label class="auth-label" for="aDesc">
-                Brief description 
+                Brief description <span class="text-ember">*</span>
                 <!-- <span class="font-sans normal-case" style="font-size:11px;letter-spacing:0;text-transform:none;color:#8C8070;">(optional)</span> -->
               </label>
               <textarea id="aDesc"
                 class="auth-textarea" 
                 rows="3" 
+                required
                 placeholder="Describe your agency — specialization, years of experience, key locations…"
                 bind:value={agencyFormData.agencyBio} 
                 oninput={(e) =>
@@ -1241,7 +1244,7 @@
             </div>
 
             <div class="mb-5 animate-fadeUp4">
-              <label class="auth-label" for="aDesc">Focus Areas</label>
+              <label class="auth-label" for="aDesc">Focus Areas <span class="text-ember">*</span></label>
               <div class="ai-specs" id="agentSpecs">
                 {#each realEstateFocusAreas as _}
                 <span class="ai-spec" 
@@ -1269,7 +1272,7 @@
 
             {#if agencyFormData.isRegistered}
             <div class="mb-3 animate-fadeUp2" id="aAgencyRegNumbeWrap">
-              <label class="auth-label" for="aAgencyRegNumber">Registration Number</label>
+              <label class="auth-label" for="aAgencyRegNumber">Registration Number <span class="text-ember">*</span></label>
               <input 
                 oninput={(e) => setAgencyFormField('regNumber', (e.target as HTMLInputElement).value)}
                 bind:value={agencyFormData.regNumber}  
