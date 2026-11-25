@@ -548,7 +548,8 @@
 
   button:disabled {
     opacity: 0.5;
-    cursor: not-allowed;
+    cursor: not-allowed !important;
+    background: rgb(83, 81, 81) !important;
   }
 
   .img-full-fit {

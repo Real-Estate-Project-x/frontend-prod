@@ -1,11 +1,13 @@
 <script lang="ts">
+	import { isEmpty } from 'lodash-es';
 	import type { PageData } from './$types';
 	import type { ToastType } from '$lib/types';
 	import Toast from '$lib/components/shared/Toast.svelte';
 	import AgencySidebar from '$lib/components/shared/AgencySidebar.svelte';
 	import BoostModal from '$lib/components/agency/view-listing/BoostModal.svelte';
 	import ArchiveModal from '$lib/components/agency/view-listing/ArchiveModal.svelte';
-
+  import { formatVideoDuration } from '$lib/utils';
+  
 	let { data }: { data: PageData } = $props();
 
 	const listing = $derived(data.listing);
@@ -25,10 +27,21 @@
       toastTimer = setTimeout(() => toastMsg = '', 3000);
     }
 
+	const video = $derived(listing?.mediaItems.find((m) => m.type === 'VIDEO'));
+
 	// ─────────────────────────────────────────────────────────
 	// Types
 	// ─────────────────────────────────────────────────────────
 	type ListingCategory = 'residential' | 'commercial' | 'land';
+
+	interface ArchitecturalPlanDoc {
+		name: string;
+		url: string;
+		size: number;
+		iconBg: string;
+		iconStroke: string;
+		mimeType: string;
+	}
 
 	interface ListingDetails {
 		category: ListingCategory;
@@ -260,6 +273,31 @@
 		{ name: 'Roof plan', meta: 'DWG · 3.1 MB', iconBg: 'bg-ember-light', iconStroke: '#C06035' }
 	];
 
+	const PLAN_PALETTES = [
+	{ iconBg: 'bg-blue-bright/10', iconStroke: '#4A90E2' },
+	{ iconBg: 'bg-sage-light', iconStroke: '#4A7848' }
+] as const;
+
+const generateArchitecturalPlans = (listing): ArchitecturalPlanDoc[] => {
+	const docs = (listing?.listingDocuments ?? []).filter((d) => d?.type === 'ARCHITECTURAL_DOC');
+	if (docs.length === 0) return [];
+
+	return docs.map(({ upload }, index) => {
+		const palette = PLAN_PALETTES[index % PLAN_PALETTES.length];
+		const mimeType = upload?.mimeType ? String(upload.mimeType).split('/').pop() ?? '' : '';
+
+		return {
+			mimeType,
+			name: `File ${index + 1}`,
+			url: upload?.url ?? '',
+			size: upload?.fileSize ?? 0,
+			iconBg: palette.iconBg,
+			iconStroke: palette.iconStroke,
+			
+		};
+	});
+};
+
 	const OWNERSHIP_DOCS: DocFile[] = [
 		{
 			name: 'Certificate of Occupancy',
@@ -469,8 +507,8 @@
 	let videoPlaying = $state(false);
 	let toastMessage = $state<string | null>(null);
 
-	const amenities = listing.amenities.map((a) => a.displayName);
-	const extraAmenities = ['Private garden', 'Home theatre', 'Air conditioning', 'Estate gym', 'Borehole water', 'Solar inverter'];
+	const amenities = $derived(listing.amenities.map((a) => a.displayName));
+	// const extraAmenities = ['Private garden', 'Home theatre', 'Air conditioning', 'Estate gym', 'Borehole water', 'Solar inverter'];
 
 	const currentViewings = $derived(VIEWINGS[currentViewingTab]);
 	const viewingSubline = $derived(
@@ -850,19 +888,32 @@
                         </div>
                     </div>
     
+					{#if video}
+					{@const upload = video.upload}
                     <!-- ══ VIDEO SECTION ══ -->
                     <div class="fu d2">
                         <div class="sec-label mb-3 text-chalk-muted dark:text-[#6A7FA0]">Property Video</div>
                         <div class="overflow-hidden rounded-2xl border border-chalk-3 bg-white shadow-[0_2px_12px_rgba(10,36,99,.06)] dark:border-white/[.06] dark:bg-[#0D1422] dark:shadow-none">
                             <div class="video-wrap m-0" style="border-radius:0">
                                 {#if videoPlaying}
+								{#if String(upload.url).includes('youtube')}
                                     <iframe
-                                        src="https://www.youtube.com/embed/dQw4w9WgXcQ?autoplay=1"
+                                        src={upload.url}
                                         title="Property walkthrough"
                                         allow="autoplay;fullscreen"
                                         allowfullscreen
                                         class="h-full w-full"
                                     ></iframe>
+									{:else}
+									<video title="Property walkthrough" 
+										class="fill" 
+										src={upload.url} 
+										preload="auto" 
+										controls 
+										autoplay>
+										<track kind="captions" />
+									</video>
+									{/if}
                                 {:else}
                                     <div class="hero-sky absolute inset-0 flex flex-col items-center justify-center gap-3">
                                         <button
@@ -872,12 +923,13 @@
                                         >
                                             <svg width="20" height="20" viewBox="0 0 24 24" fill="white"><path d="M8 5v14l11-7z" /></svg>
                                         </button>
-                                        <span class="text-[13px] text-white/60">Property walkthrough · 4:22</span>
+                                        <span class="text-[13px] text-white/60">Property walkthrough · {formatVideoDuration(video.durationSeconds)}</span>
                                     </div>
                                 {/if}
                             </div>
                         </div>
                     </div>
+					{/if}
     
                     <!-- ══ DESCRIPTION + AMENITIES ══ -->
                     <div class="fu d3 grid grid-cols-1 gap-6 lg:grid-cols-[1fr_320px]">
@@ -902,11 +954,11 @@
                             <div class="rounded-2xl border border-chalk-3 bg-white p-6 shadow-[0_2px_12px_rgba(10,36,99,.06)] dark:border-white/[.06] dark:bg-[#0D1422] dark:shadow-none">
                                 <div class="sec-label mb-3 text-chalk-muted dark:text-[#6A7FA0]">Amenities</div>
                                 <div class="flex flex-wrap gap-2">
-                                    {#each amenities as amenity}
+                                    {#each amenities.slice(0, 8) as amenity}
                                         <span class="amenity tt rounded-full px-3 py-[6px] text-[11px] font-medium">{amenity}</span>
                                     {/each}
                                     {#if amenitiesExpanded}
-                                        {#each extraAmenities as amenity}
+                                        {#each amenities.slice(8, amenities.length) as amenity}
                                             <span class="amenity tt rounded-full px-3 py-[6px] text-[11px] font-medium">{amenity}</span>
                                         {/each}
                                     {/if}
@@ -915,7 +967,7 @@
                                     onclick={toggleAmenities}
                                     class="tt mt-3 cursor-pointer border-none bg-transparent p-0 font-sans text-[12px] text-blue-link hover:opacity-75 dark:text-blue-bright"
                                 >
-                                    {amenitiesExpanded ? 'Show fewer amenities' : `Show all amenities (${amenities.length + extraAmenities.length})`}
+                                    {amenitiesExpanded ? 'Show fewer amenities' : `Show all amenities (${amenities.length})`}
                                 </button>
                             </div>
                         </div>
@@ -953,26 +1005,28 @@
                     <div class="fu d4">
                         <div class="sec-label mb-3 text-chalk-muted dark:text-[#6A7FA0]">Architectural Plans</div>
                         <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                            {#each ARCHITECTURAL_PLANS as doc}
+                            {#each generateArchitecturalPlans(listing) as doc}
                                 <div class="doc-card rounded-2xl border border-chalk-3 bg-white p-4 shadow-[0_2px_8px_rgba(10,36,99,.05)] dark:border-white/[.06] dark:bg-[#0D1422] dark:shadow-none">
                                     <div class="mb-3 flex items-center gap-3">
                                         <div class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl {doc.iconBg}">
-                                            <svg width="16" height="16" viewBox="0 0 20 20" fill="none">
-                                                <rect x="3" y="2" width="14" height="16" rx="2" stroke={doc.iconStroke} stroke-width="1.4" />
-                                                <path d="M7 7h6M7 10h6M7 13h4" stroke={doc.iconStroke} stroke-width="1.3" stroke-linecap="round" />
-                                            </svg>
+                                           <svg width="16" height="16" viewBox="0 0 20 20" fill="none">
+												<rect x="2.5" y="3" width="15" height="14" rx="2" stroke={doc.iconStroke} stroke-width="1.4" />
+												<circle cx="7" cy="8" r="1.5" stroke={doc.iconStroke} stroke-width="1.3" />
+												<path d="M3.5 14l4-4 3 3 2.5-2.5 3.5 3.5" stroke={doc.iconStroke} stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" />
+											</svg>
                                         </div>
                                         <div class="min-w-0 flex-1">
                                             <div class="truncate text-[13px] font-medium text-navy-dark dark:text-blue-100">{doc.name}</div>
-                                            <div class="mt-0.5 text-[11px] text-chalk-muted dark:text-[#6A7FA0]">{doc.meta}</div>
+                                            <div class="mt-0.5 text-[11px] text-chalk-muted dark:text-[#6A7FA0]">{doc.mimeType}</div>
                                         </div>
                                     </div>
                                     <div class="flex gap-2">
                                         <button class="tt flex-1 cursor-pointer rounded-xl border-none bg-chalk-2 py-2 text-[11px] font-medium text-navy-dark hover:bg-chalk-3 dark:bg-white/[.06] dark:text-blue-100 dark:hover:bg-white/10">
-                                            View
+                                            <a href={doc.url} target="_blank">View</a>
                                         </button>
+										
                                         <button class="tt flex-1 cursor-pointer rounded-xl border-none bg-blue-bright/10 py-2 text-[11px] font-medium text-blue-link hover:bg-blue-bright/15 dark:text-blue-bright">
-                                            Download
+											<a href={doc.url} download={doc.url} target="_blank">Download</a>
                                         </button>
                                     </div>
                                 </div>
@@ -1449,5 +1503,10 @@
 	}
 	:global([data-theme="dark"]) .vc:hover {
 		box-shadow: 0 6px 28px rgba(0, 0, 0, 0.35);
+	}
+
+	video.fill {
+		width: 100%;
+		object-fit: cover;
 	}
 </style>

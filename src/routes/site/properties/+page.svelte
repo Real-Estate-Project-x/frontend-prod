@@ -8,7 +8,7 @@ let showAdvanced = $state(false);
 const setView = (view: ViewType) => selectedView = view;
 
 const toggleAdvanced = () => {
-    showAdvanced = !showAdvanced;
+  showAdvanced = !showAdvanced;
 }
 
 </script>
@@ -35,7 +35,7 @@ const toggleAdvanced = () => {
         'kano state', 
         'enugu state', 
         'oyo state'] as _}
-        <a href="/site/states/{_}" class="state-pill capitalize">{_} </a>
+        <a href="/site/states/{_}" class="state-pill capitalize">{_}</a>
     {/each}
     
     <a href="/site/properties/international" class="state-pill capitalize">International</a>

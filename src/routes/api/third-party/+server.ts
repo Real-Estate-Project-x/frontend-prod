@@ -1,3 +1,4 @@
+import { isEmpty } from "lodash-es";
 import { decryptData } from "$lib/utils";
 import axios, { AxiosError } from "axios";
 import { TWENTY_FOUR_HOURS } from "$lib/utils/constant";
@@ -31,14 +32,14 @@ export const POST: RequestHandler = async ({ request, cookies, fetch }) => {
     cookies.set("blp_data", result, cookieConfig);
 
     const userInfo = JSON.parse(
-      decryptData(result.data, PUBLIC_ENCRYPTION_KEY)
+      decryptData(result.data, PUBLIC_ENCRYPTION_KEY),
     );
 
     // set cookies that can be used to set locals constants across the app
     cookies.set("user_id", userInfo.userId, cookieConfig);
     cookies.set("access_token", userInfo.jwtToken, cookieConfig);
     // Explicitly persist agencyId
-    if (userInfo.agencyId) {
+    if (!isEmpty(userInfo.agencyId)) {
       cookies.set("agency_id", userInfo.agencyId, cookieConfig);
     }
 
@@ -47,7 +48,7 @@ export const POST: RequestHandler = async ({ request, cookies, fetch }) => {
     if (ex instanceof AxiosError) {
       throw error(
         ex.response?.status ?? 500,
-        ex.response?.data ?? { message: ex.message }
+        ex.response?.data ?? { message: ex.message },
       );
     }
     throw ex;

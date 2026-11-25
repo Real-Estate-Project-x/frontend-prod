@@ -6,6 +6,7 @@ import { ApiRequests } from "$lib/api/api.request";
 
 export const load: PageServerLoad = async ({ locals }) => {
   const { clientIp: ip, agencyId } = locals;
+  console.log({ locals });
   const req = new ApiRequests(ip);
 
   try {
@@ -38,7 +39,7 @@ export const load: PageServerLoad = async ({ locals }) => {
     console.error("LOAD FAILED", ex.response?.status, ex.response?.data);
     throw error(
       ex.response?.status ?? 500,
-      ex.response?.data?.message ?? "Failed to load"
+      ex.response?.data?.message ?? "Failed to load",
     );
   }
 };

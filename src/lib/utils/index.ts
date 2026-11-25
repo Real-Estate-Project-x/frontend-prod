@@ -19,10 +19,10 @@ export const encryptData = <T>(rawData: T, encryptionKey: string): string => {
 
 export const decryptData = (
   encryptedData: string,
-  encryptionKey: string
+  encryptionKey: string,
 ): string =>
   CryptoJS.AES.decrypt(encryptedData, encryptionKey).toString(
-    CryptoJS.enc.Utf8
+    CryptoJS.enc.Utf8,
   );
 
 export const capitalize = (text: string) => {
@@ -100,7 +100,7 @@ export const removeStoredKeys = () => {
   ["userInfo", "agentId", "token", "user_email", "last_tracked_url"].forEach(
     (key) => {
       deleteLocalStorageField(key);
-    }
+    },
   );
 };
 
@@ -141,13 +141,13 @@ export const getErrorMessage = (error: AxiosError) => {
 export const capitalizeSentences = (text: string): string => {
   return text.replace(
     /(^|[.!?]\s+)([a-z])/g,
-    (match, prefix, letter) => prefix + letter.toUpperCase()
+    (match, prefix, letter) => prefix + letter.toUpperCase(),
   );
 };
 
 export const isFormComplete = <T extends Record<string, any>>(
   form: T,
-  requiredBooleanFields: (keyof T)[] = []
+  requiredBooleanFields: (keyof T)[] = [],
 ): boolean => {
   return Object.entries(form).every(([key, value]) => {
     const k = key as keyof T;
@@ -193,7 +193,7 @@ export const normalizeAndValidatePhone = ({
 
   const parsed = parsePhoneNumberFromString(
     phone,
-    countryCode.toUpperCase() as CountryCode
+    countryCode.toUpperCase() as CountryCode,
   );
 
   if (!parsed || !parsed.isValid()) {
@@ -213,7 +213,7 @@ export const generatePreviewUrls = (files: []) =>
 
 export const getAmenityNames = (
   selectedIds: string[],
-  lookup: Map<string, any>
+  lookup: Map<string, any>,
 ): string[] => {
   return selectedIds
     .map((id) => lookup.get(id)?.displayName)
@@ -222,7 +222,7 @@ export const getAmenityNames = (
 
 export const getListingType = (
   listingTypeId: string,
-  lookup: Map<string, any>
+  lookup: Map<string, any>,
 ) => lookup.get(listingTypeId);
 
 export const currencyFormatter = (amount: number): string =>
@@ -230,7 +230,7 @@ export const currencyFormatter = (amount: number): string =>
 
 export const cleanObject = (
   obj: Record<string, any>,
-  removeBool = false
+  removeBool = false,
 ): Record<string, any> => {
   const cleaned: Record<string, any> = {};
 
@@ -267,3 +267,17 @@ export const cleanObject = (
 
   return cleaned;
 };
+
+export function formatVideoDuration(duration: number): string {
+  const totalSeconds = Math.floor(duration);
+
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+
+  const pad = (value: number) => String(value).padStart(2, "0");
+
+  return hours > 0
+    ? `${pad(hours)}:${pad(minutes)}:${pad(seconds)}`
+    : `${pad(minutes)}:${pad(seconds)}`;
+}

@@ -67,9 +67,9 @@
   
     const handleInput = (e: Event) => {
       const input = e.target as HTMLInputElement;
-      // Format the number
-      let v = input.value.replace(/\D/g, '').slice(0, 11);
-      if      (v.length > 7) v = v.slice(0,3) + ' ' + v.slice(3,7) + ' ' + v.slice(7);
+      // Format the number (max 10 digits: area code + 7-digit number)
+      let v = input.value.replace(/\D/g, '').slice(0, 10);
+      if      (v.length > 6) v = v.slice(0,3) + ' ' + v.slice(3,6) + ' ' + v.slice(6);
       else if (v.length > 3) v = v.slice(0,3) + ' ' + v.slice(3);
       phoneValue    = v;
       input.value   = v; // keep DOM in sync before parent reads it

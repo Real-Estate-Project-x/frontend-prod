@@ -844,7 +844,7 @@
                             <input type="number" 
                                 required
                                 id="propPrice" 
-                                class="inp pl-7" 
+                                class="inp pl-7 indent-symbol" 
                                 placeholder="e.g. 850000" 
                                 min="0" 
                                 bind:value={listingFormData.priceAmount}
@@ -979,7 +979,7 @@
                                 <div class="relative" style="width:140px;flex-shrink:0">
                                 <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-[13px] text-chalk-muted dark:text-[#6A7FA0] pointer-events-none">₦</span>
                                 <input type="number" 
-                                    class="inp pl-7" 
+                                    class="inp pl-7 indent-symbol" 
                                     placeholder="Amount" 
                                     min="0" 
                                     bind:value={row.amount}
@@ -1586,6 +1586,8 @@
     :global([data-theme="dark"]) .inp::placeholder{color:#4A5568}
     .inp.error{border-color:rgba(192,96,53,.6)!important;box-shadow:0 0 0 3px rgba(192,96,53,.07)!important}
     .inp.valid{border-color:rgba(74,120,72,.55)!important}
+
+    .indent-symbol { padding-left: 28px; }
     
     /* select wrapper */
     .sel-wrap{position:relative}

@@ -1,3 +1,4 @@
+import { isEmpty } from "lodash-es";
 import axios, { AxiosError } from "axios";
 import type { LoginForm } from "$lib/types";
 import { encryptData, decryptData } from "$lib/utils";
@@ -41,8 +42,9 @@ export const POST: RequestHandler = async ({ request, cookies, fetch }) => {
       // set cookies that can be used to set locals constants across the app
       cookies.set("user_id", userInfo.userId, config);
       cookies.set("access_token", userInfo.jwtToken, config);
+      console.log({ userInfo });
       // Explicitly persist agencyId
-      if (userInfo.agencyId) {
+      if (!isEmpty(userInfo.agencyId)) {
         cookies.set("agency_id", userInfo.agencyId, config);
       }
     }
@@ -52,7 +54,7 @@ export const POST: RequestHandler = async ({ request, cookies, fetch }) => {
     if (ex instanceof AxiosError) {
       throw error(
         ex.response?.status ?? 500,
-        ex.response?.data ?? { message: ex.message }
+        ex.response?.data ?? { message: ex.message },
       );
     }
     throw ex;
