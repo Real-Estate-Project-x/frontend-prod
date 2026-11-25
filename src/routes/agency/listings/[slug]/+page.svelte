@@ -20,15 +20,15 @@
     let toastTimer: ReturnType<typeof setTimeout> | null = null;
 
 	// ── Toast ──────────────────────────────────────────────────────────────────
-	const showToast = (msg: string, type: ToastType) => {
+	const showToast = (msg: string, type: ToastType = 'info') => {
       toastMsg = msg;
       toastType = type;
       if (toastTimer) clearTimeout(toastTimer);
       toastTimer = setTimeout(() => toastMsg = '', 3000);
     }
 
-	const video = $derived(listing?.mediaItems.find((m) => m.type === 'VIDEO'));
-    const images = $derived(listing?.mediaItems.filter((m) => m.type === 'PHOTO') ?? []);
+	const video = $derived(listing?.mediaItems.find((m: any) => m.type === 'VIDEO'));
+    const images = $derived(listing?.mediaItems.filter((m: any) => m.type === 'PHOTO') ?? []);
 
 	// ─────────────────────────────────────────────────────────
 	// Types
@@ -135,7 +135,7 @@
 		name: string;
 	}
 
-    const confirmBoost = (planId) => {
+    const confirmBoost = (planId: string) => {
 		console.log({ planId });
 	}
 
@@ -279,11 +279,11 @@
 	{ iconBg: 'bg-sage-light', iconStroke: '#4A7848' }
 ] as const;
 
-const generateArchitecturalPlans = (listing): ArchitecturalPlanDoc[] => {
-	const docs = (listing?.listingDocuments ?? []).filter((d) => d?.type === 'ARCHITECTURAL_DOC');
+const generateArchitecturalPlans = (listing: any): ArchitecturalPlanDoc[] => {
+	const docs = (listing?.listingDocuments ?? []).filter((d: any) => d?.type === 'ARCHITECTURAL_DOC');
 	if (docs.length === 0) return [];
 
-	return docs.map(({ upload }, index) => {
+	return docs.map(({ upload }: { upload?: any }, index: number) => {
 		const palette = PLAN_PALETTES[index % PLAN_PALETTES.length];
 		const mimeType = upload?.mimeType ? String(upload.mimeType).split('/').pop() ?? '' : '';
 
@@ -532,7 +532,7 @@ const generateArchitecturalPlans = (listing): ArchitecturalPlanDoc[] => {
 		else if (event.key === 'ArrowRight') nextLightboxImage();
 	}
 
-	const amenities = $derived(listing.amenities.map((a) => a.displayName));
+	const amenities = $derived(listing.amenities.map((a: any) => a.displayName));
 	// const extraAmenities = ['Private garden', 'Home theatre', 'Air conditioning', 'Estate gym', 'Borehole water', 'Solar inverter'];
 
 	const currentViewings = $derived(VIEWINGS[currentViewingTab]);
