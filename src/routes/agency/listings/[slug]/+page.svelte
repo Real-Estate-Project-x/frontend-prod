@@ -6,6 +6,7 @@
 	import AgencySidebar from '$lib/components/shared/AgencySidebar.svelte';
 	import BoostModal from '$lib/components/agency/view-listing/BoostModal.svelte';
 	import ArchiveModal from '$lib/components/agency/view-listing/ArchiveModal.svelte';
+	import LightBoxModal from '$lib/components/agency/view-listing/LightBoxModal.svelte';
   import { formatVideoDuration } from '$lib/utils';
   
 	let { data }: { data: PageData } = $props();
@@ -29,6 +30,7 @@
 
 	const video = $derived(listing?.mediaItems.find((m: any) => m.type === 'VIDEO'));
     const images = $derived(listing?.mediaItems.filter((m: any) => m.type === 'PHOTO') ?? []);
+    const imageUrls = $derived(images.map((img) => img.upload?.url ?? ''));
 
 	// ─────────────────────────────────────────────────────────
 	// Types
@@ -499,37 +501,13 @@ const generateArchitecturalPlans = (listing: any): ArchitecturalPlanDoc[] => {
 	let currentViewingTab = $state<ViewingTab>('today');
 	let trendRange = $state<TrendRange>(30);
 	let lightboxOpen = $state(false);
-	let lightboxIndex = $state(0);
 
 	let videoPlaying = $state(false);
 	let toastMessage = $state<string | null>(null);
 
-	function openLightbox(index: number = activeThumbIndex) {
-		if (!images.length) return;
-		const safe = Math.min(Math.max(index, 0), images.length - 1);
-		lightboxIndex = safe;
+	function openLightbox() {
+		if (!imageUrls.length) return;
 		lightboxOpen = true;
-	}
-
-	function closeLightbox() {
-		lightboxOpen = false;
-	}
-
-	function prevLightboxImage() {
-		if (!images.length) return;
-		lightboxIndex = (lightboxIndex - 1 + images.length) % images.length;
-	}
-
-	function nextLightboxImage() {
-		if (!images.length) return;
-		lightboxIndex = (lightboxIndex + 1) % images.length;
-	}
-
-	function handleKeydown(event: KeyboardEvent) {
-		if (!lightboxOpen) return;
-		if (event.key === 'Escape') closeLightbox();
-		else if (event.key === 'ArrowLeft') prevLightboxImage();
-		else if (event.key === 'ArrowRight') nextLightboxImage();
 	}
 
 	const amenities = $derived(listing.amenities.map((a: any) => a.displayName));
@@ -620,7 +598,7 @@ const generateArchitecturalPlans = (listing: any): ArchitecturalPlanDoc[] => {
 	});
 </script>
 
-<svelte:window onclick={closeBellOnOutsideClick} onkeydown={handleKeydown} />
+<svelte:window onclick={closeBellOnOutsideClick} />
 
 	<!-- ══ LAYOUT SHELL ══ -->
     <div class="flex pt-[68px] min-h-screen">
@@ -773,7 +751,7 @@ const generateArchitecturalPlans = (listing: any): ArchitecturalPlanDoc[] => {
                         <!-- Left: Gallery -->
                         <div class="space-y-3">
                             <div class="sec-label mb-3 text-chalk-muted dark:text-[#6A7FA0]">Property Images</div>
-                            <div class="group relative aspect-[16/9] cursor-pointer overflow-hidden rounded-2xl bg-navy-mid" onclick={() => openLightbox(activeThumbIndex)}>
+                            <div class="group relative aspect-[16/9] cursor-pointer overflow-hidden rounded-2xl bg-navy-mid" onclick={() => openLightbox()}>
                                 {#if images.length && images[activeThumbIndex]}
                                     <img
                                         src={images[activeThumbIndex].upload?.url}
@@ -1303,60 +1281,7 @@ const generateArchitecturalPlans = (listing: any): ArchitecturalPlanDoc[] => {
         </div>
 
 <!-- ══ MODALS ══ -->
-{#if lightboxOpen && images.length}
-	<div
-		class="fixed inset-0 z-[100] flex items-center justify-center bg-navy-deep/90 backdrop-blur-sm"
-		onclick={closeLightbox}
-		role="dialog"
-		aria-modal="true"
-	>
-		<!-- Close button -->
-		<button
-			onclick={(e) => { e.stopPropagation(); closeLightbox(); }}
-			class="tt absolute right-4 top-4 z-10 flex h-10 w-10 items-center justify-center rounded-full border border-white/20 bg-white/10 text-white hover:bg-white/20"
-			aria-label="Close"
-		>
-			<svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-				<path d="M3 3l10 10M13 3L3 13" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" />
-			</svg>
-		</button>
-
-		<!-- Counter -->
-		<span class="absolute top-4 left-1/2 -translate-x-1/2 rounded-full bg-white/10 px-3 py-1.5 text-[11px] font-medium text-white backdrop-blur">
-			{lightboxIndex + 1} / {images.length}
-		</span>
-
-		<!-- Prev -->
-		<button
-			onclick={(e) => { e.stopPropagation(); prevLightboxImage(); }}
-			class="tt absolute left-4 top-1/2 -translate-y-1/2 z-10 flex h-11 w-11 items-center justify-center rounded-full border border-white/20 bg-white/10 text-white hover:bg-white/20"
-			aria-label="Previous image"
-		>
-			<svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-				<path d="M10 3L5 8l5 5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
-			</svg>
-		</button>
-
-		<!-- Next -->
-		<button
-			onclick={(e) => { e.stopPropagation(); nextLightboxImage(); }}
-			class="tt absolute right-4 top-1/2 -translate-y-1/2 z-10 flex h-11 w-11 items-center justify-center rounded-full border border-white/20 bg-white/10 text-white hover:bg-white/20"
-			aria-label="Next image"
-		>
-			<svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-				<path d="M6 3l5 5-5 5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
-			</svg>
-		</button>
-
-		<!-- Image -->
-		<img
-			src={images[lightboxIndex].upload?.url}
-			alt="Property image {lightboxIndex + 1}"
-			class="max-h-[85vh] max-w-[90vw] rounded-2xl object-contain shadow-2xl"
-			onclick={(e) => e.stopPropagation()}
-		/>
-	</div>
-{/if}
+<LightBoxModal open={lightboxOpen} images={imageUrls} index={activeThumbIndex} onClose={() => (lightboxOpen = false)} />
 <BoostModal open={boostModalOpen} property={LISTING} onClose={() => (boostModalOpen = false)} onConfirm={confirmBoost} />
 <ArchiveModal open={archiveModalOpen} property={LISTING} onClose={() => (archiveModalOpen = false)} onConfirm={confirmArchive} />
 
