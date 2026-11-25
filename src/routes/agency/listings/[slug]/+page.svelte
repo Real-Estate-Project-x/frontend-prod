@@ -28,6 +28,7 @@
     }
 
 	const video = $derived(listing?.mediaItems.find((m) => m.type === 'VIDEO'));
+    const images = $derived(listing?.mediaItems.filter((m) => m.type === 'PHOTO') ?? []);
 
 	// ─────────────────────────────────────────────────────────
 	// Types
@@ -479,16 +480,9 @@ const generateArchitecturalPlans = (listing): ArchitecturalPlanDoc[] => {
 		viewingRequestsSinceBoost: 6
 	};
 
-	const fullDescription = listing.description;
-	const shortDescription = fullDescription.slice(0, 260) + '…';
+	const fullDescription = $derived(listing.description);
+	const shortDescription = $derived(fullDescription.slice(0, 260) + '…');
 	const descriptionParagraphs = $derived(fullDescription.split('\n\n'));
-
-	const thumbnails = [
-		{ style: '' },
-		{ style: 'background:linear-gradient(135deg,#1F3F6A,#4A70A0)' },
-		{ style: 'background:linear-gradient(135deg,#0A2463,#1F3F6A)' },
-		{ style: 'background:linear-gradient(135deg,#0E2444,#1a3255)', extraCount: 4 }
-	];
 
 	// ─────────────────────────────────────────────────────────
 	// UI state
@@ -544,6 +538,12 @@ const generateArchitecturalPlans = (listing): ArchitecturalPlanDoc[] => {
 	function selectThumb(index: number) {
 		activeThumbIndex = index;
 	}
+
+	$effect(() => {
+		if (images.length > 0 && activeThumbIndex >= images.length) {
+			activeThumbIndex = 0;
+		}
+	});
 
 	function toggleDesc() {
 		descExpanded = !descExpanded;
@@ -743,15 +743,23 @@ const generateArchitecturalPlans = (listing): ArchitecturalPlanDoc[] => {
                         <div class="space-y-3">
                             <div class="sec-label mb-3 text-chalk-muted dark:text-[#6A7FA0]">Property Images</div>
                             <div class="group relative aspect-[16/9] cursor-pointer overflow-hidden rounded-2xl bg-navy-mid">
-                                <div class="hero-sky absolute inset-0 flex items-center justify-center">
-                                    <div class="text-center">
-                                        <svg class="mx-auto mb-3 opacity-30" width="52" height="52" viewBox="0 0 52 52" fill="none">
-                                            <path d="M6 40 L16 26 L24 34 L34 20 L46 40z" stroke="white" stroke-width="2" stroke-linejoin="round" />
-                                            <circle cx="14" cy="14" r="5" stroke="white" stroke-width="2" />
-                                        </svg>
-                                        <span class="text-[13px] text-white/30">Main hero photo</span>
+                                {#if images.length && images[activeThumbIndex]}
+                                    <img
+                                        src={images[activeThumbIndex].upload?.url}
+                                        alt="Property image {activeThumbIndex + 1}"
+                                        class="absolute inset-0 h-full w-full object-cover"
+                                    />
+                                {:else}
+                                    <div class="hero-sky absolute inset-0 flex items-center justify-center">
+                                        <div class="text-center">
+                                            <svg class="mx-auto mb-3 opacity-30" width="52" height="52" viewBox="0 0 52 52" fill="none">
+                                                <path d="M6 40 L16 26 L24 34 L34 20 L46 40z" stroke="white" stroke-width="2" stroke-linejoin="round" />
+                                                <circle cx="14" cy="14" r="5" stroke="white" stroke-width="2" />
+                                            </svg>
+                                            <span class="text-[13px] text-white/30">No images uploaded</span>
+                                        </div>
                                     </div>
-                                </div>
+                                {/if}
                                 <div
                                     class="tt absolute inset-0 flex items-end justify-start bg-gradient-to-t from-navy-deep/60 to-transparent p-4 opacity-0 group-hover:opacity-100"
                                 >
@@ -763,45 +771,37 @@ const generateArchitecturalPlans = (listing): ArchitecturalPlanDoc[] => {
                                         View full photo
                                     </span>
                                 </div>
-                                <span class="absolute right-3 top-3 rounded-full bg-navy-deep/60 px-3 py-1.5 text-[11px] font-medium text-white backdrop-blur">
-                                    {activeThumbIndex + 1} / 8
-                                </span>
+                                {#if images.length}
+                                    <span class="absolute right-3 top-3 rounded-full bg-navy-deep/60 px-3 py-1.5 text-[11px] font-medium text-white backdrop-blur">
+                                        {activeThumbIndex + 1} / {images.length}
+                                    </span>
+                                {/if}
                             </div>
                             <div class="grid grid-cols-4 gap-2">
-                                {#each thumbnails as thumb, i}
+                                {#each Array(4) as _, i}
+                                    {@const img = images[i]}
                                     <button
-                                        onclick={() => selectThumb(i)}
+                                        onclick={() => img && selectThumb(i)}
                                         class="thumb relative aspect-square cursor-pointer overflow-hidden rounded-xl bg-navy-mid"
                                         class:active={activeThumbIndex === i}
-                                        style={thumb.style}
                                     >
-                                        {#if i === 0}
+                                        {#if img}
+                                            <img
+                                                src={img.upload?.url}
+                                                alt="Property image {i + 1}"
+                                                class="h-full w-full object-cover"
+                                            />
+                                            {#if i === 3 && images.length > 4}
+                                                <div class="absolute inset-0 flex items-center justify-center bg-navy-deep/50">
+                                                    <span class="text-[13px] font-semibold text-white">+{images.length - 4}</span>
+                                                </div>
+                                            {/if}
+                                        {:else}
                                             <div class="hero-sky flex h-full w-full items-center justify-center">
                                                 <svg width="20" height="20" viewBox="0 0 52 52" fill="none">
                                                     <path d="M6 40 L16 26 L24 34 L34 20 L46 40z" stroke="white" stroke-width="2.5" stroke-linejoin="round" opacity=".4" />
                                                     <circle cx="14" cy="14" r="5" stroke="white" stroke-width="2.5" opacity=".4" />
                                                 </svg>
-                                            </div>
-                                        {:else if i === 1}
-                                            <div class="flex h-full w-full items-center justify-center opacity-40">
-                                                <svg width="18" height="18" viewBox="0 0 52 52" fill="none">
-                                                    <path d="M6 40 L16 26 L24 34 L34 20 L46 40z" stroke="white" stroke-width="2.5" stroke-linejoin="round" />
-                                                </svg>
-                                            </div>
-                                        {:else if i === 2}
-                                            <div class="flex h-full w-full items-center justify-center opacity-40">
-                                                <svg width="18" height="18" viewBox="0 0 52 52" fill="none">
-                                                    <circle cx="14" cy="14" r="5" stroke="white" stroke-width="2.5" />
-                                                </svg>
-                                            </div>
-                                        {:else}
-                                            <div class="flex h-full w-full items-center justify-center opacity-40">
-                                                <svg width="18" height="18" viewBox="0 0 52 52" fill="none">
-                                                    <path d="M10 42V20L26 8L42 20V42H30V30H22V42z" stroke="white" stroke-width="2.5" stroke-linejoin="round" />
-                                                </svg>
-                                            </div>
-                                            <div class="absolute inset-0 flex items-center justify-center bg-navy-deep/50">
-                                                <span class="text-[13px] font-semibold text-white">+{thumb.extraCount}</span>
                                             </div>
                                         {/if}
                                     </button>
