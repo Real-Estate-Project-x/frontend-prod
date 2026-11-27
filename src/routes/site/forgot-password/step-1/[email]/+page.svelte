@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { onMount } from 'svelte';
+    import { onMount, onDestroy } from 'svelte';
     import { AxiosError } from 'axios';
     import { goto, } from '$app/navigation';
     import type { PageData } from "./$types";
@@ -10,7 +10,19 @@
     let { data }: { data: PageData } = $props();
     const emailValue = $derived<any>(data.email);
 
-    onMount(() => startCountdown());
+    onMount(() => {
+      startCountdown();
+      if (typeof document !== 'undefined') {
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+      }
+    });
+
+    onDestroy(() => {
+      if (countdownInterval) clearInterval(countdownInterval);
+      if (typeof document !== 'undefined') {
+        document.removeEventListener('visibilitychange', handleVisibilityChange);
+      }
+    });
 
     let emailError = $state(false);
 
@@ -18,8 +30,9 @@
     // Step 2 — OTP
     let otp        = $state(['', '', '', '', '', '']);
     let otpError   = $state(false);
-    let countdown  = $state('09:59');
+    let countdown  = $state('10:00');
     let resendable = $state(false);
+    let isVerifying = $state(false);
 
     // ── DOM refs ───────────────────────────────────────────────────────────────
     let otpRefs: HTMLInputElement[] = $state([]);
@@ -46,30 +59,85 @@
     }
 
      // ── STEP 2: Countdown ────────────────────────────────────────────────────
-     const startCountdown = () => {
-      let seconds = 599;
-      resendable = false;
-      countdown = '09:59';
-      if (countdownInterval) clearInterval(countdownInterval);
-      countdownInterval = setInterval(() => {
-        seconds--;
-        const m = String(Math.floor(seconds / 60)).padStart(2, '0');
-        const s = String(seconds % 60).padStart(2, '0');
-        countdown = m + ':' + s;
-        if (seconds <= 0) {
-          clearInterval(countdownInterval!);
-          countdown = '00:00';
-          resendable = true;
-        }
-      }, 1000);
-    }
+     const OTP_DURATION_MS = 10 * 60 * 1000;
+     const otpDeadlineKey = () => `otp_deadline_forgot_${emailValue}`;
+
+     const getOtpDeadline = (): number => {
+       const now = Date.now();
+       if (typeof sessionStorage === 'undefined') {
+         return now + OTP_DURATION_MS;
+       }
+       const stored = sessionStorage.getItem(otpDeadlineKey());
+       if (stored) {
+         const parsed = Number(stored);
+         if (Number.isFinite(parsed)) {
+           return parsed;
+         }
+       }
+       const fresh = now + OTP_DURATION_MS;
+       if (typeof sessionStorage !== 'undefined') {
+         sessionStorage.setItem(otpDeadlineKey(), String(fresh));
+       }
+       return fresh;
+     };
+
+     const formatOtpRemaining = (ms: number): string => {
+       const totalSec = Math.max(0, Math.ceil(ms / 1000));
+       const m = String(Math.floor(totalSec / 60)).padStart(2, '0');
+       const s = String(totalSec % 60).padStart(2, '0');
+       return `${m}:${s}`;
+     };
+
+     const startCountdown = (reset = false) => {
+       if (reset) {
+         const fresh = Date.now() + OTP_DURATION_MS;
+         if (typeof sessionStorage !== 'undefined') {
+           sessionStorage.setItem(otpDeadlineKey(), String(fresh));
+         }
+       }
+       if (countdownInterval) {
+         clearInterval(countdownInterval);
+         countdownInterval = null;
+       }
+       resendable = false;
+       const tick = () => {
+         const remaining = getOtpDeadline() - Date.now();
+         if (remaining <= 0) {
+           countdown = '00:00';
+           resendable = true;
+           if (countdownInterval) {
+             clearInterval(countdownInterval);
+             countdownInterval = null;
+           }
+           return;
+         }
+         countdown = formatOtpRemaining(remaining);
+       };
+       tick();
+       countdownInterval = setInterval(tick, 1000);
+     };
+
+     const handleVisibilityChange = () => {
+       if (typeof document === 'undefined' || document.visibilityState !== 'visible') return;
+       const remaining = getOtpDeadline() - Date.now();
+       if (remaining <= 0) {
+         countdown = '00:00';
+         resendable = true;
+         if (countdownInterval) {
+           clearInterval(countdownInterval);
+           countdownInterval = null;
+         }
+       } else {
+         countdown = formatOtpRemaining(remaining);
+       }
+     };
 
     const sendCode = async () => {
       const val = emailValue.trim();
       if (!val || !val.includes('@')) {
         emailError = true;
         notifications.error('Please enter a valid email address');
-        return;
+        return false;
       }
 
       try {
@@ -77,20 +145,34 @@
           if (result.data.success) {
             notifications.success(result.data.message);
             goto(`/site/forgot-password/step-1/${val}`);
+            return true;
+          } else {
+            notifications.error(result.data.message ?? 'Failed to resend code');
+            return false;
           }
         } catch(ex) {
           if (ex instanceof AxiosError) {
             const message = getErrorMessage(ex);
             notifications.error(message);
           }
-          return;
+          return false;
         }
     }
 
 
-    const resendCode = () => {
-      startCountdown();
-      sendCode();
+    const resendCode = async () => {
+      isVerifying = true;
+      try {
+        const ok = await sendCode();
+        if (ok) {
+          startCountdown(true);
+          otp = Array(6).fill('');
+          otp = [...otp];
+          otpRefs[0]?.focus();
+        }
+      } finally {
+        isVerifying = false;
+      }
     }
 
    const onOtpKeydown = (e: KeyboardEvent, idx: number) => {
@@ -114,12 +196,17 @@
     }
   
     const verifyOtp = async () => {
+      isVerifying = true;
       const code = otp.join('');
       try {
         const result = await new ApiRequests().verifyUser(emailValue, code);
         if (result.data.success) {
           if (countdownInterval) {
             clearInterval(countdownInterval);
+            countdownInterval = null;
+          }
+          if (typeof sessionStorage !== 'undefined') {
+            sessionStorage.removeItem(otpDeadlineKey());
           }
           notifications.success(result.data.message);
           goto(`/site/forgot-password/step-2/${emailValue}`);
@@ -128,8 +215,24 @@
         if (ex instanceof AxiosError) {
           const message = getErrorMessage(ex);
           notifications.error(message);
+
+          if (/expired/i.test(message)) {
+            if (countdownInterval) {
+              clearInterval(countdownInterval);
+              countdownInterval = null;
+            }
+            countdown = '00:00';
+            resendable = true;
+            if (typeof sessionStorage !== 'undefined') {
+              sessionStorage.setItem(otpDeadlineKey(), '0');
+            }
+            otp = Array(6).fill('');
+            otp = [...otp];
+            otpRefs[0]?.focus();
+          }
         }
-        return;
+      } finally {
+        isVerifying = false;
       }
     }
 </script>
@@ -246,7 +349,6 @@
               Back
             </a>
   
-            <p class="step-eyebrow">Step 2 of 3</p>
             <h1 class="step-heading">
               Check your<br><em class="italic" style="color:#4A90E2;">inbox.</em>
             </h1>
@@ -260,6 +362,7 @@
                 <div class="otp-row">
                   {#each otp as digit, idx}
                     <input
+                      id="verification-code"
                       type="text"
                       maxlength="1"
                       inputmode="numeric"
@@ -284,16 +387,18 @@
   
               <!-- Countdown + resend -->
               <div class="countdown-row">
-                <p class="resend-timer">Code expires in <strong>{countdown}</strong></p>
                 <button
                   class="auth-link resend-btn"
-                  class:disabled={!resendable}
-                  disabled={!resendable}
+                  class:disabled={!resendable || isVerifying}
+                  disabled={!resendable || isVerifying}
                   onclick={resendCode}
                 >Resend code</button>
+                {#if !resendable}
+                <p class="resend-timer">Code expires in <strong>{countdown}</strong></p>
+                {/if}
               </div>
   
-              <button class="btn-navy" onclick={verifyOtp}>Verify code</button>
+              <button class="btn-navy" onclick={verifyOtp} disabled={isVerifying} class:disabled={isVerifying}>Verify code</button>
             </div>
   
             <p class="step-footnote">Didn't get an email? Check your spam folder or try a different address.</p>

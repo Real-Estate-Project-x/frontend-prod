@@ -2,8 +2,9 @@
     import { AxiosError } from "axios";
     import { goto } from "$app/navigation";
     import type { PageData } from "./$types";
-        import { getErrorMessage } from "$lib/utils";
+    import { getErrorMessage } from "$lib/utils";
     import { ApiRequests } from "$lib/api/api.request";
+    import { notifications } from "$lib/stores/notification.svelte";
   
     let { data }: { data: PageData } = $props();
     const emailValue = $derived<any>(data.email);
@@ -183,7 +184,6 @@
                     Back
                   </button>
         
-                  <p class="step-eyebrow">Step 3 of 3</p>
                   <h1 class="step-heading">
                     Create your<br><em class="italic" style="color:#4A90E2;">new password.</em>
                   </h1>
