@@ -15,7 +15,7 @@
 
 	const listing = $derived(data.listing);
 
-	console.log({listing})
+	console.log({listing});
 
 	const video = $derived(listing?.mediaItems.find((m: any) => m.type === 'VIDEO'));
     const images = $derived(listing?.mediaItems.filter((m: any) => m.type === 'PHOTO') ?? []);

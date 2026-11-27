@@ -522,7 +522,6 @@
 	const restoreListing = async (id: string) => {
 		try {
 			const result = await new ApiRequests().restoreListing(id);
-			console.log({result})
 			if (result.data.success) {
 				const message = result.data.message ?? 'Listing restored.';
 				notifications.success(message, {

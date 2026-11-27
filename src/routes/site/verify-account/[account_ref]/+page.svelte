@@ -19,7 +19,7 @@
   let isVerifying = $state(false); 
   let isVerified = $state(false);
   let successBar: HTMLDivElement;
-  let countdown  = $state('09:59');
+  let countdown  = $state('10:00');
   let otp = $state(['', '', '', '', '', '']);
 
   // Animate success_bar when user verifies otp
@@ -42,8 +42,11 @@
   const profile = $derived(data.userProfile);
 
   onMount(async () => {
-    init();
     startCountdown();
+    init();
+    if (typeof document !== 'undefined') {
+      document.addEventListener('visibilitychange', handleVisibilityChange);
+    }
   });
 
   const init = () => {
@@ -57,6 +60,9 @@
 
   onDestroy(() => {
     if (countdownInterval) clearInterval(countdownInterval);
+    if (typeof document !== 'undefined') {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    }
   });
 
   // ── DOM refs ───────────────────────────────────────────────────────────────
@@ -101,42 +107,102 @@
     }
 
     // ── STEP 2: Countdown ────────────────────────────────────────────────────
-    const startCountdown = () => {
-      let seconds = 599;
+    const OTP_DURATION_MS = 10 * 60 * 1000;
+    const otpDeadlineKey = () => `otp_deadline_${page.params.account_ref}`;
+
+    const getOtpDeadline = (): number => {
+      const now = Date.now();
+      if (typeof sessionStorage === 'undefined') {
+        return now + OTP_DURATION_MS;
+      }
+      const stored = sessionStorage.getItem(otpDeadlineKey());
+      if (stored) {
+        const parsed = Number(stored);
+        if (Number.isFinite(parsed)) {
+          // Keep an expired deadline as-is so we never extend validity on refresh.
+          return parsed;
+        }
+      }
+      const fresh = now + OTP_DURATION_MS;
+      if (typeof sessionStorage !== 'undefined') {
+        sessionStorage.setItem(otpDeadlineKey(), String(fresh));
+      }
+      return fresh;
+    };
+
+    const formatOtpRemaining = (ms: number): string => {
+      const totalSec = Math.max(0, Math.ceil(ms / 1000));
+      const m = String(Math.floor(totalSec / 60)).padStart(2, '0');
+      const s = String(totalSec % 60).padStart(2, '0');
+      return `${m}:${s}`;
+    };
+
+    const startCountdown = (reset = false) => {
+      if (reset) {
+        const fresh = Date.now() + OTP_DURATION_MS;
+        if (typeof sessionStorage !== 'undefined') {
+          sessionStorage.setItem(otpDeadlineKey(), String(fresh));
+        }
+      }
+      if (countdownInterval) {
+        clearInterval(countdownInterval);
+        countdownInterval = null;
+      }
       resendable = false;
-      countdown = '09:59';
-      if (countdownInterval) clearInterval(countdownInterval);
-      countdownInterval = setInterval(() => {
-        seconds--;
-        const m = String(Math.floor(seconds / 60)).padStart(2, '0');
-        const s = String(seconds % 60).padStart(2, '0');
-        countdown = m + ':' + s;
-        if (seconds <= 0) {
-          clearInterval(countdownInterval!);
+      const tick = () => {
+        const remaining = getOtpDeadline() - Date.now();
+        if (remaining <= 0) {
           countdown = '00:00';
           resendable = true;
+          if (countdownInterval) {
+            clearInterval(countdownInterval);
+            countdownInterval = null;
+          }
+          return;
         }
-      }, 1000);
-    }
+        countdown = formatOtpRemaining(remaining);
+      };
+      tick();
+      countdownInterval = setInterval(tick, 1000);
+    };
+
+    const handleVisibilityChange = () => {
+      if (typeof document === 'undefined' || document.visibilityState !== 'visible') return;
+      const remaining = getOtpDeadline() - Date.now();
+      if (remaining <= 0) {
+        countdown = '00:00';
+        resendable = true;
+        if (countdownInterval) {
+          clearInterval(countdownInterval);
+          countdownInterval = null;
+        }
+      } else {
+        countdown = formatOtpRemaining(remaining);
+      }
+    };
 
 
   const resendCode = async () => {
-    startCountdown();
     isVerifying = true;
     try {
       const result = await new ApiRequests().resendAccountVerificationCode(profile.data.id);
       if (result.data.success) {
+        // Only reset the timer after a successful resend.
+        startCountdown(true);
+        otp = Array(6).fill('');
         isVerifying = false;
         notifications.info(result.data.message);
+        otpRefs[0]?.focus();
         return;
       }
+      notifications.error(result.data.message ?? 'Failed to resend code');
     } catch (ex) {
       if (ex instanceof AxiosError) {
         const message = getErrorMessage(ex);
         notifications.error(message);
       }
+    } finally {
       isVerifying = false;
-      return;
     }
   }
 
@@ -197,6 +263,14 @@
       if (result.data.success) {
         notifications.success(result.data.message);
 
+        if (countdownInterval) {
+          clearInterval(countdownInterval);
+          countdownInterval = null;
+        }
+        if (typeof sessionStorage !== 'undefined') {
+          sessionStorage.removeItem(otpDeadlineKey());
+        }
+
         const loginResult = await login(profile.data.slug);
         if (loginResult && typeof loginResult === 'string') {
           isVerified = true;
@@ -205,8 +279,8 @@
           setLocalStorageField(LSKey.blp_data, loginResult);
           const userInfo = extractLocalStorageInfo(PUBLIC_ENCRYPTION_KEY);
           if (userInfo?.roleName) {
-            // => redirect in 3 seconds
-            setTimeout(() =>  goto(redirectUser(userInfo.roleName)), 3000);
+            // => redirect in 2 seconds
+            setTimeout(() =>  goto(redirectUser(userInfo.roleName)), 2000);
           }
         }
         return;
@@ -215,10 +289,30 @@
       if (ex instanceof AxiosError) {
         const message = getErrorMessage(ex);
         notifications.error(message);
+
+        // If the backend says the OTP expired, force the timer into the
+        // expired state so "Resend code" becomes available immediately.
+        if (/expired/i.test(message)) {
+          resetInterval()
+        }
       }
       isVerifying = false;
       return;
     }
+  }
+
+  const resetInterval = () => {
+    if (countdownInterval) {
+      clearInterval(countdownInterval);
+      countdownInterval = null;
+    }
+    countdown = '00:00';
+    resendable = true;
+    if (typeof sessionStorage !== 'undefined') {
+      sessionStorage.setItem(otpDeadlineKey(), '0');
+    }
+    otp = Array(6).fill('');
+    otpRefs[0]?.focus();
   }
 </script>
 
@@ -433,13 +527,15 @@
                   id="resendBtn"
                   class="resend-link cursor-pointer"
                   onclick={resendCode}
-                  class:disabled={!resendable}
-                  disabled={!resendable}
+                  class:disabled={!resendable || isVerifying}
+                  disabled={!resendable || isVerifying}
                   type="button"
                 >Resend code</button>
-                <span id="resendTimer" class="font-sans font-light text-chalk-muted" style="font-size:13px;">
+                {#if !resendable}
+                <span id="resendTimer" class="font-sans font-light text-chalk-muted" style="font-size:13px;" aria-live="polite">
                 &nbsp;in <span id="timerVal">{countdown}</span>
                 </span>
+                {/if}
             </div>
             </div>
 
