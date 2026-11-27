@@ -6,29 +6,18 @@
     import type { PageData } from "./$types";
     import type { ToastType } from "$lib/types";
     import { getErrorMessage } from "$lib/utils";
+  import { notifications } from '$lib/stores/notification.svelte';
     import { authClient } from "$lib/auth-client";
-    import Toast from "$lib/components/shared/Toast.svelte";
-    import { AppRole, type AuthProvider } from "$lib/utils/constant";
+      import { AppRole, type AuthProvider } from "$lib/utils/constant";
     import { handleThirdPartyRouting } from "$lib/auth/handle-third-party-routing";
   
-  // Toast
-  let toastMsg     = $state('');
-  let toastType = $state<ToastType>('info');
-  let toastTimer: ReturnType<typeof setTimeout> | null = null;
-
   let isTnCAgreed = $state<boolean>(false);
 
   let { data }: { data: PageData } = $props();
 
   const tncCheck = $derived<boolean>(data.success);
 
-  // ── Toast ──────────────────────────────────────────────────────────────────
-  const showToast = (msg: string, type: ToastType) => {
-    toastMsg = msg;
-    toastType = type;
-    if (toastTimer) clearTimeout(toastTimer);
-    toastTimer = setTimeout(() => toastMsg = '', 3000);
-  }
+
 
   onMount(async () => {
     if(tncCheck) {
@@ -59,7 +48,7 @@
     } catch (ex) {
       if (ex instanceof AxiosError) {
         const message = getErrorMessage(ex);
-        showToast(message, 'error');
+        notifications.error(message);
         goto(`/site/sign-up/?err=${message}`);
       }
       return;
@@ -135,9 +124,7 @@
 </main>
 {/if}
 
-{#if toastMsg  && toastMsg !== ''}
-  <Toast toastMsg={toastMsg} type={toastType} />
-{/if}
+
 
 <style>
   /* ── Form card ── */

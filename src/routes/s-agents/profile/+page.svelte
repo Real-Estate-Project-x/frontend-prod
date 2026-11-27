@@ -1,5 +1,6 @@
 <script lang="ts">
   import SubAgencySidebar from "$lib/components/shared/SubAgencySidebar.svelte";
+  import { notifications } from '$lib/stores/notification.svelte';
   
   type TabType = 'personal profile' | 'agency info' | 'change password';
 
@@ -751,7 +752,7 @@
             </div>
           </div>
           <div class="px-6 py-4 border-t border-chalk-3 dark:border-white/[0.07]">
-            <button onclick="showToast('All other sessions have been signed out.')" class="text-[13px] font-medium text-ember hover:text-ember-deep tt cursor-pointer bg-transparent border-none font-sans flex items-center gap-1.5">
+            <button onclick={() => notifications.info('All other sessions have been signed out.')} class="text-[13px] font-medium text-ember hover:text-ember-deep tt cursor-pointer bg-transparent border-none font-sans flex items-center gap-1.5">
               <svg width="13" height="13" viewBox="0 0 16 16" fill="none"><path d="M10 3H4a1 1 0 00-1 1v8a1 1 0 001 1h6M13 8l-4-4m4 4l-4 4m4-4H6" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
               Sign out all other sessions
             </button>

@@ -2,8 +2,7 @@
     import { AxiosError } from "axios";
     import { goto } from "$app/navigation";
     import type { PageData } from "./$types";
-    import type { ToastType } from "$lib/types";
-    import { getErrorMessage } from "$lib/utils";
+        import { getErrorMessage } from "$lib/utils";
     import { ApiRequests } from "$lib/api/api.request";
   
     let { data }: { data: PageData } = $props();
@@ -19,10 +18,6 @@
       let strengthLabel = $state('Use 8+ characters, a number and a symbol');
       let strengthColor = $state('');
   
-      // Toast
-      let toastMsg     = $state('');
-      let toastType = $state<ToastType>('info');
-      let toastTimer: ReturnType<typeof setTimeout> | null = null;
   
       // ── Derived: strength bars ────────────────────────────────────────────────
       const barColor = (i: number): string => {
@@ -30,13 +25,6 @@
         return strengthColor;
       }
   
-      // ── Toast ──────────────────────────────────────────────────────────────────
-      const showToast = (msg: string, type: ToastType) => {
-        toastMsg = msg;
-        toastType = type;
-        if (toastTimer) clearTimeout(toastTimer);
-        toastTimer = setTimeout(() => toastMsg = '', 3000);
-      }
   
       // ── STEP 3: Password ──────────────────────────────────────────────────────
      const updateStrength = (val: string) => {
@@ -59,7 +47,7 @@
       }
     
       const resetPassword = async () => {
-        if (newPw.length < 8) { showToast('Password must be at least 8 characters', 'error'); return; }
+        if (newPw.length < 8) { notifications.error('Password must be at least 8 characters'); return; }
         if (newPw !== confirmPw) {
           matchError = true;
           setTimeout(() => { matchError = false; }, 2500);
@@ -69,13 +57,13 @@
         try {
           const result = await new ApiRequests().changePassword(emailValue, newPw);
           if (result.data.success) {
-            showToast(result.data.message, 'success');
+            notifications.success(result.data.message);
             goto('/site/forgot-password/step-3');
           }
         } catch (ex) {
           if (ex instanceof AxiosError) {
             const message = getErrorMessage(ex);
-            showToast(message, 'error');
+            notifications.error(message);
             history.back();
           }
           return;

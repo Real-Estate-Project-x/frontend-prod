@@ -4,12 +4,11 @@
   import { AxiosError } from "axios";
   import { goto } from "$app/navigation";
   import type { PageData } from "./$types";
-  import type { ToastType } from "$lib/types";
-  import { authClient } from "$lib/auth-client";
+    import { authClient } from "$lib/auth-client";
   import { AppRole } from "$lib/utils/constant";
   import { ApiRequests } from "$lib/api/api.request";
   import { themeStore } from "$lib/stores/theme.svelte";
-  import Toast from "$lib/components/shared/Toast.svelte";
+  import { notifications } from "$lib/stores/notification.svelte";
   import PhoneInput from "$lib/components/shared/PhoneInput.svelte";
   import AppleLoginButton from "$lib/components/shared/AppleLoginButton.svelte";
   import GoogleLoginButton from "$lib/components/shared/GoogleLoginButton.svelte";
@@ -111,10 +110,6 @@
     }
   })
 
-  // Toast
-  let toastMsg     = $state('');
-  let toastType = $state<ToastType>('info');
-  let toastTimer: ReturnType<typeof setTimeout> | null = null;
 
   const signInWithGoogle = async (
     role: AppRole,
@@ -174,9 +169,9 @@
     } catch(ex) {
         if (ex instanceof AxiosError) {
           const message = getErrorMessage(ex);
-          showToast(message, 'error');
+          notifications.error(message);
         } else if (ex instanceof Error) {
-          showToast(ex.message, 'error');
+          notifications.error(ex.message);
         }
         return;
       }
@@ -189,9 +184,9 @@
     } catch(ex) {
       if (ex instanceof AxiosError) {
         const message = getErrorMessage(ex);
-        showToast(message, 'error');
+        notifications.error(message);
       } else if (ex instanceof Error) {
-        showToast(ex.message, 'error');
+        notifications.error(ex.message);
       }
       return;
     }
@@ -207,7 +202,7 @@
     try {
       const result = await new ApiRequests().uploadFiles([file]);
       if (result.data.success) {
-        showToast(result.data.message, 'success');
+        notifications.success(result.data.message);
         // Set logo_id
         setAgencyFormField('logoId', result.data.data[0].id)
         return;
@@ -216,7 +211,7 @@
         previewUrl = null;
         if (ex instanceof AxiosError) {
           const message = getErrorMessage(ex);
-          showToast(message, 'error');
+          notifications.error(message);
         }
         return;
       }
@@ -247,21 +242,21 @@
 
   const goNext = () => {
   if (!isStepValid(agentStep)) {
-    showToast('Please complete all required fields before continuing', 'error');
+    notifications.error('Please complete all required fields before continuing');
     return;
   }
 
   if (agentStep === 1) {
     const validateMatch = validatePasswordMatch(agencyFormData, 'password', 'confirmPassword');
     if (validateMatch) {
-      showToast(validateMatch, 'error');
+      notifications.error(validateMatch);
       return;
     } 
   }
 
   if (agentStep === 2) {
     if (!isAgencyBioValid) {
-      showToast('Agency bio must be at least 80 characters', 'error');
+      notifications.error('Agency bio must be at least 80 characters');
       return;
     }
   }
@@ -350,13 +345,6 @@
 
   const isAgencyBioValid = $derived(agencyFormData.agencyBio.trim().length >= 80);
 
-  // ── Toast ──────────────────────────────────────────────────────────────────
-  const showToast = (msg: string, type: ToastType) => {
-    toastMsg = msg;
-    toastType = type;
-    if (toastTimer) clearTimeout(toastTimer);
-    toastTimer = setTimeout(() => toastMsg = '', 3000);
-  }
 
   const setUserFormField = <K extends keyof UserForm>(
     field: K,
@@ -399,13 +387,13 @@
     try {
       const isFormValid = isFormComplete(userFormData, ['isTAndCAgreed']);
       if (!isFormValid) {
-        showToast('Please complete all fields and accept Terms & Conditions', 'error');
+        notifications.error('Please complete all fields and accept Terms & Conditions');
         return;
       }
 
       const validateMatch = validatePasswordMatch(userFormData, 'password', 'confirmPassword');
       if (validateMatch) {
-        showToast(validateMatch, 'error');
+        notifications.error(validateMatch);
         return;
       } 
 
@@ -418,7 +406,7 @@
         phoneNumber: formattedPhoneNo
       });
       if (result.data.success) {
-        showToast(result.data.message, 'success');
+        notifications.success(result.data.message);
         const newUser = result.data.data;
         const redirectUrl =  `/site/verify-account/${newUser.slug}`;
         setTimeout(() => goto(redirectUrl), 3000);
@@ -426,9 +414,9 @@
     } catch(ex) {
       if (ex instanceof AxiosError) {
         const message = getErrorMessage(ex);
-        showToast(message, 'error');
+        notifications.error(message);
       } else if (ex instanceof Error) {
-        showToast(ex.message, 'error');
+        notifications.error(ex.message);
       }
       return;
     }
@@ -440,13 +428,13 @@
     try {
       const isFormValid = isFormComplete(agencyFormData, ['isTAndCAgreed']);
       if (!isFormValid) {
-        showToast('Please complete all fields and accept Terms & Conditions', 'error');
+        notifications.error('Please complete all fields and accept Terms & Conditions');
         return;
       }
 
       const validateMatch = validatePasswordMatch(agencyFormData, 'password', 'confirmPassword');
       if (validateMatch) {
-        showToast(validateMatch, 'error');
+        notifications.error(validateMatch);
         return;
       }
       
@@ -459,7 +447,7 @@
          phoneNumber: formattedPhoneNo 
       });
       if (result.data.success) {
-        showToast(result.data.message, 'success');
+        notifications.success(result.data.message);
         const newAgency = result.data.data;
         const slug = newAgency.mainAgent.slug;
         const redirectUrl =  `/site/verify-account/${slug}`;
@@ -468,9 +456,9 @@
     } catch(ex) {
       if (ex instanceof AxiosError) {
         const message = getErrorMessage(ex);
-        showToast(message, 'error');
+        notifications.error(message);
       } else if (ex instanceof Error) {
-        showToast(ex.message, 'error');
+        notifications.error(ex.message);
       }
       return;
     }
@@ -769,7 +757,6 @@
               placeholder="you@example.com" 
               autocomplete="email" 
             />
-            <span class="error-msg">Please enter a valid email address.</span>
           </div>
 
           <!-- Fix the on_input handler -->
@@ -1018,7 +1005,6 @@
                   placeholder="agent@example.com" 
                   autocomplete="email" 
                 />
-              <span class="error-msg">Please enter a valid email address.</span>
             </div>
 
               <!-- Fix the on_input handler -->
@@ -1401,9 +1387,6 @@
 
 </div><!-- /main -->
 
-{#if toastMsg  && toastMsg !== ''}
-<Toast toastMsg={toastMsg} type={toastType} />
-{/if}
     
 
 <style>

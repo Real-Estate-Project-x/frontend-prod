@@ -268,7 +268,7 @@ export const cleanObject = (
   return cleaned;
 };
 
-export function formatVideoDuration(duration: number): string {
+export const formatVideoDuration = (duration: number): string => {
   const totalSeconds = Math.floor(duration);
 
   const hours = Math.floor(totalSeconds / 3600);
@@ -280,4 +280,7 @@ export function formatVideoDuration(duration: number): string {
   return hours > 0
     ? `${pad(hours)}:${pad(minutes)}:${pad(seconds)}`
     : `${pad(minutes)}:${pad(seconds)}`;
-}
+};
+
+export const formatPrice = (price: number) =>
+  Number(price).toLocaleString("en-NG");

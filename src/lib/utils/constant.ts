@@ -77,3 +77,8 @@ export enum ListingStatus {
   SUSPENDED = "SUSPENDED",
   PENDING_REVIEW = "PENDING_REVIEW",
 }
+
+export enum ListingDocumentType {
+  OWNERSHIP_DOC = "OWNERSHIP_DOC",
+  ARCHITECTURAL_DOC = "ARCHITECTURAL_DOC",
+}

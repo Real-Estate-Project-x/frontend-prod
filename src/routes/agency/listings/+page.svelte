@@ -1,15 +1,14 @@
 <script lang="ts">
   	import { AxiosError } from 'axios';
 	import type { PageData } from "./$types";
-	import type { ToastType } from '$lib/types';
 	import { ApiRequests } from '$lib/api/api.request';
-	import Toast from '$lib/components/shared/Toast.svelte';
 	import Pagination from '$lib/components/shared/Pagination.svelte';
 	import AgencySidebar from '$lib/components/shared/AgencySidebar.svelte';
 	import BoostModal from '$lib/components/agency/view-listing/BoostModal.svelte';
 	import { capitalize, cleanObject, getErrorMessage, getUserInfo } from '$lib/utils';
 	import ArchiveModal from '$lib/components/agency/view-listing/ArchiveModal.svelte';
 	import { ListingFor, ListingPaymentDuration, ListingStatus, PropertyCategory, RegionScope } from '$lib/utils/constant';
+  import { notifications } from '$lib/stores/notification.svelte';
 	
   	type ListingFilter = {
 		searchTerm: string;
@@ -370,7 +369,10 @@
 	}
 	const clearAllFilters = async () => {
 		resetFilters();
-		showToast('Filters cleared', 'success');
+		notifications.success('Filters cleared', {
+			title: 'Success',
+			duration: 6000
+		});
 
 		// reload page_data
 		await goto(1, perPage, cleanObject(filter, true));
@@ -461,7 +463,10 @@
 			const result = await new ApiRequests().publishListing(id);
 			if (result.data.success) {
 				const message = result.data.message ?? 'Listing published';
-				showToast(message, "success");
+				notifications.success(message, {
+					title: 'Success',
+					duration: 6000
+				});
 				// Reload page_data
 				goto(1, selectedPageSize, cleanObject(filter, true));
 				return;
@@ -469,7 +474,10 @@
 		} catch(ex) {
 			if (ex instanceof AxiosError) {
 				const message = getErrorMessage(ex);
-				showToast(message, 'error');
+				notifications.error(message, {
+					title: 'Error',
+					duration: 6000
+				});
 			}
 			console.error(ex);
 			return;
@@ -491,7 +499,10 @@
 				archiveModalOpen = false;
 
 				const message = result.data.message ?? 'Listing taken down.';
-				showToast(message, "success");
+				notifications.success(message, {
+					title: 'Success',
+					duration: 6000
+				});
 				// Reload page_data
 				goto(1, selectedPageSize, cleanObject(filter, true));
 				return;
@@ -499,7 +510,10 @@
 		} catch(ex) {
 			if (ex instanceof AxiosError) {
 				const message = getErrorMessage(ex);
-				showToast(message, 'error');
+				notifications.error(message, {
+					title: 'Error',
+					duration: 6000
+				});
 			}
 			console.error(ex);
 			return;
@@ -511,7 +525,10 @@
 			console.log({result})
 			if (result.data.success) {
 				const message = result.data.message ?? 'Listing restored.';
-				showToast(message, "success");
+				notifications.success(message, {
+					title: 'Success',
+					duration: 6000
+				});
 				// Reload page_data
 				goto(1, selectedPageSize, cleanObject(filter, true));
 				return;
@@ -520,7 +537,10 @@
 		} catch (ex) {
 			if (ex instanceof AxiosError) {
 				const message = getErrorMessage(ex);
-				showToast(message, 'error');
+				notifications.error(message, {
+					title: 'Error',
+					duration: 6000
+				});
 			}
 			console.error(ex);
 			return;
@@ -535,22 +555,11 @@
 		if (!plan) return;
 		props = props.map((p) => (p.id === boostingId ? { ...p, boosted: true, boostExpiresAt: Date.now() + plan.hours * 3600 * 1000, updated: Date.now() } : p));
 		boostModalOpen = false;
-		showToast(`Listing boosted for ${plan.label}.`);
+		notifications.success(`Listing boosted for ${plan.label}.`, {
+			title: 'Boost Successful',
+			duration: 6000
+		});
 	}
-
-	/* ────────────────────────────────────────────
-	   TOAST
-	──────────────────────────────────────────── */
-    let toastMsg     = $state('');
-    let toastType = $state<ToastType>('info');
-    let toastTimer: ReturnType<typeof setTimeout> | null = null;
-	// ── Toast ──────────────────────────────────────────────────────────────────
-    const showToast = (msg: string, type: ToastType = "info") => {
-      toastMsg = msg;
-      toastType = type;
-      if (toastTimer) clearTimeout(toastTimer);
-      toastTimer = setTimeout(() => toastMsg = '', 3000);
-    }
 
 	// Keep boost countdowns fresh, same as the original 60s interval.
 	$effect(() => {
@@ -1154,10 +1163,6 @@
 				</div>
 			</div>
 		</div>
-	{/if}
-
-	{#if toastMsg  && toastMsg !== ''}
-	<Toast toastMsg={toastMsg} type={toastType} />
 	{/if}
 
 	<!-- ══ MODALS ══ -->

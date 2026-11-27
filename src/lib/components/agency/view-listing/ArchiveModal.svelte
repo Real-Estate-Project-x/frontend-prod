@@ -1,5 +1,5 @@
 <script>
-	/** @type {{ open: boolean, property: object | null, onClose: () => void, onConfirm: () => void }} */
+	/** @type {{ open: boolean, property: any | null, onClose: () => void, onConfirm: () => void }} */
 	let { open, property, onClose, onConfirm } = $props();
 </script>
 

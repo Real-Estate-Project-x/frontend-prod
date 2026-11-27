@@ -1,10 +1,12 @@
 <script lang="ts">
+	import '../../app.css';
 	import { onMount } from 'svelte';
 	import { themeStore } from '$lib/stores/theme.svelte';
 	import Navbar from '$lib/components/shared/Navbar.svelte';
 	import MobileDrawer from '$lib/components/shared/MobileDrawer.svelte';
 	import Footer from '$lib/components/shared/Footer.svelte';
-	import '../../app.css';
+	import NotificationHost from '$lib/components/notifications/NotificationHost.svelte';
+
 
 	let { children } = $props();
   
@@ -12,6 +14,8 @@
 	onMount(() => themeStore.init());
   </script>
   
+  <NotificationHost />
+
   <Navbar />
   <MobileDrawer />
   

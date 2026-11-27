@@ -1,5 +1,6 @@
 <script lang="ts">
     import { browser } from '$app/environment';
+    import { notifications } from '$lib/stores/notification.svelte';
     import AgencySidebar from "$lib/components/shared/AgencySidebar.svelte";
   
     // ── Dark mode
@@ -262,17 +263,6 @@
       if ((e.target as Element).hasAttribute('data-modal-bg')) closeModal();
     }
   
-    // ── Move from modal
-    let toast = $state('');
-    let toastVisible = $state(false);
-    let toastTimer: ReturnType<typeof setTimeout>;
-  
-    function showToast(msg: string) {
-      toast = msg;
-      toastVisible = true;
-      clearTimeout(toastTimer);
-      toastTimer = setTimeout(() => { toastVisible = false; }, 2800);
-    }
   
     function moveCard(col: ColKey) {
       if (activeCardId) {
@@ -283,7 +273,7 @@
         new: 'New Requests', assigned: 'Assigned',
         inprogress: 'In Progress', completed: 'Completed',
       };
-      showToast('Task moved to ' + labels[col]);
+      notifications.success('Task moved to ' + labels[col]);
     }
   
     // ── Derived: cards per column (filtered)
@@ -646,14 +636,6 @@
         <button onclick={closeModal} class="flex-1 text-[13px] font-medium text-white bg-navy-dark dark:bg-blue-bright hover:opacity-90 py-3 rounded-full cursor-pointer border-none tt">Save changes</button>
       </div>
     </div>
-  </div>
-  {/if}
-  
-  <!-- ══ TOAST ══ -->
-  {#if toastVisible}
-  <div class="fixed bottom-6 left-1/2 -translate-x-1/2 z-[999] bg-navy-dark dark:bg-[#131C2E] text-white text-[13px] font-medium px-5 py-3 rounded-full shadow-[0_8px_32px_rgba(10,36,99,.3)] flex items-center gap-2 tt" style="transition:opacity .3s,transform .3s">
-    <svg width="13" height="13" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6.5" stroke="#4A90E2" stroke-width="1.3"/><path d="M5.5 8l2 2 3-3" stroke="#4A90E2" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
-    {toast}
   </div>
   {/if}
   

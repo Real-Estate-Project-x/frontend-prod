@@ -3,15 +3,14 @@
   import { page } from '$app/state';
   import axios, { AxiosError } from 'axios';
   import { goto } from "$app/navigation";
-  import type { ToastType } from '$lib/types';
   import { authClient } from "$lib/auth-client";
   import { AppRole, LSKey } from "$lib/utils/constant";
   import { themeStore } from "$lib/stores/theme.svelte";
-  import Toast from '$lib/components/shared/Toast.svelte';
   import AppleLoginButton from '$lib/components/shared/AppleLoginButton.svelte';
   import GoogleLoginButton from '$lib/components/shared/GoogleLoginButton.svelte';
   import { PUBLIC_ENCRYPTION_KEY, PUBLIC_SITE_BASE_URL } from "$env/static/public";
   import { decryptData, extractLocalStorageInfo, getErrorMessage, setLocalStorageField } from "$lib/utils";
+  import { notifications } from '$lib/stores/notification.svelte';
 
   type LoginType = { 
     email: string, 
@@ -24,11 +23,6 @@
     rememberMe: false,
   });
   let showPassword = $state(false);
-
-  // Toast
-  let toastMsg     = $state('');
-  let toastType = $state<ToastType>('info');
-  let toastTimer: ReturnType<typeof setTimeout> | null = null;
 
   const signInWithGoogle = async () => {
     await authClient.signIn.social({
@@ -100,7 +94,10 @@
     // display any error messages
     const message = queryParams.get('err');
     if (message) {
-      showToast(message, 'error');
+      notifications.error(message, {
+        title: 'Load Error',
+        duration: 6000
+			});
 
       if (message === 'no_account_found_sign_up_first') {
         goto('/site/sign-up');
@@ -153,19 +150,14 @@
     } catch(ex) {
       if (ex instanceof AxiosError) {
         const message = getErrorMessage(ex);
-        showToast(message, 'error');
+        notifications.error(message, {
+          title: 'Form validation failed',
+          duration: 6000
+			  });
       }
       console.error(ex);
       return;
     }
-  }
-
-  // ── Toast ──────────────────────────────────────────────────────────────────
-  const showToast = (msg: string, type: ToastType) => {
-    toastMsg = msg;
-    toastType = type;
-    if (toastTimer) clearTimeout(toastTimer);
-    toastTimer = setTimeout(() => toastMsg = '', 3000);
   }
 </script>
 
@@ -433,7 +425,6 @@
             placeholder="you@example.com" 
             autocomplete="email" 
           />
-          <span class="error-msg">Please enter a valid email address.</span>
         </div>
 
         <!-- Password -->
@@ -508,10 +499,6 @@
     </div><!-- /form-card -->
   </div><!-- /panel-right -->
 </div>
-
-{#if toastMsg  && toastMsg !== ''}
-<Toast toastMsg={toastMsg} type={toastType} />
-{/if}
 
 <style>
   /* ── Left panel ── */

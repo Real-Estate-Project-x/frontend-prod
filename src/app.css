@@ -542,9 +542,9 @@
   .logged-in .mob-auth-in  { display: block; }
 
 
-  .capitalize {text-transform: capitalize;}
-  .uppercase {text-transform: uppercase;}
-  .lowercase {text-transform: lowercase;}
+  .capitalize {text-transform: capitalize !important;}
+  .uppercase {text-transform: uppercase !important;}
+  .lowercase {text-transform: lowercase !important;}
 
   button:disabled {
     opacity: 0.5;

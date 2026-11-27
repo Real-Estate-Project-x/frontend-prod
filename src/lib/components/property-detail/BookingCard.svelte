@@ -39,7 +39,6 @@
     let selectedDateChip = $state<string | null>(null);
     let selectedTimeSlot = $state<string | null>(null);
     let shakeFields = $state<Record<string, boolean>>({});
-    let toast = $state<string | null>(null);
   
     // ── Derived ──
     const isVirtual = $derived(booking.type === 'virtual');
@@ -131,11 +130,6 @@
     function selectTimeSlot(val: string) {
       selectedTimeSlot = val;
       booking.time = val === 'flexible' ? 'Flexible timing' : formatTime(val);
-    }
-  
-    function showToast(msg: string) {
-      toast = msg;
-      setTimeout(() => (toast = null), 3000);
     }
   
     function triggerShake(field: string) {
@@ -468,13 +462,6 @@
     {/if}
   
   </div>
-  
-  <!-- Toast notification -->
-  {#if toast}
-    <div class="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-navy-dark text-white text-[13px] font-medium px-5 py-3 rounded-full shadow-lg">
-      {toast}
-    </div>
-  {/if}
   
 <style>
   /* Shake animation for validation errors */

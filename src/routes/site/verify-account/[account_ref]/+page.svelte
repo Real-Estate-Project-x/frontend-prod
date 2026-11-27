@@ -10,10 +10,9 @@
     extractLocalStorageInfo
   } from '$lib/utils';
   import type { PageData } from './$types';
-  import type { ToastType } from '$lib/types';
-  import { ApiRequests } from '$lib/api/api.request';
+    import { ApiRequests } from '$lib/api/api.request';
   import { AppRole, LSKey } from '$lib/utils/constant';
-  import Toast from '$lib/components/shared/Toast.svelte';
+  import { notifications } from '$lib/stores/notification.svelte';
   import { PUBLIC_ENCRYPTION_KEY } from '$env/static/public';
 
   let resendable = $state(false);
@@ -36,10 +35,6 @@
     }
   });
 
-  // Toast
-  let toastMsg     = $state('');
-  let toastType = $state<ToastType>('info');
-  let toastTimer: ReturnType<typeof setTimeout> | null = null;
   let submitBtn: HTMLButtonElement;
 
   let { data }: { data: PageData } = $props();
@@ -62,7 +57,6 @@
 
   onDestroy(() => {
     if (countdownInterval) clearInterval(countdownInterval);
-    if (toastTimer) clearTimeout(toastTimer);
   });
 
   // ── DOM refs ───────────────────────────────────────────────────────────────
@@ -125,13 +119,6 @@
       }, 1000);
     }
 
-  // ── Toast ──────────────────────────────────────────────────────────────────
-  const showToast = (msg: string, type: ToastType) => {
-    toastMsg = msg;
-    toastType = type;
-    if (toastTimer) clearTimeout(toastTimer);
-      toastTimer = setTimeout(() => toastMsg = '', 3000);
-  }
 
   const resendCode = async () => {
     startCountdown();
@@ -140,13 +127,13 @@
       const result = await new ApiRequests().resendAccountVerificationCode(profile.data.id);
       if (result.data.success) {
         isVerifying = false;
-        showToast(result.data.message, 'info');
+        notifications.info(result.data.message);
         return;
       }
     } catch (ex) {
       if (ex instanceof AxiosError) {
         const message = getErrorMessage(ex);
-        showToast(message, 'error');
+        notifications.error(message);
       }
       isVerifying = false;
       return;
@@ -168,7 +155,7 @@
     } catch(ex) {
       if (ex instanceof AxiosError) {
         const message = getErrorMessage(ex);
-        showToast(message, 'error');
+        notifications.error(message);
       }
       return;
     }
@@ -208,7 +195,7 @@
       isVerifying = true;
       const result = await new ApiRequests().verifyAccount(profile.data.email, otp.join(''));
       if (result.data.success) {
-        showToast(result.data.message, 'success');
+        notifications.success(result.data.message);
 
         const loginResult = await login(profile.data.slug);
         if (loginResult && typeof loginResult === 'string') {
@@ -227,7 +214,7 @@
     } catch(ex) {
       if (ex instanceof AxiosError) {
         const message = getErrorMessage(ex);
-        showToast(message, 'error');
+        notifications.error(message);
       }
       isVerifying = false;
       return;
@@ -522,9 +509,6 @@
 
 </div>
 
-{#if toastMsg  && toastMsg !== ''}
-  <Toast toastMsg={toastMsg} type={toastType} />
-{/if}
 
 <style>
     html, body { overflow-x: hidden; }
@@ -772,7 +756,6 @@
     .auth-divider::before, .auth-divider::after { content: ''; flex: 1; height: 1px; background: #EDE7DC; transition: background 0.3s; }
     :global([data-theme="dark"]) .auth-divider::before, :global([data-theme="dark"]) .auth-divider::after { background: rgba(255,255,255,0.08); }
     
-    /* ── Toast ── */
     #toast {
       position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(12px);
       background: #0A2463; color: #fff;

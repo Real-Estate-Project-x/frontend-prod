@@ -1,14 +1,8 @@
 <script lang="ts">
   import UserSidebar from "$lib/components/shared/UserSidebar.svelte";
+  import { notifications } from '$lib/stores/notification.svelte';
 
-  let toastMsg = $state<string | null>()
 
-  const showToast = (msg: string) => {
-    toastMsg = msg;
-    setTimeout(() => {
-      toastMsg = null;
-    }, 3000);
-  }
 
   const handleSave = (data: boolean) => {
     console.log('Received from child:', data);
@@ -253,7 +247,7 @@
       <div class="bg-white dark:bg-[#131C2E] border border-chalk-3 dark:border-white/[.08] rounded-2xl overflow-hidden tt">
 
         <!-- row 1 -->
-        <div class="act-row flex items-start gap-4 px-5 py-4 border-b border-chalk-3 dark:border-white/[.06] tt cursor-pointer" onclick={() => showToast('Opening saved search…')}>
+        <div class="act-row flex items-start gap-4 px-5 py-4 border-b border-chalk-3 dark:border-white/[.06] tt cursor-pointer" onclick={() => notifications.info('Opening saved search…')}>
           <div class="w-8 h-8 rounded-full bg-blue-bright/10 flex items-center justify-center flex-shrink-0 mt-0.5"><svg width="13" height="13" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="8" stroke="#4A90E2" stroke-width="1.4"/><path d="M10 9v5M10 7h.01" stroke="#4A90E2" stroke-width="1.4" stroke-linecap="round"/></svg></div>
           <div class="flex-1 min-w-0">
             <div class="text-[13px] font-medium text-navy-dark dark:text-blue-100">5 new matches found</div>
@@ -263,7 +257,7 @@
         </div>
 
         <!-- row 2 -->
-        <div class="act-row flex items-start gap-4 px-5 py-4 border-b border-chalk-3 dark:border-white/[.06] tt cursor-pointer" onclick={() => showToast('Opening property…')}>
+        <div class="act-row flex items-start gap-4 px-5 py-4 border-b border-chalk-3 dark:border-white/[.06] tt cursor-pointer" onclick={() => notifications.info('Opening property…')}>
           <div class="w-8 h-8 rounded-full bg-gold/15 flex items-center justify-center flex-shrink-0 mt-0.5"><svg width="13" height="13" viewBox="0 0 20 20" fill="none"><path d="M5 15l-3 3V5a1 1 0 011-1h14a1 1 0 011 1v8a1 1 0 01-1 1H5z" stroke="#D4AE3A" stroke-width="1.4" stroke-linejoin="round"/></svg></div>
           <div class="flex-1 min-w-0">
             <div class="text-[13px] font-medium text-navy-dark dark:text-blue-100">Price drop on saved property</div>
@@ -273,7 +267,7 @@
         </div>
 
         <!-- row 3 -->
-        <div class="act-row flex items-start gap-4 px-5 py-4 border-b border-chalk-3 dark:border-white/[.06] tt cursor-pointer" onclick={() => showToast('Opening viewings…')}>
+        <div class="act-row flex items-start gap-4 px-5 py-4 border-b border-chalk-3 dark:border-white/[.06] tt cursor-pointer" onclick={() => notifications.info('Opening viewings…')}>
           <div class="w-8 h-8 rounded-full bg-ember-light flex items-center justify-center flex-shrink-0 mt-0.5"><svg width="13" height="13" viewBox="0 0 20 20" fill="none"><rect x="3" y="4" width="14" height="14" rx="2" stroke="#C06035" stroke-width="1.4"/><path d="M7 2v4M13 2v4M3 9h14" stroke="#C06035" stroke-width="1.4" stroke-linecap="round"/></svg></div>
           <div class="flex-1 min-w-0">
             <div class="text-[13px] font-medium text-navy-dark dark:text-blue-100">Viewing confirmed ✓</div>
@@ -283,7 +277,7 @@
         </div>
 
         <!-- row 4 -->
-        <div class="act-row flex items-start gap-4 px-5 py-4 border-b border-chalk-3 dark:border-white/[.06] tt cursor-pointer" onclick={() => showToast('Opening saved properties…')}>
+        <div class="act-row flex items-start gap-4 px-5 py-4 border-b border-chalk-3 dark:border-white/[.06] tt cursor-pointer" onclick={() => notifications.info('Opening saved properties…')}>
           <div class="w-8 h-8 rounded-full bg-sage-light flex items-center justify-center flex-shrink-0 mt-0.5"><svg width="13" height="13" viewBox="0 0 20 20" fill="none"><path d="M10 2C7.24 2 5 4.24 5 7c0 3.75 5 11 5 11s5-7.25 5-11c0-2.76-2.24-5-5-5z" stroke="#4A7848" stroke-width="1.4" stroke-linejoin="round"/><circle cx="10" cy="7" r="2" stroke="#4A7848" stroke-width="1.4"/></svg></div>
           <div class="flex-1 min-w-0">
             <div class="text-[13px] font-medium text-navy-dark dark:text-blue-100">Property saved</div>
@@ -293,7 +287,7 @@
         </div>
 
         <!-- row 5 -->
-        <div class="act-row flex items-start gap-4 px-5 py-4 tt cursor-pointer" onclick={() => showToast('Opening viewing history…')}>
+        <div class="act-row flex items-start gap-4 px-5 py-4 tt cursor-pointer" onclick={() => notifications.info('Opening viewing history…')}>
           <div class="w-8 h-8 rounded-full bg-navy-accent/10 dark:bg-white/[.06] flex items-center justify-center flex-shrink-0 mt-0.5"><svg width="13" height="13" viewBox="0 0 20 20" fill="none"><path d="M1 10s4-7 9-7 9 7 9 7-4 7-9 7-9-7-9-7z" stroke="#4A70A0" stroke-width="1.4"/><circle cx="10" cy="10" r="3" stroke="#4A70A0" stroke-width="1.4"/></svg></div>
           <div class="flex-1 min-w-0">
             <div class="text-[13px] font-medium text-navy-dark dark:text-blue-100">Property viewed</div>

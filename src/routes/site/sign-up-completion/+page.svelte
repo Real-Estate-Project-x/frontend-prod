@@ -4,11 +4,10 @@
   import { AxiosError } from "axios";
   import { isEmpty, toUpper } from 'lodash-es';
   import type { PageData } from "./$types";
-  import type { ToastType } from "$lib/types";
-  import { authClient } from "$lib/auth-client";
+    import { authClient } from "$lib/auth-client";
   import { ApiRequests } from "$lib/api/api.request";
   import { AuthProvider } from '$lib/utils/constant';
-  import Toast from "$lib/components/shared/Toast.svelte";
+  import { notifications } from "$lib/stores/notification.svelte";
   import PhoneInput from "$lib/components/shared/PhoneInput.svelte";
   import Welcome from "$lib/components/sign-up-completion/welcome.svelte";
   import { handleThirdPartyLogin } from '$lib/auth/handle-third-party-login';
@@ -100,10 +99,6 @@
   });
   const isAgencyFormValid = $derived(isFormComplete(agencyFormData, ['isTAndCAgreed']));
 
-  // Toast
-  let toastMsg     = $state('');
-  let toastType = $state<ToastType>('info');
-  let toastTimer: ReturnType<typeof setTimeout> | null = null;
 
 
   let provider = $state<string | null>();
@@ -151,13 +146,6 @@
     }
   }
 
-  // ── Toast ──────────────────────────────────────────────────────────────────
-  const showToast = (msg: string, type: ToastType) => {
-    toastMsg = msg;
-    toastType = type;
-    if (toastTimer) clearTimeout(toastTimer);
-    toastTimer = setTimeout(() => toastMsg = '', 3000);
-  }
 
   const handleClick = () =>  logoFile.click();
 
@@ -181,7 +169,7 @@
     try {
       const result = await new ApiRequests().uploadFiles([file]);
       if (result.data.success) {
-        showToast(result.data.message, 'success');
+        notifications.success(result.data.message);
         // Set logo_id
         setAgencyFormField('logoId', result.data.data[0].id)
         return;
@@ -190,7 +178,7 @@
         previewUrl = null;
         if (ex instanceof AxiosError) {
           const message = getErrorMessage(ex);
-          showToast(message, 'error');
+          notifications.error(message);
         }
         return;
       }
@@ -208,9 +196,9 @@
     } catch(ex) {
       if (ex instanceof AxiosError) {
         const message = getErrorMessage(ex);
-        showToast(message, 'error');
+        notifications.error(message);
       } else if (ex instanceof Error) {
-        showToast(ex.message, 'error');
+        notifications.error(ex.message);
       }
       return;
     }
@@ -252,7 +240,7 @@
 
     try {
       if (!isFormComplete(agencyFormData, ['isTAndCAgreed'])) {
-        showToast('Please complete all fields and accept Terms & Conditions', 'error');
+        notifications.error('Please complete all fields and accept Terms & Conditions');
         return;
       }
 
@@ -267,7 +255,7 @@
       });
       
       if (result.data.success) {
-        showToast(result.data.message, 'success');
+        notifications.success(result.data.message);
         handleThirdPartyLogin({ 
           session: fullSession,
           provider: agencyFormData.provider, 
@@ -278,9 +266,9 @@
     } catch(ex) {
       if (ex instanceof AxiosError) {
         const message = getErrorMessage(ex);
-        showToast(message, 'error');
+        notifications.error(message);
       } else if (ex instanceof Error) {
-        showToast(ex.message, 'error');
+        notifications.error(ex.message);
       }
       return;
     }
@@ -764,9 +752,6 @@
   </div>
 </div>
 
-{#if toastMsg  && toastMsg !== ''}
-<Toast toastMsg={toastMsg} type={toastType} />
-{/if}
 
 <style>
   html, body { overflow-x: hidden; }
@@ -1102,7 +1087,6 @@
     border-color: rgba(37, 99, 235, 0.35);
   }
 
-  /* ── Toast ── */
   #toast {
     position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(12px);
     background: #0A2463; color: #fff;

@@ -5,9 +5,9 @@
   import { capitalize, isEmpty, toLower, toUpper } from "lodash-es";
   import type { PageData } from "./$types";
   import { ApiRequests } from "$lib/api/api.request";
-  import type { PFileType, ToastType } from "$lib/types";
-  import Toast from "$lib/components/shared/Toast.svelte";
+  import type { PFileType } from "$lib/types";
   import type { ExtraFee, GeoPoint } from "$lib/api/type.dto";
+  import { notifications } from "$lib/stores/notification.svelte";
   import AmenityIcon from "$lib/components/shared/AmenityIcon.svelte";
   import AgencySidebar from "$lib/components/shared/AgencySidebar.svelte";
   import PrelaunchChecklist from "$lib/components/agency/add-listing/PrelaunchChecklist.svelte";
@@ -283,7 +283,10 @@
     const handleVideoUpload = async () => {
         const files = pVideo?.files;
         if (!files || files.length <= 0) {
-            showToast('Please upload a listing video', 'error');
+            notifications.error('Please upload a listing video', {
+                title: 'Error',
+                duration: 6000,
+            });
             return;
         }
 
@@ -306,7 +309,10 @@
         } catch (ex) {
             if (ex instanceof AxiosError) {
                 const message = getErrorMessage(ex);
-                showToast(message, 'error');
+                notifications.error(message, {
+                    title: 'Error',
+                    duration: 6000,
+                });
             }
             return;
         }
@@ -315,7 +321,10 @@
     const handleImageUploads = async () => {
         const files = pPhotos?.files;
         if (!files || files.length < 3) {
-            showToast('Please upload at least 3 images', 'error');
+            notifications.error('Please upload at least 3 images', {
+                title: 'Error',
+                duration: 6000,
+            });
             return;
         }
 
@@ -336,7 +345,10 @@
         } catch (ex) {
             if (ex instanceof AxiosError) {
                 const message = getErrorMessage(ex);
-                showToast(message, 'error');
+                notifications.error(message, {
+                    title: 'Error',
+                    duration: 6000,
+                });
             }
             return;
         }
@@ -345,7 +357,10 @@
     const handleArchPlanUploads = async () => {
         const files = pArchPlans?.files;
         if (!files || files.length === 0) {
-            showToast('Please upload at least 1 plan', 'error');
+            notifications.error('Please upload at least 1 plan', {
+                title: 'Error',
+                duration: 6000,
+            });
             return;
         }
 
@@ -366,7 +381,10 @@
         } catch (ex) {
             if (ex instanceof AxiosError) {
                 const message = getErrorMessage(ex);
-                showToast(message, 'error');
+                notifications.error(message, {
+                    title: 'Error',
+                    duration: 6000,
+                });
             }
             return;
         }
@@ -411,24 +429,14 @@
         };
     };
 
-    // Toast
-    let toastMsg     = $state('');
-    let toastType = $state<ToastType>('info');
-    let toastTimer: ReturnType<typeof setTimeout> | null = null;
-
-    // ── Toast ──────────────────────────────────────────────────────────────────
-    const showToast = (msg: string, type: ToastType) => {
-      toastMsg = msg;
-      toastType = type;
-      if (toastTimer) clearTimeout(toastTimer);
-      toastTimer = setTimeout(() => toastMsg = '', 3000);
-    };
-
     const handleSubmit = async (e: SubmitEvent) => {
         e.preventDefault();
 
         if (isEmpty(listingFormData.videoId)) {
-            showToast('Please upload a listing video', 'error');
+            notifications.error('Please upload a listing video', {
+                title: 'Error',
+                duration: 6000,
+            });
             return;
         }
 
@@ -440,7 +448,10 @@
             // save listing
             const result = await new ApiRequests().createIntlListing(payload as any);
             if (result.data.success) {
-                showToast(result.data.message, 'success');
+                notifications.success(result.data.message, {
+                    title: 'Success',
+                    duration: 6000,
+                });
                 
                 // clear form
                 clearForm();
@@ -452,7 +463,10 @@
             }
         } catch (ex) {
             if (ex instanceof AxiosError) {
-                showToast(getErrorMessage(ex), 'error');
+                notifications.error(getErrorMessage(ex), {
+                    title: 'Error',
+                    duration: 6000,
+                });
             }
             return;
         }
@@ -470,8 +484,11 @@
             if (result.data.success) {
                 const listingId = result.data.data.id;
                 if (isEmpty(listingId)) {
-                    const message = "Listing saved. Could not get listing_id..try publishing manually"
-                    showToast(message, 'error');
+                    const message = "Listing saved. Could not get listing_id..try publishing manually";
+                    notifications.error(message, {
+                        title: 'Error',
+                        duration: 6000,
+                    });
                     // navigate to listing page
                     setTimeout(() => goto('/agency/listings'), 2000);
                     return;
@@ -480,8 +497,10 @@
                 // publish listing
                 const publishResult = await req.publishListing(listingId);
                 if (publishResult.data.success) {
-                    showToast(publishResult.data.message, 'success');
-                    
+                    notifications.success(publishResult.data.message, {
+                        title: 'Success',
+                        duration: 6000,
+                    });
                     // clear form
                     clearForm();
 
@@ -493,7 +512,10 @@
             }
         } catch (ex) {
             if (ex instanceof AxiosError) {
-                showToast(getErrorMessage(ex), 'error');
+                notifications.error(getErrorMessage(ex), {
+                    title: 'Error',
+                    duration: 6000,
+                });
             }
             return;
         }
@@ -1437,10 +1459,6 @@
         </form>
     </main>
 </div>
-
-{#if toastMsg  && toastMsg !== ''}
-    <Toast toastMsg={toastMsg} type={toastType} />
-{/if}
 
 <style>
     /* ── core tokens ── */

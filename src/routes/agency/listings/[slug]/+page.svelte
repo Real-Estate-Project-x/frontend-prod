@@ -1,32 +1,21 @@
 <script lang="ts">
-	import { isEmpty } from 'lodash-es';
+	import { onMount } from 'svelte';
+  	import { AxiosError } from 'axios';
 	import type { PageData } from './$types';
-	import type { ToastType } from '$lib/types';
-	import Toast from '$lib/components/shared/Toast.svelte';
+	import { ApiRequests } from '$lib/api/api.request';
+	import { notifications } from '$lib/stores/notification.svelte';
 	import AgencySidebar from '$lib/components/shared/AgencySidebar.svelte';
+	import { ListingDocumentType, ListingStatus } from '$lib/utils/constant';
 	import BoostModal from '$lib/components/agency/view-listing/BoostModal.svelte';
 	import ArchiveModal from '$lib/components/agency/view-listing/ArchiveModal.svelte';
 	import LightBoxModal from '$lib/components/agency/view-listing/LightBoxModal.svelte';
-  import { formatVideoDuration } from '$lib/utils';
-  
+	import { capitalize, formatPrice, formatVideoDuration, getErrorMessage } from '$lib/utils';
+	
 	let { data }: { data: PageData } = $props();
 
 	const listing = $derived(data.listing);
 
 	console.log({listing})
-
-	// Toast
-    let toastMsg     = $state('');
-    let toastType = $state<ToastType>('info');
-    let toastTimer: ReturnType<typeof setTimeout> | null = null;
-
-	// ── Toast ──────────────────────────────────────────────────────────────────
-	const showToast = (msg: string, type: ToastType = 'info') => {
-      toastMsg = msg;
-      toastType = type;
-      if (toastTimer) clearTimeout(toastTimer);
-      toastTimer = setTimeout(() => toastMsg = '', 3000);
-    }
 
 	const video = $derived(listing?.mediaItems.find((m: any) => m.type === 'VIDEO'));
     const images = $derived(listing?.mediaItems.filter((m: any) => m.type === 'PHOTO') ?? []);
@@ -65,12 +54,13 @@
 	}
 
 	interface DetailFieldDef {
-		key: keyof ListingDetails;
+		key: keyof ListingDetails | string;
 		label: string;
 		icon: string;
 		format?: (value: number | string) => string;
-		show: (value: unknown) => boolean;
+		show?: (value: unknown) => boolean;
 		span2?: boolean;
+		value?: string;
 	}
 
 	interface KpiCard {
@@ -147,15 +137,66 @@
 		year: 'numeric'	
 	}).format(date)
 
+	const restoreListing = async (listingId: string) => {
+		try {
+			const result = await new ApiRequests().restoreListing(listingId);
+			if (result.data.success) {
+				const message = result.data.message ?? 'Listing restored.';
+				notifications.success(message, {
+					title: 'Success',
+					duration: 6000
+				});
+				// Reload page_data
+				setTimeout(() => location.reload(), 6000);
+				return;
+			}
+		} catch (ex) {
+			if (ex instanceof AxiosError) {
+				const message = getErrorMessage(ex);
+				notifications.error(message, {
+					title: 'Error',
+					duration: 6000
+				});
+			}
+			console.error(ex);
+			return;
+		}
+	}
 
-    const confirmArchive = () => {
-		console.log({ msg: 'Listing taken down.' });
+    const confirmArchive = async () => {
+		try {
+			const result = await new ApiRequests().archiveListing(listing.id);
+			if (result.data.success) {
+				archiveModalOpen = false;
+
+				const message = result.data.message ?? 'Listing taken down.';
+				notifications.success(message, {
+					title: 'Success',
+					duration: 6000
+				});
+				// Reload page_data
+				setTimeout(() => location.reload(), 6000);
+				return;
+			}
+		} catch(ex) {
+			if (ex instanceof AxiosError) {
+				const message = getErrorMessage(ex);
+				notifications.error(message, {
+					title: 'Error',
+					duration: 6000
+				});
+			}
+			console.error(ex);
+			return;
+    	}
 	}
 
 	// ─────────────────────────────────────────────────────────
 	// Static icon markup (kept as raw SVG strings for 1:1 fidelity)
 	// ─────────────────────────────────────────────────────────
 	const ICONS = {
+		listing_type: '<svg class="text-chalk-muted dark:text-[#6A7FA0] flex-shrink-0" width="14" height="14" viewBox="0 0 20 20" fill="none"><path d="M2 10V3h7l9 9-7 7-9-9z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/><circle cx="6" cy="7" r="1.3" stroke="currentColor" stroke-width="1.2"/></svg>',
+		newly_built: '<svg class="text-chalk-muted dark:text-[#6A7FA0] flex-shrink-0" width="14" height="14" viewBox="0 0 20 20" fill="none"><path d="M2 18V9.5l6-5 5 4.2V18z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/><path d="M6 18v-4h3v4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/><path d="M16 1.5v5M13.5 4h5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>',
 		bed: '<svg class="text-chalk-muted dark:text-[#6A7FA0] flex-shrink-0" width="14" height="14" viewBox="0 0 20 20" fill="none"><path d="M3 18V7l7-5 7 5v11H13V13H7v5z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg>',
 		toilet: '<svg class="text-chalk-muted dark:text-[#6A7FA0] flex-shrink-0" width="14" height="14" viewBox="0 0 20 20" fill="none"><path d="M3 10h14M17 10v3a4 4 0 01-4 4H7a4 4 0 01-4-4v-3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><path d="M5 10V5a1 1 0 011-1h2.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>',
 		kitchen: '<svg class="text-chalk-muted dark:text-[#6A7FA0] flex-shrink-0" width="14" height="14" viewBox="0 0 20 20" fill="none"><rect x="2" y="8" width="16" height="10" rx="2" stroke="currentColor" stroke-width="1.4"/><path d="M6 8V5a4 4 0 018 0v3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>',
@@ -173,7 +214,6 @@
 	// Listing data model — drives the Property Details panel.
 	// Swap `category` to 'land' or 'commercial' to see it adapt
 	// (bedrooms/toilets/kitchens auto-hide when not relevant).
-	// ─────────────────────────────────────────────────────────
 	const LISTING: ListingDetails = {
 		category: 'residential',
 		bedrooms: 4,
@@ -218,12 +258,102 @@
 		{ key: 'broadbandSpeed', label: 'Broadband', icon: ICONS.wifi, span2: true, show: (v) => !!v }
 	];
 
-	const detailChips = $derived(
-		DETAIL_FIELD_DEFS.filter((f) => f.show(LISTING[f.key])).map((f) => ({
-			...f,
-			value: f.format ? f.format(LISTING[f.key] as never) : (LISTING[f.key] as string | number)
-		}))
-	);
+	let detailChips = $state<DetailFieldDef[]>([]);
+
+	const generateListingDetailSnippet = () => {
+		const type = listing.listingType;
+
+		const amenityMap = new Map();
+		(listing.amenities ?? []).forEach((a) => amenityMap.set(a.code, a));
+
+		const baseChips: DetailFieldDef[] = [
+			{
+				key: 'sizeSqm',
+				label: 'Sq. Footage',
+				icon: ICONS.size,
+				span2: false,
+				value: `${listing.sizeSqm} Ms`
+			},
+			{ 
+				key: 'broadbandSpeed', 
+				label: 'Broadband', 
+				icon: ICONS.wifi, 
+				span2: true, 
+				value: amenityMap.get('FIBRE_INTERNET_READY') ? 'Yes' : 'No'
+			},
+		]
+		switch (type.propertyCategory) {
+			case "RESIDENTIAL":
+				detailChips = [
+					{
+						key: 'type',
+						label: 'Listing type',
+						icon: ICONS.listing_type,
+						span2: false,
+						value: type.displayName,
+					},
+					{
+						key: 'bedrooms',
+						label: "Bedrooms",
+						icon: ICONS.bed,
+						span2: false,
+						value: listing.bedrooms ?? 0,
+					},
+					{
+						key: 'toilets',
+						label: "Toilets",
+						icon: ICONS.toilet,
+						span2: false,
+						value: listing.toilets ?? 0,
+					},
+					{
+						key: 'parkingSpaces',
+						label: 'Parking',
+						icon: ICONS.parking,
+						span2: false,
+						value: amenityMap.get('SECURE_PARKING') ? 'Yes' : 'No'
+					},
+					...baseChips,
+				]
+				break;
+			case "COMMERCIAL":
+				detailChips = [
+					{
+						key: 'type',
+						label: 'Listing type',
+						icon: ICONS.listing_type,
+						span2: false,
+						value: type.displayName,
+					},
+					{
+						key: 'parkingSpaces',
+						label: 'Parking',
+						icon: ICONS.parking,
+						span2: false,
+						value: amenityMap.get('SECURE_PARKING') ? 'Yes' : 'No'
+					},
+					...baseChips,
+				]
+				break;
+			case "LAND":
+				detailChips = [
+					{
+						key: 'type',
+						label: 'Listing type',
+						icon: ICONS.listing_type,
+						span2: false,
+						value: type.displayName ?? 'Empty plot',
+					},
+					...baseChips,
+				]
+				break;
+		}
+	}
+
+	onMount(() => {
+		generateListingDetailSnippet();
+		
+	});
 
 	const KPI_CARDS: KpiCard[] = [
 		{
@@ -270,67 +400,63 @@
 		}
 	];
 
-	const ARCHITECTURAL_PLANS: DocFile[] = [
-		{ name: 'Ground floor plan', meta: 'PDF · 2.4 MB', iconBg: 'bg-blue-bright/10', iconStroke: '#4A90E2' },
-		{ name: 'First floor plan', meta: 'PDF · 1.9 MB', iconBg: 'bg-sage-light', iconStroke: '#4A7848' },
-		{ name: 'Roof plan', meta: 'DWG · 3.1 MB', iconBg: 'bg-ember-light', iconStroke: '#C06035' }
-	];
-
 	const PLAN_PALETTES = [
 	{ iconBg: 'bg-blue-bright/10', iconStroke: '#4A90E2' },
 	{ iconBg: 'bg-sage-light', iconStroke: '#4A7848' }
 ] as const;
 
-const generateArchitecturalPlans = (listing: any): ArchitecturalPlanDoc[] => {
-	const docs = (listing?.listingDocuments ?? []).filter((d: any) => d?.type === 'ARCHITECTURAL_DOC');
-	if (docs.length === 0) return [];
+const generateOwnershipDocs = (listing: any) => {
+	const isPending = listing?.listingStatus === ListingStatus.PENDING_REVIEW;
 
-	return docs.map(({ upload }: { upload?: any }, index: number) => {
-		const palette = PLAN_PALETTES[index % PLAN_PALETTES.length];
-		const mimeType = upload?.mimeType ? String(upload.mimeType).split('/').pop() ?? '' : '';
+	const status = isPending ? 'Pending Review' : 'Verified';
+	const verified = isPending ? 'pending' : 'verified';
 
-		return {
-			mimeType,
-			name: `File ${index + 1}`,
-			url: upload?.url ?? '',
-			size: upload?.fileSize ?? 0,
-			iconBg: palette.iconBg,
-			iconStroke: palette.iconStroke,
-			
-		};
-	});
+	const colorScheme = isPending
+		? {
+				iconBg: 'bg-gold/15',
+				iconStroke: '#D4AE3A',
+			}
+		: {
+				iconBg: 'bg-navy-dark/8 dark:bg-white/[.06]',
+				iconStroke: '#0A2463',
+			};
+
+	return (listing?.listingDocuments ?? [])
+		.filter((d: any) => d?.type === ListingDocumentType.OWNERSHIP_DOC)
+		.map(({ upload }: any, index: number) => {
+			const size = upload?.fileSize ?? 0;
+			const mimeType = upload?.mimeType?.split('/')?.pop() ?? '';
+
+			return {
+				size,
+				status,
+				mimeType,
+				verified,
+				...colorScheme,
+				url: upload?.url ?? '',
+				name: `File ${index + 1}`,
+				meta: `${mimeType} · ${verified} · ${size}MB`,
+			};
+		});
 };
 
-	const OWNERSHIP_DOCS: DocFile[] = [
-		{
-			name: 'Certificate of Occupancy',
-			meta: 'PDF · Verified · 1.2 MB',
-			iconBg: 'bg-navy-dark/8 dark:bg-white/[.06]',
-			iconStroke: '#0A2463',
-			verified: 'verified'
-		},
-		{
-			name: 'Deed of Assignment',
-			meta: 'PDF · Verified · 0.9 MB',
-			iconBg: 'bg-navy-dark/8 dark:bg-white/[.06]',
-			iconStroke: '#0A2463',
-			verified: 'verified'
-		},
-		{
-			name: 'Survey Plan',
-			meta: 'PDF · Pending review · 2.1 MB',
-			iconBg: 'bg-gold/15',
-			iconStroke: '#D4AE3A',
-			verified: 'pending'
-		},
-		{
-			name: 'Building Approval',
-			meta: 'PDF · Verified · 1.7 MB',
-			iconBg: 'bg-navy-dark/8 dark:bg-white/[.06]',
-			iconStroke: '#0A2463',
-			verified: 'verified'
-		}
-	];
+const generateArchitecturalPlans = (listing: any): ArchitecturalPlanDoc[] => {
+	return (listing?.listingDocuments ?? [])
+		.filter((d: any) => d?.type === ListingDocumentType.ARCHITECTURAL_DOC)
+		.map(({ upload }: any, index: number) => {
+			const palette = PLAN_PALETTES[index % PLAN_PALETTES.length];
+			const mimeType = upload?.mimeType?.split('/')?.pop() ?? '';
+
+			return {
+				mimeType,
+				name: `File ${index + 1}`,
+				url: upload?.url ?? '',
+				size: upload?.fileSize ?? 0,
+				iconBg: palette.iconBg,
+				iconStroke: palette.iconStroke,
+			};
+		});
+};
 
 	const VIEWINGS: Record<ViewingTab, Viewing[]> = {
 		today: [
@@ -503,7 +629,6 @@ const generateArchitecturalPlans = (listing: any): ArchitecturalPlanDoc[] => {
 	let lightboxOpen = $state(false);
 
 	let videoPlaying = $state(false);
-	let toastMessage = $state<string | null>(null);
 
 	function openLightbox() {
 		if (!imageUrls.length) return;
@@ -572,18 +697,18 @@ const generateArchitecturalPlans = (listing: any): ArchitecturalPlanDoc[] => {
 
 	function handleActivateBoost(plan: BoostPlanSelection) {
 		boostModalOpen = false;
-		showToast(`🌟 ${plan.name} boost activated successfully!`);
-	}
-
-	function handleConfirmArchive() {
-		archiveModalOpen = false;
-		archived = true;
-		showToast('Listing archived. It is no longer publicly visible.');
+		notifications.success(`🌟 ${plan.name} boost activated successfully!`, {
+			title: 'Boost activated',
+			duration: 6000
+		});
 	}
 
 	function handleUnarchive() {
 		archived = false;
-		showToast('Listing restored and is now publicly visible.');
+		notifications.success('Listing restored and is now publicly visible.', {
+			title: 'Listing restored',
+			duration: 6000
+		});
 	}
 
 	function closeBellOnOutsideClick(event: MouseEvent) {
@@ -666,6 +791,7 @@ const generateArchitecturalPlans = (listing: any): ArchitecturalPlanDoc[] => {
                         </div>
     
                         <div class="fu d2 flex flex-wrap items-center gap-2.5">
+							{#if !listing.isBoosted}
                             <button
                                 onclick={() => (boostModalOpen = true)}
                                 class="tt flex items-center gap-2 rounded-full border-none bg-gold px-4 py-[10px] text-[13px] font-medium text-white hover:opacity-90"
@@ -680,8 +806,9 @@ const generateArchitecturalPlans = (listing: any): ArchitecturalPlanDoc[] => {
                                 </svg>
                                 {BOOST.active ? 'Manage boost' : 'Boost property'}
                             </button>
+							{/if}
                             <a
-                                href="/property/edit"
+                                href="/agency/listings/edit/{listing.slug}"
                                 class="tt flex cursor-pointer items-center gap-2 rounded-full border border-white/15 bg-white/[.1] px-4 py-[10px] text-[13px] font-medium text-white no-underline hover:bg-white/[.18]"
                             >
                                 <svg width="12" height="12" viewBox="0 0 14 14" fill="none">
@@ -689,7 +816,18 @@ const generateArchitecturalPlans = (listing: any): ArchitecturalPlanDoc[] => {
                                 </svg>
                                 Edit listing
                             </a>
-                            <button
+							{#if listing.listingStatus === ListingStatus.ARCHIVED}
+							<button type="button"
+								title="Restore listing" 
+								onclick={() => restoreListing(listing.id)} 
+								class="tt flex items-center gap-2 rounded-full border-none border border-white/10 bg-white/[.06] px-4 py-[10px] text-[13px] font-medium text-white/70 hover:bg-white/[.12] hover:text-white">
+								<svg width="10" height="10" viewBox="0 0 14 14" fill="none">
+									<path d="M2 7a5 5 0 1010 0 5 5 0 00-10 0zM9 5L7 7l-2-2" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" />
+								</svg>
+								Restore
+							</button>
+							{:else}
+							<button
                                 onclick={() => (archiveModalOpen = true)}
                                 class="tt flex items-center gap-2 rounded-full border-none border border-white/10 bg-white/[.06] px-4 py-[10px] text-[13px] font-medium text-white/70 hover:bg-white/[.12] hover:text-white"
                             >
@@ -699,6 +837,7 @@ const generateArchitecturalPlans = (listing: any): ArchitecturalPlanDoc[] => {
                                 </svg>
                                 Archive
                             </button>
+							{/if}
                         </div>
                     </div>
                 </div>
@@ -818,7 +957,7 @@ const generateArchitecturalPlans = (listing: any): ArchitecturalPlanDoc[] => {
                             </div>
                         </div>
     
-                        <!-- Right: Quick Info panel -->
+                        <!-- Right: Quick Info panel --> 
                         <div class="space-y-4 rounded-2xl border border-chalk-3 bg-white p-5 shadow-[0_2px_12px_rgba(10,36,99,.06)] dark:border-white/[.06] dark:bg-[#0D1422] dark:shadow-none">
                             <div class="sec-label text-chalk-muted dark:text-[#6A7FA0]">Property Details</div>
                             <div class="grid grid-cols-2 gap-2.5">
@@ -842,30 +981,28 @@ const generateArchitecturalPlans = (listing: any): ArchitecturalPlanDoc[] => {
                                 <div class="mb-1 flex items-baseline justify-between">
                                     <span class="text-[12px] text-chalk-muted dark:text-[#6A7FA0]">Base price</span>
                                     <span class="font-display font-semibold text-navy-dark dark:text-blue-100" style="font-size:16px">
-                                        {LISTING.currency}{LISTING.basePrice.toLocaleString()}
+        								{listing.priceCurrency}{formatPrice(listing.priceAmount)}
                                     </span>
                                 </div>
                                 <div class="flex justify-between text-[12px]">
                                     <span class="text-chalk-muted dark:text-[#6A7FA0]">Payment period</span>
-                                    <span class="font-medium text-navy-dark dark:text-blue-100">{LISTING.paymentPeriod}</span>
+                                    <span class="font-medium text-navy-dark dark:text-blue-100">{capitalize(listing.paymentPeriod)}</span>
                                 </div>
                             </div>
     
                             <div class="border-t border-chalk-3 pt-4 dark:border-white/[.06]">
-                                <div class="sec-label mb-2.5 text-[10px] text-chalk-muted dark:text-[#6A7FA0]">Additional costs</div>
+                                <div class="sec-label mb-2.5 text-[10px] text-chalk-muted dark:text-[#6A7FA0]">
+									Additional costs (one-off)
+								</div>
                                 <div class="space-y-2">
+									{#each listing.listingFees as fee}
                                     <div class="flex justify-between text-[12px]">
-                                        <span class="text-chalk-muted dark:text-[#6A7FA0]">Service charge</span>
-                                        <span class="font-medium text-navy-dark dark:text-blue-100">₦180,000/yr</span>
+                                        <span class="text-chalk-muted dark:text-[#6A7FA0] capitalize">{fee.label}</span>
+                                        <span class="font-medium text-navy-dark dark:text-blue-100">
+											{listing.priceCurrency} {formatPrice(fee.amount)}
+										</span>
                                     </div>
-                                    <div class="flex justify-between text-[12px]">
-                                        <span class="text-chalk-muted dark:text-[#6A7FA0]">Agency fee</span>
-                                        <span class="font-medium text-navy-dark dark:text-blue-100">10% (one-off)</span>
-                                    </div>
-                                    <div class="flex justify-between text-[12px]">
-                                        <span class="text-chalk-muted dark:text-[#6A7FA0]">Caution deposit</span>
-                                        <span class="font-medium text-navy-dark dark:text-blue-100">₦350,000</span>
-                                    </div>
+									{/each}
                                 </div>
                             </div>
     
@@ -885,7 +1022,7 @@ const generateArchitecturalPlans = (listing: any): ArchitecturalPlanDoc[] => {
                                     Boost
                                 </button>
                                 <a
-                                    href="/property/edit"
+                                    href="/agency/listings/edit/{listing.slug}"
                                     class="tt flex flex-1 cursor-pointer items-center justify-center gap-1.5 rounded-full border border-chalk-3 bg-chalk-2 py-2.5 text-[12px] font-medium text-navy-dark no-underline hover:bg-chalk-3 dark:border-white/[.08] dark:bg-white/[.06] dark:text-blue-100 dark:hover:bg-white/10"
                                 >
                                     <svg width="11" height="11" viewBox="0 0 14 14" fill="none">
@@ -1011,10 +1148,12 @@ const generateArchitecturalPlans = (listing: any): ArchitecturalPlanDoc[] => {
                     </div>
     
                     <!-- ══ ARCHITECTURAL PLANS ══ -->
+					{#if generateArchitecturalPlans(listing).length > 0}
+					{@const plans = generateArchitecturalPlans(listing)}
                     <div class="fu d4">
                         <div class="sec-label mb-3 text-chalk-muted dark:text-[#6A7FA0]">Architectural Plans</div>
                         <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                            {#each generateArchitecturalPlans(listing) as doc}
+                            {#each plans as doc}
                                 <div class="doc-card rounded-2xl border border-chalk-3 bg-white p-4 shadow-[0_2px_8px_rgba(10,36,99,.05)] dark:border-white/[.06] dark:bg-[#0D1422] dark:shadow-none">
                                     <div class="mb-3 flex items-center gap-3">
                                         <div class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl {doc.iconBg}">
@@ -1042,15 +1181,18 @@ const generateArchitecturalPlans = (listing: any): ArchitecturalPlanDoc[] => {
                             {/each}
                         </div>
                     </div>
+					{/if}
     
+					{#if generateOwnershipDocs(listing).length > 0}
+					{@const docs = generateOwnershipDocs(listing)}
                     <!-- ══ OWNERSHIP DOCUMENTS ══ -->
                     <div class="fu d5">
                         <div class="sec-label mb-3 text-chalk-muted dark:text-[#6A7FA0]">Ownership Documents</div>
                         <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                            {#each OWNERSHIP_DOCS as doc}
+                            {#each docs as doc}
                                 <div class="doc-card flex items-center gap-4 rounded-2xl border border-chalk-3 bg-white p-4 shadow-[0_2px_8px_rgba(10,36,99,.05)] dark:border-white/[.06] dark:bg-[#0D1422] dark:shadow-none">
                                     <div class="tt flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl {doc.iconBg}">
-                                        <svg width="17" height="17" viewBox="0 0 20 20" fill="none">
+                                        <svg width="17" height="17" viewBox="0 0 20 20" fill="none"> 
                                             <rect x="3" y="2" width="14" height="16" rx="2" stroke={doc.iconStroke} stroke-width="1.4" />
                                             <path d="M6 8h8M6 11h8M6 14h5" stroke={doc.iconStroke} stroke-width="1.3" stroke-linecap="round" />
                                         </svg>
@@ -1064,13 +1206,14 @@ const generateArchitecturalPlans = (listing: any): ArchitecturalPlanDoc[] => {
                                             <span class="mt-1 inline-block rounded-full bg-gold/15 px-2 py-[2px] text-[10px] font-medium text-[#8A6A10] dark:text-gold">⏳ Pending</span>
                                         {/if}
                                     </div>
-                                    <button class="tt flex-shrink-0 cursor-pointer border-none bg-transparent font-sans text-[12px] font-medium text-blue-link hover:opacity-75 dark:text-blue-bright">
+                                    <a href={doc.url} download={doc.url} class="tt flex-shrink-0 cursor-pointer border-none bg-transparent font-sans text-[12px] font-medium text-blue-link hover:opacity-75 dark:text-blue-bright">
                                         Download
-                                    </button>
+                                    </a>
                                 </div>
                             {/each}
                         </div>
                     </div>
+					{/if}
     
                     <!-- ══ VIEWING HISTORY ══ -->
                     <div class="fu d6">
@@ -1283,12 +1426,7 @@ const generateArchitecturalPlans = (listing: any): ArchitecturalPlanDoc[] => {
 <!-- ══ MODALS ══ -->
 <LightBoxModal open={lightboxOpen} images={imageUrls} index={activeThumbIndex} onClose={() => (lightboxOpen = false)} />
 <BoostModal open={boostModalOpen} property={LISTING} onClose={() => (boostModalOpen = false)} onConfirm={confirmBoost} />
-<ArchiveModal open={archiveModalOpen} property={LISTING} onClose={() => (archiveModalOpen = false)} onConfirm={confirmArchive} />
-
-{#if toastMsg  && toastMsg !== ''}
-    <Toast toastMsg={toastMsg} type={toastType} />
-{/if}
-
+<ArchiveModal open={archiveModalOpen} property={listing} onClose={() => (archiveModalOpen = false)} onConfirm={confirmArchive} />
 
 <style>
 	.tt {

@@ -22,8 +22,6 @@ export interface Testimonial {
   avatarColor: string;
 }
 
-export type ToastType = "success" | "error" | "info";
-
 export interface NormalizePhoneOptions {
   phone: string;
   countryCode: string; // ISO-2 e.g. "NG", "US"

@@ -1,48 +1,36 @@
 <script lang="ts">
     import { AxiosError } from 'axios';
     import { goto } from '$app/navigation';
-    import type { ToastType } from '$lib/types';
-    import { getErrorMessage } from '$lib/utils';
+        import { getErrorMessage } from '$lib/utils';
     import { ApiRequests } from '$lib/api/api.request';
-    import Toast from '$lib/components/shared/Toast.svelte';
+    import { notifications } from '$lib/stores/notification.svelte';
 
     
     // Step 1
     let emailValue = $state('');
     let emailError = $state(false);
 
-    // Toast
-    let toastMsg = $state('');
-    let toastType = $state<ToastType>('info');
-    let toastTimer: ReturnType<typeof setTimeout> | null = null;
 
-     // ── Toast ──────────────────────────────────────────────────────────────────
-     const showToast = (msg: string, type: ToastType) => {
-      toastMsg = msg;
-      toastType = type;
-      if (toastTimer) clearTimeout(toastTimer);
-      toastTimer = setTimeout(() => toastMsg = '', 3000);
-    }
 
     // ── STEP 1: Send code ─────────────────────────────────────────────────────
     const sendCode = async () => {
       const val = emailValue.trim();
       if (!val || !val.includes('@')) {
         emailError = true;
-        showToast('Please enter a valid email address', 'info');
+        notifications.error('Please enter a valid email address');
         return;
       }
 
       try {
           const result = await new ApiRequests().forgotPassword(val);
           if (result.data.success) {
-            showToast(result.data.message, 'success');
+            notifications.success(result.data.message);
             goto(`/site/forgot-password/step-1/${val}`);
           }
         } catch(ex) {
           if (ex instanceof AxiosError) {
             const message = getErrorMessage(ex);
-            showToast(message, 'error');
+            notifications.error(message);
           }
           return;
         }
@@ -186,9 +174,6 @@
     </div>
 </div>
 
-{#if toastMsg  && toastMsg !== ''}
-    <Toast toastMsg={toastMsg} type={toastType} />
-{/if}
 
 <style>
     /* ── Reset ────────────────────────────────────────────────────────────── */
