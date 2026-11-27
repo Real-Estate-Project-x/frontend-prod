@@ -109,11 +109,6 @@ select{-webkit-appearance:none;appearance:none}
 
 .plan-card.active {outline: rgb(212, 174, 58) solid 2px;}
 
- .capitalize {text-transform: capitalize !important;}
-  .uppercase {text-transform: uppercase !important;}
-  .lowercase {text-transform: lowercase !important;}
-
-
 @media(max-width:640px){
   .hide-xs{display:none!important}
   .grid-2{grid-template-columns:1fr 1fr!important}
